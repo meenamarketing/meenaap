@@ -36,7 +36,7 @@
     h1 {
       color: #00bcd4;
     }
-    input, button {
+    input, select, button {
       padding: 10px;
       margin: 5px 10px 15px 0;
       border-radius: 5px;
@@ -68,7 +68,7 @@
     <a href="customers.html">Customers</a>
     <a href="entries.html">Entries</a>
     <a href="review.html">Agent Review</a>
-    <a href="reports.html">Reports</a>
+    <a href="report.html">Reports</a>
   </nav>
 
   <main>
@@ -98,14 +98,18 @@
     }
 
     function getPaidTotal(product) {
-      if (!Array.isArray(product.payments)) return 0;
-      return product.payments.reduce((sum, p) => sum + p.amount, 0);
+      if (Array.isArray(product.payments)) {
+        return product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      } else if (typeof product.paid === "number") {
+        return product.paid;
+      }
+      return 0;
     }
 
     function searchCustomer() {
       const key = document.getElementById("searchId").value.toLowerCase();
-      const match = customers.find(c => 
-        c.id.toLowerCase().includes(key) || 
+      const match = customers.find(c =>
+        c.id.toLowerCase().includes(key) ||
         c.name.toLowerCase().includes(key)
       );
 
@@ -121,9 +125,21 @@
       container.innerHTML = `<h3>${match.name} (${match.id})</h3><p>Phone: ${match.phone} | Place: ${match.place}</p>`;
 
       match.products.forEach((p, i) => {
-        p.payments = p.payments || []; // ensure structure exists
+        // Convert old format to new format
+        if (!p.payments && Array.isArray(p.datesPaid)) {
+          const avg = (p.paid || 0) / p.datesPaid.length;
+          p.payments = p.datesPaid.map(date => ({
+            date,
+            amount: Math.round(avg * 100) / 100
+          }));
+        }
+
+        // Ensure payments array exists
+        p.payments = p.payments || [];
+
         const paid = getPaidTotal(p);
-        const balance = p.total - paid;
+        const balance = Math.max(0, p.total - paid);
+
         const prodDiv = document.createElement("div");
         prodDiv.className = "product-block";
         prodDiv.innerHTML = `
@@ -153,12 +169,20 @@
       const customer = customers.find(c => c.id === custId);
       const product = customer.products[productIndex];
 
-      product.payments = product.payments || [];
+      // Convert to new structure if old
+      if (!Array.isArray(product.payments)) {
+        product.payments = [];
+      }
+
+      // Remove old keys
+      delete product.paid;
+      delete product.datesPaid;
+
       product.payments.push({ date, amount });
 
       amtInput.value = "";
       alert("Payment added.");
-      searchCustomer(); // Refresh view
+      searchCustomer(); // refresh view
     }
 
     function exportUpdated() {
