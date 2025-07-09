@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Customer Report - Agent App</title>
+  <title>Reports - EMI Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
@@ -14,14 +14,14 @@
     nav {
       background: #1f1f1f;
       display: flex;
-      flex-wrap: wrap;
       padding: 10px;
-      gap: 10px;
+      gap: 15px;
+      flex-wrap: wrap;
     }
     nav a {
       color: white;
       background: #333;
-      padding: 10px 15px;
+      padding: 8px 15px;
       border-radius: 5px;
       text-decoration: none;
     }
@@ -35,86 +35,237 @@
     h1 {
       color: #00bcd4;
     }
-    input {
+    input, button {
       padding: 10px;
-      margin: 10px 0;
+      margin: 5px 10px 15px 0;
       border-radius: 5px;
       background: #1e1e1e;
       color: white;
       border: 1px solid #444;
+    }
+    button {
+      background: #00bcd4;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #26c6da;
+    }
+    table {
       width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
     }
-    .box {
-      background: #1d1d1d;
-      padding: 15px;
-      margin-top: 20px;
+    th, td {
+      padding: 8px;
       border: 1px solid #333;
-      border-radius: 10px;
     }
-    .product {
-      border-top: 1px solid #333;
-      margin-top: 15px;
-      padding-top: 10px;
+    thead {
+      background: #2c2c2c;
+    }
+    tr:nth-child(odd) {
+      background: #1d1d1d;
+    }
+    #suggestions {
+      position: absolute;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 5px;
+      z-index: 999;
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    #suggestions div {
+      padding: 10px;
+      border-bottom: 1px solid #333;
+      cursor: pointer;
+    }
+    #suggestions div:hover {
+      background: #00bcd4;
+      color: black;
     }
   </style>
 </head>
 <body>
   <nav>
-    <a href="index.html">Home</a>
-    <a href="entries.html">Add Collection</a>
-    <a href="view.html">Today's Entries</a>
-    <a href="customer_report.html">Customer Report</a>
+    <a href="index.html">Dashboard</a>
+    <a href="customers.html">Customers</a>
+    <a href="entries.html">Entries</a>
+    <a href="review.html">Agent Review</a>
+    <a href="reports.html">Reports</a>
   </nav>
 
   <main>
-    <h1>Customer Report</h1>
-    <input type="text" id="searchBox" placeholder="Enter Customer ID, Name, or Phone" oninput="searchCustomer(this.value)" />
-    <div class="box" id="reportBox" style="display:none;"></div>
+    <h1>Reports & Filter</h1>
+    <input type="file" accept=".json" onchange="loadData(event)">
+    <br>
+
+    <div style="position:relative;">
+      <input id="searchId" placeholder="Customer ID or Name or Phone" oninput="filterData(); showSuggestions(this.value)">
+      <div id="suggestions"></div>
+    </div>
+    <input id="searchPlace" placeholder="Place" oninput="filterData()">
+    <input id="searchProduct" placeholder="Product Name" oninput="filterData()">
+    <label>From: <input type="date" id="fromDate" onchange="filterData()"></label>
+    <label>To: <input type="date" id="toDate" onchange="filterData()"></label>
+    <button onclick="exportCSV()">Export CSV</button>
+
+    <h3 id="reportTotal">Total Paid: ₹0</h3>
+    <h3 id="reportBalance">Total Balance: ₹0</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Name</th><th>Place</th><th>Phone</th><th>Product</th><th>Paid</th><th>Balance</th><th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="reportTable"></tbody>
+    </table>
   </main>
 
   <script>
-    const customers = JSON.parse(localStorage.getItem("agent_customers") || "[]");
+    let customers = [];
+    let flatReport = [];
+    let allSuggestions = new Set();
 
-    function searchCustomer(value) {
-      const reportBox = document.getElementById("reportBox");
-      if (!value || value.length < 2) {
-        reportBox.style.display = "none";
-        return;
-      }
+    function loadData(event) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        customers = JSON.parse(e.target.result);
+        flattenData();
+        filterData();
+      };
+      reader.readAsText(file);
+    }
 
-      const cust = customers.find(c =>
-        c.id.toLowerCase().includes(value.toLowerCase()) ||
-        c.name.toLowerCase().includes(value.toLowerCase()) ||
-        c.phone.includes(value)
-      );
+    function flattenData() {
+      flatReport = [];
+      allSuggestions.clear();
 
-      if (!cust) {
-        reportBox.style.display = "none";
-        return;
-      }
+      customers.forEach(c => {
+        allSuggestions.add(c.id);
+        allSuggestions.add(c.name);
+        allSuggestions.add(c.phone);
 
-      let html = `
-        <p><strong>ID:</strong> ${cust.id}</p>
-        <p><strong>Name:</strong> ${cust.name}</p>
-        <p><strong>Phone:</strong> ${cust.phone}</p>
-        <p><strong>Place:</strong> ${cust.place}</p>
-      `;
+        c.products.forEach(p => {
+          const total = p.total || (p.paid || 0); // fallback if total not set
+          const splitAmt = Math.round((p.paid / p.datesPaid.length) * 100) / 100;
 
-      cust.products.forEach(p => {
-        const balance = (p.total || p.paid) - p.paid;
-        html += `
-          <div class="product">
-            <p><strong>Product:</strong> ${p.name}</p>
-            <p><strong>Total:</strong> ₹${p.total || p.paid}</p>
-            <p><strong>Paid:</strong> ₹${p.paid}</p>
-            <p><strong>Balance:</strong> ₹${balance}</p>
-            <p><strong>Paid Dates:</strong> ${p.datesPaid.join(", ")}</p>
-          </div>
-        `;
+          p.datesPaid.forEach((date, idx) => {
+            const paidSoFar = splitAmt * (idx + 1);
+            const balance = Math.max(0, total - paidSoFar);
+
+            flatReport.push({
+              id: c.id,
+              name: c.name,
+              place: c.place,
+              phone: c.phone,
+              product: p.name,
+              paid: splitAmt,
+              balance: balance,
+              date,
+              totalProductBalance: total - p.paid
+            });
+          });
+        });
+      });
+    }
+
+    function filterData() {
+      const id = document.getElementById("searchId").value.toLowerCase();
+      const place = document.getElementById("searchPlace").value.toLowerCase();
+      const product = document.getElementById("searchProduct").value.toLowerCase();
+      const fromDate = document.getElementById("fromDate").value;
+      const toDate = document.getElementById("toDate").value;
+
+      let filtered = flatReport.filter(r => {
+        return (
+          (!id || r.id.toLowerCase().includes(id) || r.name.toLowerCase().includes(id) || r.phone.includes(id)) &&
+          (!place || r.place.toLowerCase().includes(place)) &&
+          (!product || r.product.toLowerCase().includes(product)) &&
+          (!fromDate || r.date >= fromDate) &&
+          (!toDate || r.date <= toDate)
+        );
       });
 
-      reportBox.innerHTML = html;
-      reportBox.style.display = "block";
+      const tbody = document.getElementById("reportTable");
+      tbody.innerHTML = "";
+      let total = 0;
+
+      filtered.forEach(r => {
+        total += r.paid;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${r.id}</td>
+          <td>${r.name}</td>
+          <td>${r.place}</td>
+          <td>${r.phone}</td>
+          <td>${r.product}</td>
+          <td>₹${r.paid.toFixed(2)}</td>
+          <td>₹${r.balance.toFixed(2)}</td>
+          <td>${r.date}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      document.getElementById("reportTotal").innerText = `Total Paid: ₹${total.toFixed(2)}`;
+
+      // 💰 Show total customer balance
+      let filteredCustomers = new Set(filtered.map(r => r.id));
+      let totalBalance = 0;
+      customers.forEach(c => {
+        if (filteredCustomers.has(c.id)) {
+          c.products.forEach(p => {
+            const total = p.total || (p.paid || 0);
+            totalBalance += Math.max(0, total - p.paid);
+          });
+        }
+      });
+
+      document.getElementById("reportBalance").innerText = `Total Balance: ₹${totalBalance.toFixed(2)}`;
+    }
+
+    function exportCSV() {
+      let csv = "ID,Name,Place,Phone,Product,Paid,Balance,Date\n";
+      const rows = document.querySelectorAll("#reportTable tr");
+      rows.forEach(r => {
+        const cells = r.querySelectorAll("td");
+        const row = Array.from(cells).map(td => td.innerText).join(",");
+        csv += row + "\n";
+      });
+
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "filtered_report.csv";
+      a.click();
+    }
+
+    function showSuggestions(input) {
+      const box = document.getElementById("suggestions");
+      if (!input || input.length < 1) {
+        box.style.display = "none";
+        return;
+      }
+
+      const results = [...allSuggestions].filter(s => s.toLowerCase().includes(input.toLowerCase())).slice(0, 10);
+      box.innerHTML = results.map(r => `<div onclick="selectSuggestion('${r}')">${r}</div>`).join("");
+      box.style.display = results.length ? "block" : "none";
+
+      const rect = document.getElementById("searchId").getBoundingClientRect();
+      box.style.left = rect.left + "px";
+      box.style.top = rect.bottom + window.scrollY + "px";
+      box.style.width = rect.width + "px";
+    }
+
+    function selectSuggestion(value) {
+      document.getElementById("searchId").value = value;
+      document.getElementById("suggestions").style.display = "none";
+      filterData();
     }
   </script>
 </body>
