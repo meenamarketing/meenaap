@@ -36,7 +36,7 @@
     h1 {
       color: #00bcd4;
     }
-    input, select, button {
+    input, button {
       padding: 10px;
       margin: 5px 10px 15px 0;
       border-radius: 5px;
@@ -97,6 +97,11 @@
       reader.readAsText(file);
     }
 
+    function getPaidTotal(product) {
+      if (!Array.isArray(product.payments)) return 0;
+      return product.payments.reduce((sum, p) => sum + p.amount, 0);
+    }
+
     function searchCustomer() {
       const key = document.getElementById("searchId").value.toLowerCase();
       const match = customers.find(c => 
@@ -116,12 +121,14 @@
       container.innerHTML = `<h3>${match.name} (${match.id})</h3><p>Phone: ${match.phone} | Place: ${match.place}</p>`;
 
       match.products.forEach((p, i) => {
-        const bal = p.total - p.paid;
+        p.payments = p.payments || []; // ensure structure exists
+        const paid = getPaidTotal(p);
+        const balance = p.total - paid;
         const prodDiv = document.createElement("div");
         prodDiv.className = "product-block";
         prodDiv.innerHTML = `
           <strong>${p.name}</strong><br>
-          Total: ₹${p.total}, Paid: ₹${p.paid}, Balance: ₹${bal}<br>
+          Total: ₹${p.total}, Paid: ₹${paid}, Balance: ₹${balance}<br>
           <input type="number" placeholder="Enter amount to add" id="pay_${match.id}_${i}">
           <input type="date" id="date_${match.id}_${i}" value="${new Date().toISOString().split('T')[0]}">
           <button onclick="addPayment('${match.id}', ${i})">Add Payment</button>
@@ -138,16 +145,16 @@
       const amount = parseFloat(amtInput.value);
       const date = dateInput.value;
 
-      if (isNaN(amount) || amount <= 0) {
-        alert("Enter a valid amount.");
+      if (isNaN(amount) || amount <= 0 || !date) {
+        alert("Enter a valid amount and date.");
         return;
       }
 
       const customer = customers.find(c => c.id === custId);
       const product = customer.products[productIndex];
 
-      product.paid += amount;
-      product.datesPaid.push(date);
+      product.payments = product.payments || [];
+      product.payments.push({ date, amount });
 
       amtInput.value = "";
       alert("Payment added.");
