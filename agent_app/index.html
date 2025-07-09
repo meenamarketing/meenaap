@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Agent Dashboard - EMI Collections</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: sans-serif;
+      margin: 0;
+    }
+    nav {
+      background: #1f1f1f;
+      display: flex;
+      flex-wrap: wrap;
+      padding: 10px;
+      gap: 10px;
+    }
+    nav a {
+      color: white;
+      background: #333;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+    nav a:hover {
+      background: #00bcd4;
+      color: black;
+    }
+    main {
+      padding: 20px;
+    }
+    h1 {
+      color: #00bcd4;
+    }
+    input {
+      padding: 10px;
+      background: #1e1e1e;
+      color: white;
+      border: 1px solid #444;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    .stat {
+      background: #222;
+      border: 1px solid #333;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="entries.html">Add Collection</a>
+    <a href="view.html">Today's Entries</a>
+    <a href="customer_report.html">Customer Report</a>
+  </nav>
+
+  <main>
+    <h1>Agent Dashboard</h1>
+    <p>Import master customer JSON file given by Main App:</p>
+    <input type="file" accept=".json" onchange="loadMasterData(event)" />
+
+    <div class="stat">
+      <p><strong>Customers Loaded:</strong> <span id="customerCount">0</span></p>
+    </div>
+
+    <div class="stat">
+      <p><strong>Entries Made Today:</strong> <span id="entryCount">0</span></p>
+    </div>
+  </main>
+
+  <script>
+    let customers = [];
+    let entries = [];
+
+    function loadMasterData(event) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        customers = JSON.parse(e.target.result);
+        localStorage.setItem('agent_customers', JSON.stringify(customers));
+        localStorage.setItem('agent_entries', JSON.stringify([]));
+        updateCounts();
+        alert("Master data loaded successfully!");
+      };
+      reader.readAsText(file);
+    }
+
+    function updateCounts() {
+      const loaded = JSON.parse(localStorage.getItem('agent_customers') || '[]');
+      const made = JSON.parse(localStorage.getItem('agent_entries') || '[]');
+      document.getElementById("customerCount").innerText = loaded.length;
+      document.getElementById("entryCount").innerText = made.length;
+    }
+
+    updateCounts();
+  </script>
+</body>
+</html>

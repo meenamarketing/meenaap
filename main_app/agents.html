@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EMI Manager - Agent Review</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="customers.html">Customers</a>
+    <a href="entries.html">Today's Entries</a>
+    <a href="agents.html">Agent Review</a>
+    <a href="reports.html">Reports</a>
+  </nav>
+
+  <main class="page">
+    <h1>Review Agent CSV & Approve Entries</h1>
+
+    <input type="file" accept=".csv" onchange="importAgentFile(event)" />
+    <div id="agentSummary"></div>
+
+    <table id="agentTable">
+      <thead>
+        <tr>
+          <th>Customer ID</th><th>Product</th><th>Amount</th><th>Date</th><th>Place</th><th>Agent</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <button onclick="approveAgentEntries()">Approve and Update Main CSV</button>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

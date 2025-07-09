@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Add Collections - Agent App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: sans-serif;
+      margin: 0;
+    }
+    nav {
+      background: #1f1f1f;
+      display: flex;
+      flex-wrap: wrap;
+      padding: 10px;
+      gap: 10px;
+    }
+    nav a {
+      color: white;
+      background: #333;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+    nav a:hover {
+      background: #00bcd4;
+      color: black;
+    }
+    main {
+      padding: 20px;
+    }
+    h1 {
+      color: #00bcd4;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      background: #1e1e1e;
+      color: white;
+      border: 1px solid #444;
+      width: 100%;
+    }
+    button {
+      background: #00bcd4;
+      color: black;
+      font-weight: bold;
+    }
+    .customer-box {
+      margin-top: 10px;
+      padding: 10px;
+      background: #1d1d1d;
+      border: 1px solid #333;
+      border-radius: 8px;
+    }
+    #suggestions {
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 5px;
+      display: none;
+      position: absolute;
+      z-index: 999;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    #suggestions div {
+      padding: 10px;
+      cursor: pointer;
+    }
+    #suggestions div:hover {
+      background: #00bcd4;
+      color: black;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="entries.html">Add Collection</a>
+    <a href="view.html">Today's Entries</a>
+  </nav>
+
+  <main>
+    <h1>Add Collection Entry</h1>
+    <input type="text" id="searchBox" placeholder="Search by ID, Name or Phone" oninput="showSuggestions(this.value)">
+    <div id="suggestions"></div>
+
+    <div class="customer-box" id="customerInfo" style="display:none;">
+      <p><strong>ID:</strong> <span id="custId"></span></p>
+      <p><strong>Name:</strong> <span id="custName"></span></p>
+      <p><strong>Phone:</strong> <span id="custPhone"></span></p>
+      <p><strong>Place:</strong> <span id="custPlace"></span></p>
+
+      <input type="number" id="amount" placeholder="Enter Amount Collected">
+      <input type="date" id="date" value="">
+      <button onclick="saveEntry()">Save Entry</button>
+    </div>
+  </main>
+
+  <script>
+    let customers = JSON.parse(localStorage.getItem('agent_customers') || '[]');
+    let entries = JSON.parse(localStorage.getItem('agent_entries') || '[]');
+    let selectedCustomer = null;
+
+    function showSuggestions(input) {
+      const box = document.getElementById("suggestions");
+      if (!input || input.length < 1) {
+        box.style.display = "none";
+        return;
+      }
+
+      const results = customers.filter(c =>
+        c.id.toLowerCase().includes(input.toLowerCase()) ||
+        c.name.toLowerCase().includes(input.toLowerCase()) ||
+        c.phone.includes(input)
+      ).slice(0, 10);
+
+      box.innerHTML = results.map(c => `<div onclick="selectCustomer('${c.id}')">${c.id} - ${c.name} (${c.phone})</div>`).join("");
+      box.style.display = results.length ? "block" : "none";
+
+      const rect = document.getElementById("searchBox").getBoundingClientRect();
+      box.style.position = "absolute";
+      box.style.left = rect.left + "px";
+      box.style.top = rect.bottom + window.scrollY + "px";
+      box.style.width = rect.width + "px";
+    }
+
+    function selectCustomer(id) {
+      selectedCustomer = customers.find(c => c.id === id);
+      document.getElementById("custId").innerText = selectedCustomer.id;
+      document.getElementById("custName").innerText = selectedCustomer.name;
+      document.getElementById("custPhone").innerText = selectedCustomer.phone;
+      document.getElementById("custPlace").innerText = selectedCustomer.place;
+      document.getElementById("customerInfo").style.display = "block";
+      document.getElementById("suggestions").style.display = "none";
+      document.getElementById("searchBox").value = selectedCustomer.name;
+    }
+
+    function saveEntry() {
+      const amt = parseFloat(document.getElementById("amount").value);
+      const date = document.getElementById("date").value;
+
+      if (!selectedCustomer || isNaN(amt) || !date) {
+        alert("Please fill all fields");
+        return;
+      }
+
+      const entry = {
+        id: selectedCustomer.id,
+        name: selectedCustomer.name,
+        phone: selectedCustomer.phone,
+        amount: amt,
+        date: date
+      };
+
+      entries.push(entry);
+      localStorage.setItem("agent_entries", JSON.stringify(entries));
+      alert("Entry saved successfully!");
+
+      // Clear form
+      document.getElementById("customerInfo").style.display = "none";
+      document.getElementById("amount").value = "";
+      document.getElementById("searchBox").value = "";
+      selectedCustomer = null;
+    }
+
+    // Set today's date
+    document.getElementById("date").value = new Date().toISOString().split("T")[0];
+  </script>
+</body>
+</html>
+    

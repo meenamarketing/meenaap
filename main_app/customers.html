@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Customers - EMI Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    nav {
+      background: #1f1f1f;
+      display: flex;
+      padding: 10px;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    nav a {
+      color: white;
+      background: #333;
+      padding: 8px 15px;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+    nav a:hover {
+      background: #00bcd4;
+      color: black;
+    }
+    main {
+      padding: 20px;
+    }
+    h1 {
+      color: #00bcd4;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px 5px 15px 0;
+      border-radius: 5px;
+      border: none;
+    }
+    input {
+      background: #1e1e1e;
+      color: #fff;
+      border: 1px solid #444;
+    }
+    button {
+      background: #00bcd4;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #26c6da;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #333;
+    }
+    thead {
+      background: #2c2c2c;
+    }
+    tr:nth-child(odd) {
+      background: #1d1d1d;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="customers.html">Customers</a>
+    <a href="entries.html">Entries</a>
+    <a href="review.html">Agent Review</a>
+    <a href="report.html">Reports</a>
+  </nav>
+
+  <main>
+    <h1>Customer Manager</h1>
+
+    <input type="file" accept=".json" onchange="loadJSON(event)">
+    <button onclick="downloadJSON()">Export Updated JSON</button>
+
+    <h2>Add New Customer</h2>
+    <input id="newId" placeholder="Customer ID" />
+    <input id="newName" placeholder="Name" />
+    <input id="newPhone" placeholder="Phone" />
+    <input id="newPlace" placeholder="Place" />
+    <input id="newProduct" placeholder="Product Name" />
+    <input id="newTotal" placeholder="Total Amount" type="number" />
+    <input id="newPaid" placeholder="Amount Paid" type="number" />
+    <button onclick="addCustomer()">Add Customer</button>
+
+    <h2>Add Product to Existing Customer</h2>
+    <input id="existingId" placeholder="Customer ID" />
+    <input id="addProductName" placeholder="Product Name" />
+    <input id="addProductTotal" placeholder="Total Amount" type="number" />
+    <input id="addProductPaid" placeholder="Amount Paid" type="number" />
+    <button onclick="addProduct()">Add Product</button>
+
+    <h2>Customer List</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Name</th><th>Phone</th><th>Place</th><th>Products</th>
+        </tr>
+      </thead>
+      <tbody id="customerTable"></tbody>
+    </table>
+  </main>
+
+  <script>
+    let customers = [];
+
+    function loadJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        customers = JSON.parse(e.target.result);
+        renderTable();
+      };
+      reader.readAsText(file);
+    }
+
+    function renderTable() {
+      const table = document.getElementById("customerTable");
+      table.innerHTML = "";
+
+      customers.forEach(c => {
+        const row = document.createElement("tr");
+        let productList = "";
+        c.products.forEach(p => {
+          const bal = p.total - p.paid;
+          productList += `<div>${p.name} - ₹${p.paid}/₹${p.total} (Balance: ₹${bal})</div>`;
+        });
+
+        row.innerHTML = `
+          <td>${c.id}</td>
+          <td>${c.name}</td>
+          <td>${c.phone}</td>
+          <td>${c.place}</td>
+          <td>${productList}</td>
+        `;
+        table.appendChild(row);
+      });
+    }
+
+    function addCustomer() {
+      const id = document.getElementById("newId").value.trim();
+      const name = document.getElementById("newName").value.trim();
+      const phone = document.getElementById("newPhone").value.trim();
+      const place = document.getElementById("newPlace").value.trim();
+      const product = document.getElementById("newProduct").value.trim();
+      const total = parseFloat(document.getElementById("newTotal").value);
+      const paid = parseFloat(document.getElementById("newPaid").value);
+
+      if (!id || customers.find(c => c.id === id)) {
+        alert("Invalid or duplicate ID");
+        return;
+      }
+
+      customers.push({
+        id, name, phone, place,
+        products: [{
+          name: product,
+          total,
+          paid,
+          datesPaid: [new Date().toISOString().split("T")[0]]
+        }]
+      });
+
+      renderTable();
+    }
+
+    function addProduct() {
+      const id = document.getElementById("existingId").value.trim();
+      const customer = customers.find(c => c.id === id);
+      if (!customer) {
+        alert("Customer not found");
+        return;
+      }
+
+      const name = document.getElementById("addProductName").value.trim();
+      const total = parseFloat(document.getElementById("addProductTotal").value);
+      const paid = parseFloat(document.getElementById("addProductPaid").value);
+
+      customer.products.push({
+        name,
+        total,
+        paid,
+        datesPaid: [new Date().toISOString().split("T")[0]]
+      });
+
+      renderTable();
+    }
+
+    function downloadJSON() {
+      const blob = new Blob([JSON.stringify(customers, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "customers.json";
+      a.click();
+    }
+  </script>
+</body>
+</html>

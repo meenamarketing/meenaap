@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Customer Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: sans-serif;
+      margin: 0;
+    }
+    nav {
+      background: #1f1f1f;
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+    }
+    nav a {
+      color: white;
+      background: #333;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+    nav a:hover {
+      background: #00bcd4;
+      color: black;
+    }
+    main {
+      padding: 20px;
+    }
+    input[type="file"], input[type="text"] {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      background: #1e1e1e;
+      color: white;
+      border: 1px solid #555;
+      width: 100%;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #333;
+      text-align: center;
+    }
+    thead {
+      background: #2c2c2c;
+    }
+    tr:nth-child(even) {
+      background: #1f1f1f;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="add_customer.html">Add Customer</a>
+    <a href="entry.html">Add Payment</a>
+    <a href="report.html">Reports</a>
+    <a href="review.html">Review Agent</a>
+  </nav>
+
+  <main>
+    <h1>📊 Customer Payment Report</h1>
+    <input type="file" accept=".json" onchange="loadData(event)" />
+    <input type="text" id="searchInput" placeholder="🔍 Search by ID, Name, Phone" oninput="filterRows()" />
+
+    <table id="reportTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Product</th>
+          <th>Amount</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </main>
+
+  <script>
+    let allRows = [];
+
+    function loadData(event) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const customers = JSON.parse(e.target.result);
+        displayData(customers);
+      };
+      reader.readAsText(file);
+    }
+
+    function displayData(customers) {
+      const tbody = document.querySelector("tbody");
+      tbody.innerHTML = "";
+      allRows = [];
+
+      customers.forEach(cust => {
+        cust.products.forEach(product => {
+          if (product.payments && product.payments.length > 0) {
+            product.payments.forEach(p => {
+              const row = [
+                cust.id,
+                cust.name,
+                cust.phone,
+                product.name,
+                `₹${p.amount.toFixed(2)}`,
+                p.date
+              ];
+              allRows.push(row);
+            });
+          } else if (product.datesPaid && product.datesPaid.length > 0) {
+            const perDate = product.paid / product.datesPaid.length;
+            product.datesPaid.forEach(date => {
+              const row = [
+                cust.id,
+                cust.name,
+                cust.phone,
+                product.name,
+                `~₹${perDate.toFixed(2)}`,
+                date
+              ];
+              allRows.push(row);
+            });
+          }
+        });
+      });
+
+      renderRows(allRows);
+    }
+
+    function renderRows(rows) {
+      const tbody = document.querySelector("tbody");
+      tbody.innerHTML = "";
+      rows.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = row.map(col => `<td>${col}</td>`).join("");
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterRows() {
+      const query = document.getElementById("searchInput").value.toLowerCase();
+      const filtered = allRows.filter(row =>
+        row.some(col => col.toLowerCase().includes(query))
+      );
+      renderRows(filtered);
+    }
+  </script>
+</body>
+</html>

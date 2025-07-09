@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Entries - EMI Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    nav {
+      background: #1f1f1f;
+      display: flex;
+      padding: 10px;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    nav a {
+      color: white;
+      background: #333;
+      padding: 8px 15px;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+    nav a:hover {
+      background: #00bcd4;
+      color: black;
+    }
+    main {
+      padding: 20px;
+    }
+    h1 {
+      color: #00bcd4;
+    }
+    input, select, button {
+      padding: 10px;
+      margin: 5px 10px 15px 0;
+      border-radius: 5px;
+      border: 1px solid #444;
+      background: #1e1e1e;
+      color: white;
+    }
+    button {
+      background: #00bcd4;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #26c6da;
+    }
+    .product-block {
+      background: #1e1e1e;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="customers.html">Customers</a>
+    <a href="entries.html">Entries</a>
+    <a href="review.html">Agent Review</a>
+    <a href="reports.html">Reports</a>
+  </nav>
+
+  <main>
+    <h1>Daily Payment Entry</h1>
+
+    <input type="file" accept=".json" onchange="loadJSON(event)">
+    <br>
+    <input id="searchId" placeholder="Search by Customer ID or Name" oninput="searchCustomer()">
+    <div id="resultArea"></div>
+
+    <button onclick="exportUpdated()">Export Updated JSON</button>
+  </main>
+
+  <script>
+    let customers = [];
+
+    function loadJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        customers = JSON.parse(e.target.result);
+        alert("Data loaded. You can now search and update.");
+      };
+      reader.readAsText(file);
+    }
+
+    function searchCustomer() {
+      const key = document.getElementById("searchId").value.toLowerCase();
+      const match = customers.find(c => 
+        c.id.toLowerCase().includes(key) || 
+        c.name.toLowerCase().includes(key)
+      );
+
+      const div = document.getElementById("resultArea");
+      div.innerHTML = "";
+
+      if (!match) {
+        div.innerHTML = "<p>No customer found.</p>";
+        return;
+      }
+
+      const container = document.createElement("div");
+      container.innerHTML = `<h3>${match.name} (${match.id})</h3><p>Phone: ${match.phone} | Place: ${match.place}</p>`;
+
+      match.products.forEach((p, i) => {
+        const bal = p.total - p.paid;
+        const prodDiv = document.createElement("div");
+        prodDiv.className = "product-block";
+        prodDiv.innerHTML = `
+          <strong>${p.name}</strong><br>
+          Total: ₹${p.total}, Paid: ₹${p.paid}, Balance: ₹${bal}<br>
+          <input type="number" placeholder="Enter amount to add" id="pay_${match.id}_${i}">
+          <input type="date" id="date_${match.id}_${i}" value="${new Date().toISOString().split('T')[0]}">
+          <button onclick="addPayment('${match.id}', ${i})">Add Payment</button>
+        `;
+        container.appendChild(prodDiv);
+      });
+
+      div.appendChild(container);
+    }
+
+    function addPayment(custId, productIndex) {
+      const amtInput = document.getElementById(`pay_${custId}_${productIndex}`);
+      const dateInput = document.getElementById(`date_${custId}_${productIndex}`);
+      const amount = parseFloat(amtInput.value);
+      const date = dateInput.value;
+
+      if (isNaN(amount) || amount <= 0) {
+        alert("Enter a valid amount.");
+        return;
+      }
+
+      const customer = customers.find(c => c.id === custId);
+      const product = customer.products[productIndex];
+
+      product.paid += amount;
+      product.datesPaid.push(date);
+
+      amtInput.value = "";
+      alert("Payment added.");
+      searchCustomer(); // Refresh view
+    }
+
+    function exportUpdated() {
+      const blob = new Blob([JSON.stringify(customers, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "updated_customers.json";
+      a.click();
+    }
+  </script>
+</body>
+</html>
