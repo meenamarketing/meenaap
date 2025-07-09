@@ -98,12 +98,12 @@
   </nav>
 
   <main>
-    <h1>Reports & Filter</h1>
+    <h1>📊 Reports & Filter</h1>
     <input type="file" accept=".json" onchange="loadData(event)">
     <br>
 
     <div style="position:relative;">
-      <input id="searchId" placeholder="Customer ID or Name or Phone" oninput="filterData(); showSuggestions(this.value)">
+      <input id="searchId" placeholder="Search by ID / Name / Phone" oninput="filterData(); showSuggestions(this.value)">
       <div id="suggestions"></div>
     </div>
     <input id="searchPlace" placeholder="Place" oninput="filterData()">
@@ -118,7 +118,8 @@
     <table>
       <thead>
         <tr>
-          <th>ID</th><th>Name</th><th>Place</th><th>Phone</th><th>Product</th><th>Paid</th><th>Balance</th><th>Date</th>
+          <th>ID</th><th>Name</th><th>Place</th><th>Phone</th><th>Product</th>
+          <th>Paid</th><th>Balance</th><th>Date</th>
         </tr>
       </thead>
       <tbody id="reportTable"></tbody>
@@ -151,25 +152,46 @@
         allSuggestions.add(c.phone);
 
         c.products.forEach(p => {
-          const total = p.total || (p.paid || 0); // fallback if total not set
-          const splitAmt = Math.round((p.paid / p.datesPaid.length) * 100) / 100;
+          const total = p.total || 0;
+          let paidSoFar = 0;
 
-          p.datesPaid.forEach((date, idx) => {
-            const paidSoFar = splitAmt * (idx + 1);
-            const balance = Math.max(0, total - paidSoFar);
+          if (p.payments && Array.isArray(p.payments)) {
+            p.payments.forEach(payment => {
+              paidSoFar += payment.amount;
+              const balance = Math.max(0, total - paidSoFar);
 
-            flatReport.push({
-              id: c.id,
-              name: c.name,
-              place: c.place,
-              phone: c.phone,
-              product: p.name,
-              paid: splitAmt,
-              balance: balance,
-              date,
-              totalProductBalance: total - p.paid
+              flatReport.push({
+                id: c.id,
+                name: c.name,
+                place: c.place,
+                phone: c.phone,
+                product: p.name,
+                paid: payment.amount,
+                balance: balance,
+                date: payment.date,
+                totalProductBalance: total - (p.paid || 0)
+              });
             });
-          });
+          } else if (p.datesPaid && Array.isArray(p.datesPaid)) {
+            const paid = p.paid || 0;
+            const avg = paid / p.datesPaid.length;
+            p.datesPaid.forEach((date, idx) => {
+              paidSoFar += avg;
+              const balance = Math.max(0, total - paidSoFar);
+
+              flatReport.push({
+                id: c.id,
+                name: c.name,
+                place: c.place,
+                phone: c.phone,
+                product: p.name,
+                paid: avg,
+                balance: balance,
+                date: date,
+                totalProductBalance: total - paid
+              });
+            });
+          }
         });
       });
     }
@@ -213,14 +235,15 @@
 
       document.getElementById("reportTotal").innerText = `Total Paid: ₹${total.toFixed(2)}`;
 
-      // 💰 Show total customer balance
+      // Total balance (overall per filtered customer)
       let filteredCustomers = new Set(filtered.map(r => r.id));
       let totalBalance = 0;
+
       customers.forEach(c => {
         if (filteredCustomers.has(c.id)) {
           c.products.forEach(p => {
             const total = p.total || (p.paid || 0);
-            totalBalance += Math.max(0, total - p.paid);
+            totalBalance += Math.max(0, total - (p.paid || 0));
           });
         }
       });
