@@ -168,14 +168,13 @@
                 product: p.name,
                 paid: payment.amount,
                 balance: balance,
-                date: payment.date,
-                totalProductBalance: total - (p.paid || 0)
+                date: payment.date
               });
             });
           } else if (p.datesPaid && Array.isArray(p.datesPaid)) {
             const paid = p.paid || 0;
             const avg = paid / p.datesPaid.length;
-            p.datesPaid.forEach((date, idx) => {
+            p.datesPaid.forEach(date => {
               paidSoFar += avg;
               const balance = Math.max(0, total - paidSoFar);
 
@@ -187,8 +186,7 @@
                 product: p.name,
                 paid: avg,
                 balance: balance,
-                date: date,
-                totalProductBalance: total - paid
+                date: date
               });
             });
           }
@@ -215,10 +213,10 @@
 
       const tbody = document.getElementById("reportTable");
       tbody.innerHTML = "";
-      let total = 0;
+      let totalPaid = 0;
 
       filtered.forEach(r => {
-        total += r.paid;
+        totalPaid += r.paid;
         const row = document.createElement("tr");
         row.innerHTML = `
           <td>${r.id}</td>
@@ -233,19 +231,29 @@
         tbody.appendChild(row);
       });
 
-      document.getElementById("reportTotal").innerText = `Total Paid: ₹${total.toFixed(2)}`;
+      document.getElementById("reportTotal").innerText = `Total Paid: ₹${totalPaid.toFixed(2)}`;
 
-      // Total balance (overall per filtered customer)
-      let filteredCustomers = new Set(filtered.map(r => r.id));
+      // Total balance: only count once per product
+      let uniqueProductKeys = new Set();
       let totalBalance = 0;
 
       customers.forEach(c => {
-        if (filteredCustomers.has(c.id)) {
-          c.products.forEach(p => {
-            const total = p.total || (p.paid || 0);
-            totalBalance += Math.max(0, total - (p.paid || 0));
-          });
-        }
+        c.products.forEach(p => {
+          const key = `${c.id}-${p.name}`;
+          if (uniqueProductKeys.has(key)) return;
+          uniqueProductKeys.add(key);
+
+          const productTotal = p.total || 0;
+          let paid = 0;
+
+          if (Array.isArray(p.payments)) {
+            paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
+          } else if (Array.isArray(p.datesPaid)) {
+            paid = p.paid || 0;
+          }
+
+          totalBalance += Math.max(0, productTotal - paid);
+        });
       });
 
       document.getElementById("reportBalance").innerText = `Total Balance: ₹${totalBalance.toFixed(2)}`;
