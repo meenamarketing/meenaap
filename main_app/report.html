@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Customer Report</title>
+  <title>Customer Payment Report</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
@@ -31,14 +31,13 @@
     main {
       padding: 20px;
     }
-    input[type="file"], input[type="text"] {
+    input, select {
       padding: 10px;
-      margin: 10px 0;
+      margin: 5px 5px 10px 0;
       border-radius: 5px;
       background: #1e1e1e;
       color: white;
       border: 1px solid #555;
-      width: 100%;
     }
     table {
       width: 100%;
@@ -69,8 +68,11 @@
 
   <main>
     <h1>📊 Customer Payment Report</h1>
+
     <input type="file" accept=".json" onchange="loadData(event)" />
     <input type="text" id="searchInput" placeholder="🔍 Search by ID, Name, Phone" oninput="filterRows()" />
+    <label>From: <input type="date" id="fromDate" onchange="filterRows()" /></label>
+    <label>To: <input type="date" id="toDate" onchange="filterRows()" /></label>
 
     <table id="reportTable">
       <thead>
@@ -79,8 +81,10 @@
           <th>Name</th>
           <th>Phone</th>
           <th>Product</th>
-          <th>Amount</th>
+          <th>Paid</th>
           <th>Date</th>
+          <th>Remaining After Payment</th>
+          <th>Total Remaining</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -101,36 +105,47 @@
     }
 
     function displayData(customers) {
-      const tbody = document.querySelector("tbody");
-      tbody.innerHTML = "";
       allRows = [];
 
       customers.forEach(cust => {
         cust.products.forEach(product => {
+          const total = parseFloat(product.total) || 0;
+          let paidSoFar = 0;
+
           if (product.payments && product.payments.length > 0) {
             product.payments.forEach(p => {
-              const row = [
+              paidSoFar += parseFloat(p.amount);
+              const balanceAfterThis = total - paidSoFar;
+              const totalRemaining = total - (product.paid || 0);
+
+              allRows.push([
                 cust.id,
                 cust.name,
                 cust.phone,
                 product.name,
-                `₹${p.amount.toFixed(2)}`,
-                p.date
-              ];
-              allRows.push(row);
+                `₹${parseFloat(p.amount).toFixed(2)}`,
+                p.date,
+                `₹${balanceAfterThis.toFixed(2)}`,
+                `₹${totalRemaining.toFixed(2)}`
+              ]);
             });
           } else if (product.datesPaid && product.datesPaid.length > 0) {
-            const perDate = product.paid / product.datesPaid.length;
+            const approxAmount = (product.paid || 0) / product.datesPaid.length;
             product.datesPaid.forEach(date => {
-              const row = [
+              paidSoFar += approxAmount;
+              const balanceAfterThis = total - paidSoFar;
+              const totalRemaining = total - (product.paid || 0);
+
+              allRows.push([
                 cust.id,
                 cust.name,
                 cust.phone,
                 product.name,
-                `~₹${perDate.toFixed(2)}`,
-                date
-              ];
-              allRows.push(row);
+                `~₹${approxAmount.toFixed(2)}`,
+                date,
+                `₹${balanceAfterThis.toFixed(2)}`,
+                `₹${totalRemaining.toFixed(2)}`
+              ]);
             });
           }
         });
@@ -151,9 +166,23 @@
 
     function filterRows() {
       const query = document.getElementById("searchInput").value.toLowerCase();
-      const filtered = allRows.filter(row =>
-        row.some(col => col.toLowerCase().includes(query))
-      );
+      const fromDate = document.getElementById("fromDate").value;
+      const toDate = document.getElementById("toDate").value;
+
+      const filtered = allRows.filter(row => {
+        const [id, name, phone, , , date] = row;
+        const matchQuery =
+          id.toLowerCase().includes(query) ||
+          name.toLowerCase().includes(query) ||
+          phone.toLowerCase().includes(query);
+
+        const inRange =
+          (!fromDate || date >= fromDate) &&
+          (!toDate || date <= toDate);
+
+        return matchQuery && inRange;
+      });
+
       renderRows(filtered);
     }
   </script>
