@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Customer Payment Report</title>
+  <title>Customer Report - Agent App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
@@ -14,8 +14,9 @@
     nav {
       background: #1f1f1f;
       display: flex;
-      gap: 10px;
+      flex-wrap: wrap;
       padding: 10px;
+      gap: 10px;
     }
     nav a {
       color: white;
@@ -31,159 +32,89 @@
     main {
       padding: 20px;
     }
-    input, select {
+    h1 {
+      color: #00bcd4;
+    }
+    input {
       padding: 10px;
-      margin: 5px 5px 10px 0;
+      margin: 10px 0;
       border-radius: 5px;
       background: #1e1e1e;
       color: white;
-      border: 1px solid #555;
-    }
-    table {
+      border: 1px solid #444;
       width: 100%;
-      border-collapse: collapse;
+    }
+    .box {
+      background: #1d1d1d;
+      padding: 15px;
       margin-top: 20px;
-    }
-    th, td {
-      padding: 10px;
       border: 1px solid #333;
-      text-align: center;
+      border-radius: 10px;
     }
-    thead {
-      background: #2c2c2c;
-    }
-    tr:nth-child(even) {
-      background: #1f1f1f;
+    .product {
+      border-top: 1px solid #333;
+      margin-top: 15px;
+      padding-top: 10px;
     }
   </style>
 </head>
 <body>
   <nav>
-    <a href="index.html">Dashboard</a>
-    <a href="add_customer.html">Add Customer</a>
-    <a href="entry.html">Add Payment</a>
-    <a href="report.html">Reports</a>
-    <a href="review.html">Review Agent</a>
+    <a href="index.html">Home</a>
+    <a href="entries.html">Add Collection</a>
+    <a href="view.html">Today's Entries</a>
+    <a href="customer_report.html">Customer Report</a>
   </nav>
 
   <main>
-    <h1>📊 Customer Payment Report</h1>
-
-    <input type="file" accept=".json" onchange="loadData(event)" />
-    <input type="text" id="searchInput" placeholder="🔍 Search by ID, Name, Phone" oninput="filterRows()" />
-    <label>From: <input type="date" id="fromDate" onchange="filterRows()" /></label>
-    <label>To: <input type="date" id="toDate" onchange="filterRows()" /></label>
-
-    <table id="reportTable">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Product</th>
-          <th>Paid</th>
-          <th>Date</th>
-          <th>Remaining After Payment</th>
-          <th>Total Remaining</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <h1>Customer Report</h1>
+    <input type="text" id="searchBox" placeholder="Enter Customer ID, Name, or Phone" oninput="searchCustomer(this.value)" />
+    <div class="box" id="reportBox" style="display:none;"></div>
   </main>
 
   <script>
-    let allRows = [];
+    const customers = JSON.parse(localStorage.getItem("agent_customers") || "[]");
 
-    function loadData(event) {
-      const file = event.target.files[0];
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const customers = JSON.parse(e.target.result);
-        displayData(customers);
-      };
-      reader.readAsText(file);
-    }
+    function searchCustomer(value) {
+      const reportBox = document.getElementById("reportBox");
+      if (!value || value.length < 2) {
+        reportBox.style.display = "none";
+        return;
+      }
 
-    function displayData(customers) {
-      allRows = [];
+      const cust = customers.find(c =>
+        c.id.toLowerCase().includes(value.toLowerCase()) ||
+        c.name.toLowerCase().includes(value.toLowerCase()) ||
+        c.phone.includes(value)
+      );
 
-      customers.forEach(cust => {
-        cust.products.forEach(product => {
-          const total = parseFloat(product.total) || 0;
-          let paidSoFar = 0;
+      if (!cust) {
+        reportBox.style.display = "none";
+        return;
+      }
 
-          if (product.payments && product.payments.length > 0) {
-            product.payments.forEach(p => {
-              paidSoFar += parseFloat(p.amount);
-              const balanceAfterThis = total - paidSoFar;
-              const totalRemaining = total - (product.paid || 0);
+      let html = `
+        <p><strong>ID:</strong> ${cust.id}</p>
+        <p><strong>Name:</strong> ${cust.name}</p>
+        <p><strong>Phone:</strong> ${cust.phone}</p>
+        <p><strong>Place:</strong> ${cust.place}</p>
+      `;
 
-              allRows.push([
-                cust.id,
-                cust.name,
-                cust.phone,
-                product.name,
-                `₹${parseFloat(p.amount).toFixed(2)}`,
-                p.date,
-                `₹${balanceAfterThis.toFixed(2)}`,
-                `₹${totalRemaining.toFixed(2)}`
-              ]);
-            });
-          } else if (product.datesPaid && product.datesPaid.length > 0) {
-            const approxAmount = (product.paid || 0) / product.datesPaid.length;
-            product.datesPaid.forEach(date => {
-              paidSoFar += approxAmount;
-              const balanceAfterThis = total - paidSoFar;
-              const totalRemaining = total - (product.paid || 0);
-
-              allRows.push([
-                cust.id,
-                cust.name,
-                cust.phone,
-                product.name,
-                `~₹${approxAmount.toFixed(2)}`,
-                date,
-                `₹${balanceAfterThis.toFixed(2)}`,
-                `₹${totalRemaining.toFixed(2)}`
-              ]);
-            });
-          }
-        });
+      cust.products.forEach(p => {
+        const balance = (p.total || p.paid) - p.paid;
+        html += `
+          <div class="product">
+            <p><strong>Product:</strong> ${p.name}</p>
+            <p><strong>Total:</strong> ₹${p.total || p.paid}</p>
+            <p><strong>Paid:</strong> ₹${p.paid}</p>
+            <p><strong>Balance:</strong> ₹${balance}</p>
+            <p><strong>Paid Dates:</strong> ${p.datesPaid.join(", ")}</p>
+          </div>
+        `;
       });
 
-      renderRows(allRows);
-    }
-
-    function renderRows(rows) {
-      const tbody = document.querySelector("tbody");
-      tbody.innerHTML = "";
-      rows.forEach(row => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = row.map(col => `<td>${col}</td>`).join("");
-        tbody.appendChild(tr);
-      });
-    }
-
-    function filterRows() {
-      const query = document.getElementById("searchInput").value.toLowerCase();
-      const fromDate = document.getElementById("fromDate").value;
-      const toDate = document.getElementById("toDate").value;
-
-      const filtered = allRows.filter(row => {
-        const [id, name, phone, , , date] = row;
-        const matchQuery =
-          id.toLowerCase().includes(query) ||
-          name.toLowerCase().includes(query) ||
-          phone.toLowerCase().includes(query);
-
-        const inRange =
-          (!fromDate || date >= fromDate) &&
-          (!toDate || date <= toDate);
-
-        return matchQuery && inRange;
-      });
-
-      renderRows(filtered);
+      reportBox.innerHTML = html;
+      reportBox.style.display = "block";
     }
   </script>
 </body>
