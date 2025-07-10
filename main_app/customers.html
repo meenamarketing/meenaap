@@ -64,7 +64,6 @@
     th, td {
       padding: 10px;
       border: 1px solid #333;
-      vertical-align: top;
     }
     thead {
       background: #2c2c2c;
@@ -144,12 +143,8 @@
 
       const reader = new FileReader();
       reader.onload = function (e) {
-        try {
-          customers = JSON.parse(e.target.result);
-          renderTable();
-        } catch {
-          alert("Invalid JSON file");
-        }
+        customers = JSON.parse(e.target.result);
+        renderTable();
       };
       reader.readAsText(file);
     }
@@ -160,24 +155,18 @@
 
       customers.forEach(c => {
         const row = document.createElement("tr");
-
-        const productsHTML = c.products.map(p => {
-          const balance = (p.total || 0) - (p.paid || 0);
-          return `
-            <div style="margin-bottom: 5px;">
-              <strong>${p.name}</strong><br>
-              Paid: ₹${p.paid} / ₹${p.total}<br>
-              Balance: ₹${balance}
-            </div>
-          `;
-        }).join("<hr style='border:0.5px dashed #444;'>");
+        let productList = "";
+        c.products.forEach(p => {
+          const bal = p.total - p.paid;
+          productList += `<div>${p.name} - ₹${p.paid}/₹${p.total} (Balance: ₹${bal})</div>`;
+        });
 
         row.innerHTML = `
           <td>${c.id}</td>
           <td>${c.name}</td>
           <td>${c.phone}</td>
           <td>${c.place}</td>
-          <td>${productsHTML}</td>
+          <td>${productList}</td>
         `;
         table.appendChild(row);
       });
@@ -214,16 +203,25 @@
     function addProduct() {
       const id = document.getElementById("existingId").value.trim();
       const customer = customers.find(c => c.id === id);
-      if (!customer) return alert("Customer not found");
+      if (!customer) {
+        alert("Customer not found");
+        return;
+      }
 
       const name = document.getElementById("addProductName").value.trim();
       const total = parseFloat(document.getElementById("addProductTotal").value);
       const paid = parseFloat(document.getElementById("addProductPaid").value);
 
-      if (!name || isNaN(total) || isNaN(paid)) return alert("Enter all valid fields");
+      if (!name || isNaN(total) || isNaN(paid)) {
+        alert("Please enter valid product details.");
+        return;
+      }
 
       const duplicate = customer.products.find(p => p.name.toLowerCase() === name.toLowerCase());
-      if (duplicate) return alert("This product already exists for this customer.");
+      if (duplicate) {
+        alert("Product with this name already exists for this customer.");
+        return;
+      }
 
       customer.products.push({
         name,
@@ -233,7 +231,7 @@
       });
 
       renderTable();
-      alert("Product added!");
+      alert("Product added successfully!");
     }
 
     function downloadJSON() {
