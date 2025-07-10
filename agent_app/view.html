@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>View Entries - Agent App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body {
       background: #121212;
@@ -44,9 +45,11 @@
       border: 1px solid #444;
       padding: 10px;
       text-align: center;
+      font-size: 16px;
     }
     thead {
       background: #2c2c2c;
+      font-weight: bold;
     }
     tr:nth-child(odd) {
       background: #1d1d1d;
@@ -55,11 +58,12 @@
       background: #00bcd4;
       color: black;
       font-weight: bold;
-      padding: 8px 12px;
+      padding: 10px 16px;
       border: none;
       border-radius: 5px;
       cursor: pointer;
-      margin: 10px 5px;
+      margin: 10px 10px 10px 0;
+      font-size: 16px;
     }
     button:hover {
       background: #26c6da;
@@ -77,7 +81,7 @@
   <main>
     <h1>📄 Today's Payment Entries</h1>
     <button onclick="exportTodayJSON()">📤 Export JSON</button>
-    <button onclick="exportUpdatedMain()">📤 Export Updated Main</button>
+    <button onclick="exportPDF()">🖨️ Export PDF</button>
     <h3 id="totalCollected">Total: ₹0</h3>
 
     <table>
@@ -93,11 +97,13 @@
 
   <script>
     let entries = [];
-    let customers = [];
 
-    function loadData() {
-      entries = JSON.parse(localStorage.getItem("agent_entries") || "[]");
-      customers = JSON.parse(localStorage.getItem("main_customers") || "[]");
+    function loadEntries() {
+      try {
+        entries = JSON.parse(localStorage.getItem("agent_entries")) || [];
+      } catch {
+        entries = [];
+      }
     }
 
     function getTodayDateStr() {
@@ -105,7 +111,7 @@
     }
 
     function renderEntries() {
-      loadData();
+      loadEntries();
       const tbody = document.getElementById("entryTable");
       tbody.innerHTML = "";
       let total = 0;
@@ -150,15 +156,43 @@
       a.click();
     }
 
-    function exportUpdatedMain() {
-      const today = getTodayDateStr();
-      const data = JSON.stringify(customers, null, 2);
-      const blob = new Blob([data], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `main_customers_updated_${today}.json`;
-      a.click();
+    async function exportPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text("Today's Agent Collection", 15, 20);
+
+      let startY = 30;
+      const headers = ["ID", "Name", "Phone", "Product", "Amount", "Date", "Due #"];
+      const colWidths = [20, 40, 30, 30, 25, 30, 15];
+
+      // Table header
+      headers.forEach((h, i) => {
+        doc.text(h, 10 + colWidths.slice(0, i).reduce((a, b) => a + b, 0), startY);
+      });
+
+      // Table rows
+      entries.forEach((e, idx) => {
+        const y = startY + 10 + idx * 10;
+        const row = [
+          e.id,
+          e.name,
+          e.phone,
+          e.product,
+          "₹" + parseFloat(e.amount || 0).toFixed(2),
+          e.date,
+          String(e.dueNumber)
+        ];
+        row.forEach((val, i) => {
+          doc.setFontSize(12);
+          doc.setFont("Helvetica", "normal");
+          doc.text(String(val), 10 + colWidths.slice(0, i).reduce((a, b) => a + b, 0), y);
+        });
+      });
+
+      doc.save(`collection_${getTodayDateStr()}.pdf`);
     }
 
     renderEntries();
