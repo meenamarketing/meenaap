@@ -1,91 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Review Agent Collections - EMI Manager</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
-      background: #121212;
-      color: #eee;
-      font-family: sans-serif;
-      margin: 0;
+      background: #121212; color: #eee;
+      font-family: sans-serif; margin: 0;
     }
     nav {
-      background: #1f1f1f;
-      display: flex;
-      padding: 10px;
-      gap: 10px;
+      background: #1f1f1f; display: flex; gap: 10px; padding: 10px;
     }
     nav a {
-      color: white;
-      background: #333;
-      padding: 10px 15px;
-      border-radius: 5px;
-      text-decoration: none;
+      color: white; background: #333;
+      padding: 10px 15px; border-radius: 5px; text-decoration: none;
     }
     nav a:hover {
-      background: #00bcd4;
-      color: black;
+      background: #00bcd4; color: black;
     }
-    main {
-      padding: 20px;
-    }
-    input, button {
-      padding: 10px;
-      margin: 10px 5px;
-      border-radius: 5px;
-      background: #1e1e1e;
-      color: white;
-      border: 1px solid #444;
-    }
-    button {
-      background: #00bcd4;
-      color: black;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #26c6da;
-    }
+    main { padding: 20px; }
     table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
+      width: 100%; border-collapse: collapse; margin-top: 20px;
     }
     th, td {
-      padding: 10px;
-      border: 1px solid #333;
-      text-align: center;
+      padding: 10px; border: 1px solid #444; text-align: center;
     }
-    thead {
-      background: #2c2c2c;
+    thead { background: #2c2c2c; }
+    tr:nth-child(even) { background: #1f1f1f; }
+    input[type="file"], input[type="text"] {
+      background: #1e1e1e; color: white;
+      border: 1px solid #444; padding: 10px;
+      border-radius: 5px; width: 100%; margin: 10px 0;
     }
-    tr:nth-child(even) {
-      background: #1f1f1f;
+    button {
+      background: #00bcd4; color: black;
+      font-weight: bold; padding: 10px 15px;
+      border: none; border-radius: 5px;
+      margin-top: 10px; cursor: pointer;
     }
-    #summary {
-      margin: 10px 0;
-    }
+    button:hover { background: #26c6da; }
   </style>
 </head>
 <body>
-
   <nav>
     <a href="index.html">Dashboard</a>
-    <a href="customers.html">Customers</a>
-    <a href="entries.html">Entries</a>
-    <a href="review.html">Agent Review</a>
-    <a href="report.html">Reports</a>
+    <a href="entries.html">Add Entry</a>
+    <a href="view.html">View Entries</a>
+    <a href="review.html">Review & Merge</a>
+    <a href="customer_report.html">Customer Report</a>
   </nav>
 
   <main>
     <h1>Review Agent Collections</h1>
-    <input type="file" accept=".json" onchange="loadAgentData(event)">
-    <button onclick="approveData()">✅ Approve & Merge</button>
-    <button onclick="exportMainJSON()">📤 Export Updated JSON</button>
+    <label>📂 Upload Main Customer JSON:</label>
+    <input type="file" accept=".json" onchange="loadMainJSON(event)">
+    <label>📂 Upload Agent Collection JSON:</label>
+    <input type="file" accept=".json" onchange="loadAgentJSON(event)">
+    
     <div id="summary"></div>
-    <table id="agentTable">
+    <table id="agentTable" style="display:none;">
       <thead>
         <tr>
           <th>ID</th><th>Name</th><th>Phone</th>
@@ -94,97 +68,102 @@
       </thead>
       <tbody></tbody>
     </table>
+    <button onclick="mergeData()" id="approveBtn" style="display:none;">✅ Approve & Merge</button>
+    <button onclick="exportMerged()" id="exportBtn" style="display:none;">📤 Export Merged JSON</button>
   </main>
 
   <script>
-    let mainCustomers = JSON.parse(localStorage.getItem("main_customers") || "[]");
+    let mainCustomers = [];
     let agentEntries = [];
 
-    function loadAgentData(event) {
-      const file = event.target.files[0];
+    function loadMainJSON(event) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        mainCustomers = JSON.parse(e.target.result);
+        alert("✅ Main customer data loaded.");
+      };
+      reader.readAsText(event.target.files[0]);
+    }
+
+    function loadAgentJSON(event) {
       const reader = new FileReader();
       reader.onload = e => {
         agentEntries = JSON.parse(e.target.result);
-        renderAgentTable();
+        showAgentTable();
       };
-      reader.readAsText(file);
+      reader.readAsText(event.target.files[0]);
     }
 
-    function renderAgentTable() {
+    function showAgentTable() {
       const tbody = document.querySelector("#agentTable tbody");
       tbody.innerHTML = "";
       let total = 0;
 
-      agentEntries.forEach(entry => {
-        total += parseFloat(entry.amount);
-        tbody.innerHTML += `
-          <tr>
-            <td>${entry.id}</td>
-            <td>${entry.name}</td>
-            <td>${entry.phone}</td>
-            <td>${entry.product}</td>
-            <td>₹${parseFloat(entry.amount).toFixed(2)}</td>
-            <td>${entry.dueNumber || '-'}</td>
-            <td>${entry.date}</td>
-          </tr>
+      agentEntries.forEach(e => {
+        total += Number(e.amount || 0);
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${e.id}</td>
+          <td>${e.name}</td>
+          <td>${e.phone}</td>
+          <td>${e.product || "-"}</td>
+          <td>₹${parseFloat(e.amount).toFixed(2)}</td>
+          <td>${e.dueNumber || "-"}</td>
+          <td>${e.date}</td>
         `;
+        tbody.appendChild(row);
       });
 
       document.getElementById("summary").innerHTML = `<strong>Total Collected:</strong> ₹${total.toFixed(2)}`;
+      document.getElementById("agentTable").style.display = "table";
+      document.getElementById("approveBtn").style.display = "inline-block";
+      document.getElementById("exportBtn").style.display = "inline-block";
     }
 
-    function approveData() {
+    function mergeData() {
       let updated = 0;
 
       agentEntries.forEach(entry => {
-        const cust = mainCustomers.find(c => c.id === entry.id);
-        if (!cust) return;
+        const customer = mainCustomers.find(c => c.id === entry.id);
+        if (!customer) return;
 
-        const prod = cust.products.find(p => p.name === entry.product);
-        if (!prod) return;
+        const product = customer.products.find(p => p.name === entry.product);
+        if (!product) return;
 
-        if (!Array.isArray(prod.payments)) prod.payments = [];
+        // Convert to new format if needed
+        if (!Array.isArray(product.payments)) product.payments = [];
+        if (!Array.isArray(product.datesPaid)) product.datesPaid = [];
 
-        const existingDues = cust.paidDues || 0;
-        const nextDue = existingDues + prod.payments.length + 1;
+        // Determine correct dueNumber
+        const lastDue = Math.max(
+          customer.paidDues || 0,
+          ...product.payments.map(p => p.dueNumber || 0)
+        );
+        const nextDue = lastDue + 1;
 
-        prod.payments.push({
+        // Add payment
+        product.payments.push({
           date: entry.date,
-          amount: parseFloat(entry.amount),
+          amount: Number(entry.amount),
           dueNumber: nextDue
         });
 
-        // Update paid total
-        prod.paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
-        cust.paidDues = nextDue;
+        product.datesPaid.push(entry.date);
+        product.paid = product.payments.reduce((sum, p) => sum + p.amount, 0);
+        customer.paidDues = nextDue;
 
         updated++;
       });
 
-      localStorage.setItem("main_customers", JSON.stringify(mainCustomers));
-      alert(`✅ Approved and merged ${updated} entries`);
+      alert(`✅ Merged ${updated} entries.`);
     }
 
-    function exportMainJSON() {
-      const json = mainCustomers.map(c => ({
-        id: c.id,
-        name: c.name,
-        phone: c.phone,
-        place: c.place,
-        totalDues: c.totalDues,
-        paidDues: c.paidDues,
-        products: c.products.map(p => ({
-          name: p.name,
-          total: p.total,
-          payments: p.payments || []
-        }))
-      }));
-
-      const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
+    function exportMerged() {
+      const blob = new Blob([JSON.stringify(mainCustomers, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "updated_main_customers.json";
+      a.download = "merged_main_customers.json";
       a.click();
     }
   </script>
