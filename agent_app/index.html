@@ -92,7 +92,40 @@
     }
 
     function updateCounts() {
-      const loaded = JSON.parse(localStorage.getItem('agent_customers') || '[]');
+      const loaded = <!DOCTYPE html>
+<html>
+<head>
+  <title>Agent Dashboard</title>
+  <meta charset="UTF-8">
+  <style>
+    body { background: #121212; color: white; font-family: sans-serif; padding: 20px; }
+    nav a { margin-right: 15px; color: white; background: #333; padding: 10px; border-radius: 5px; text-decoration: none; }
+    nav a:hover { background: #00bcd4; color: black; }
+    input { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="entries.html">Add Entry</a>
+    <a href="view.html">View Entries</a>
+    <a href="customer_report.html">Customer Report</a>
+  </nav>
+
+  <h1>📁 Load Main Customer File</h1>
+  <input type="file" accept=".json" onchange="loadCustomers(event)">
+  <script>
+    function loadCustomers(event) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        localStorage.setItem('main_customers', e.target.result);
+        alert('✅ Main customer file loaded.');
+      };
+      reader.readAsText(event.target.files[0]);
+    }
+  </script>
+</body>
+</html> || '[]');
       const made = JSON.parse(localStorage.getItem('agent_entries') || '[]');
       document.getElementById("customerCount").innerText = loaded.length;
       document.getElementById("entryCount").innerText = made.length;
