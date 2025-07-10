@@ -5,78 +5,42 @@
   <title>Add Collections - Agent App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      background: #121212;
-      color: #eee;
-      font-family: sans-serif;
-      margin: 0;
-    }
+    body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; }
     nav {
-      background: #1f1f1f;
-      display: flex;
-      flex-wrap: wrap;
-      padding: 10px;
-      gap: 10px;
+      background: #1f1f1f; display: flex; flex-wrap: wrap;
+      padding: 10px; gap: 10px;
     }
     nav a {
-      color: white;
-      background: #333;
-      padding: 10px 15px;
-      border-radius: 5px;
-      text-decoration: none;
+      color: white; background: #333; padding: 10px 15px;
+      border-radius: 5px; text-decoration: none;
     }
-    nav a:hover {
-      background: #00bcd4;
-      color: black;
-    }
-    main {
-      padding: 20px;
-    }
-    h1 {
-      color: #00bcd4;
-    }
+    nav a:hover { background: #00bcd4; color: black; }
+    main { padding: 20px; }
+    h1 { color: #00bcd4; }
     input, button, select {
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 5px;
-      background: #1e1e1e;
-      color: white;
-      border: 1px solid #444;
-      width: 100%;
+      padding: 10px; margin: 10px 0;
+      border-radius: 5px; background: #1e1e1e;
+      color: white; border: 1px solid #444; width: 100%;
     }
-    button {
-      background: #00bcd4;
-      color: black;
-      font-weight: bold;
-    }
+    button { background: #00bcd4; color: black; font-weight: bold; }
     .customer-box {
-      margin-top: 10px;
-      padding: 10px;
-      background: #1d1d1d;
-      border: 1px solid #333;
+      margin-top: 10px; padding: 10px;
+      background: #1d1d1d; border: 1px solid #333;
       border-radius: 8px;
     }
     #suggestions {
-      background: #222;
-      border: 1px solid #333;
-      border-radius: 5px;
-      display: none;
-      position: absolute;
-      z-index: 999;
-      max-height: 200px;
-      overflow-y: auto;
+      background: #222; border: 1px solid #333;
+      border-radius: 5px; display: none;
+      position: absolute; z-index: 999;
+      max-height: 200px; overflow-y: auto;
     }
     #suggestions div {
-      padding: 10px;
-      cursor: pointer;
+      padding: 10px; cursor: pointer;
     }
     #suggestions div:hover {
-      background: #00bcd4;
-      color: black;
+      background: #00bcd4; color: black;
     }
-    #productInfo {
-      margin-top: 10px;
-    }
+    #productInfo { margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -104,7 +68,7 @@
       </div>
 
       <input type="number" id="amount" placeholder="Enter Amount Collected">
-      <input type="date" id="date" value="">
+      <input type="date" id="date">
       <button onclick="saveEntry()">Save Entry</button>
     </div>
   </main>
@@ -115,12 +79,11 @@
     let selectedCustomer = null;
     let unpaidProducts = [];
 
+    document.getElementById("date").value = new Date().toISOString().split("T")[0];
+
     function showSuggestions(input) {
       const box = document.getElementById("suggestions");
-      if (!input || input.length < 1) {
-        box.style.display = "none";
-        return;
-      }
+      if (!input || input.length < 1) return box.style.display = "none";
 
       const results = customers.filter(c =>
         c.id.toLowerCase().includes(input.toLowerCase()) ||
@@ -130,11 +93,6 @@
 
       box.innerHTML = results.map(c => `<div onclick="selectCustomer('${c.id}')">${c.id} - ${c.name} (${c.phone})</div>`).join("");
       box.style.display = results.length ? "block" : "none";
-
-      const rect = document.getElementById("searchBox").getBoundingClientRect();
-      box.style.left = rect.left + "px";
-      box.style.top = rect.bottom + window.scrollY + "px";
-      box.style.width = rect.width + "px";
     }
 
     function selectCustomer(id) {
@@ -214,28 +172,20 @@
         return;
       }
 
-      // Get highest dueNumber in existing payments
-      const existingPayments = selectedCustomer.products[prodIndex].payments || [];
-      let lastDue = 0;
-      if (existingPayments.length > 0) {
-        lastDue = Math.max(...existingPayments.map(p => p.dueNumber || 0));
-      } else if (selectedCustomer.paidDues) {
-        lastDue = selectedCustomer.paidDues;
-      }
-      const dueNumber = lastDue + 1;
+      const product = selectedCustomer.products[prodIndex];
+      if (!Array.isArray(product.payments)) product.payments = [];
+
+      const lastDueNumber = product.payments.reduce((max, p) => Math.max(max, p.dueNumber || 0), 0);
+      const dueNumber = lastDueNumber + 1;
 
       const payment = { amount: amt, date, dueNumber };
-
-      if (!Array.isArray(selectedCustomer.products[prodIndex].payments)) {
-        selectedCustomer.products[prodIndex].payments = [];
-      }
-      selectedCustomer.products[prodIndex].payments.push(payment);
+      product.payments.push(payment);
 
       const entry = {
         id: selectedCustomer.id,
         name: selectedCustomer.name,
         phone: selectedCustomer.phone,
-        product: prod.name,
+        product: product.name,
         amount: amt,
         date: date,
         dueNumber: dueNumber
@@ -246,15 +196,12 @@
       localStorage.setItem("agent_customers", JSON.stringify(customers));
       alert(`✅ Entry saved with Due #${dueNumber}`);
 
-      // Reset
       document.getElementById("customerInfo").style.display = "none";
       document.getElementById("amount").value = "";
       document.getElementById("searchBox").value = "";
       selectedCustomer = null;
       unpaidProducts = [];
     }
-
-    document.getElementById("date").value = new Date().toISOString().split("T")[0];
   </script>
 </body>
 </html>
