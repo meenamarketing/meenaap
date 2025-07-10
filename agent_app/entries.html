@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Add Collections - Agent App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       background: #121212;
@@ -48,6 +48,7 @@
       background: #00bcd4;
       color: black;
       font-weight: bold;
+      cursor: pointer;
     }
     .customer-box {
       margin-top: 10px;
@@ -104,7 +105,7 @@
       </div>
 
       <input type="number" id="amount" placeholder="Enter Amount Collected">
-      <input type="date" id="date">
+      <input type="date" id="date" value="">
       <button onclick="saveEntry()">Save Entry</button>
     </div>
   </main>
@@ -146,6 +147,7 @@
       document.getElementById("customerInfo").style.display = "block";
       document.getElementById("suggestions").style.display = "none";
       document.getElementById("searchBox").value = selectedCustomer.name;
+
       loadUnpaidProducts();
     }
 
@@ -201,43 +203,53 @@
       const amt = parseFloat(document.getElementById("amount").value);
       const date = document.getElementById("date").value;
       const prodIndex = parseInt(document.getElementById("productDropdown").value);
-      const product = selectedCustomer.products[prodIndex];
+      const prod = unpaidProducts.find(p => p.index == prodIndex);
 
-      if (!selectedCustomer || isNaN(amt) || !date || !product) {
+      if (!selectedCustomer || isNaN(amt) || !date || !prod) {
         alert("Please fill all fields");
         return;
       }
 
-      if (amt > (product.total - (product.payments?.reduce((sum, p) => sum + p.amount, 0) || 0))) {
+      if (amt > prod.balance) {
         alert("Amount exceeds remaining balance!");
         return;
       }
 
-      if (!Array.isArray(product.payments)) product.payments = [];
-      const paidDuesFromCustomer = parseInt(selectedCustomer.paidDues) || 0;
-      const paidDuesFromPayments = product.payments.length;
-      const dueNumber = paidDuesFromCustomer + paidDuesFromPayments + 1;
+      // ✅ Correct due number logic
+      const product = selectedCustomer.products[prodIndex];
+      const priorPayments = Array.isArray(product.payments) ? product.payments.length : 0;
+      const basePaidDues = selectedCustomer.paidDues || 0;
+      const dueNumber = basePaidDues + priorPayments + 1;
 
-      const payment = { amount: amt, date, dueNumber };
-      product.payments.push(payment);
+      // Add payment
+      if (!Array.isArray(product.payments)) {
+        product.payments = [];
+      }
+      product.payments.push({ amount: amt, date, dueNumber });
 
-      entries.push({
+      // Save to entries for review
+      const entry = {
         id: selectedCustomer.id,
         name: selectedCustomer.name,
         phone: selectedCustomer.phone,
         product: product.name,
         amount: amt,
-        date,
-        dueNumber
-      });
+        date: date,
+        dueNumber: dueNumber
+      };
 
+      entries.push(entry);
       localStorage.setItem("agent_entries", JSON.stringify(entries));
       localStorage.setItem("agent_customers", JSON.stringify(customers));
 
       alert(`✅ Entry saved with Due #${dueNumber}`);
-      selectCustomer(selectedCustomer.id);
+
+      // Reset form
+      document.getElementById("customerInfo").style.display = "none";
       document.getElementById("amount").value = "";
-      document.getElementById("amount").focus();
+      document.getElementById("searchBox").value = "";
+      selectedCustomer = null;
+      unpaidProducts = [];
     }
 
     document.getElementById("date").value = new Date().toISOString().split("T")[0];
