@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Reports - EMI Manager</title>
@@ -90,46 +91,53 @@
     <a href="review.html">Agent Review</a>
     <a href="reports.html">Reports</a>
   </nav>
+
   <main>
     <h1>📊 Reports & Filter</h1>
     <input type="file" accept=".json" onchange="loadData(event)" /><br />
     <label for="jumpSelect">Jump to Customer:</label>
     <select id="jumpSelect" onchange="jumpToCustomer(this.value)">
       <option value="">-- Select --</option>
-    </select><div style="position:relative;">
-  <input id="searchId" placeholder="Search by ID / Name / Phone" oninput="filterData(); showSuggestions(this.value)" />
-  <div id="suggestions"></div>
-</div>
-<input id="searchPlace" placeholder="Place" oninput="filterData()" />
-<input id="searchProduct" placeholder="Product Name" oninput="filterData()" />
-<label>From: <input type="date" id="fromDate" onchange="filterData()" /></label>
-<label>To: <input type="date" id="toDate" onchange="filterData()" /></label>
-<button onclick="exportCSV()">Export CSV</button>
+    </select>
+    <div style="position:relative;">
+      <input id="searchId" placeholder="Search by ID / Name / Phone" oninput="filterData(); showSuggestions(this.value)" />
+      <div id="suggestions"></div>
+    </div>
+    <input id="searchPlace" placeholder="Place" oninput="filterData()" />
+    <input id="searchProduct" placeholder="Product Name" oninput="filterData()" />
+    <label>From: <input type="date" id="fromDate" onchange="filterData()" /></label>
+    <label>To: <input type="date" id="toDate" onchange="filterData()" /></label>
+    <button onclick="exportCSV()">Export CSV</button>
 
-<h3 id="reportTotal">Total Paid: ₹0</h3>
-<h3 id="reportBalance">Total Balance: ₹0</h3>
+    <h3 id="reportTotal">Total Paid: ₹0</h3>
+    <h3 id="reportBalance">Total Balance: ₹0</h3>
 
-<canvas id="paidBalanceChart" height="150"></canvas>
-<canvas id="barChart" height="150"></canvas>
+    <canvas id="paidBalanceChart" height="150"></canvas>
+    <canvas id="barChart" height="150"></canvas>
 
-<h2>Customer Summary</h2>
-<table id="summaryTable">
-  <thead><tr><th>ID</th><th>Name</th><th>Total Paid</th><th>Total Balance</th></tr></thead>
-  <tbody></tbody>
-</table>
+    <h2>Customer Summary</h2>
+    <table id="summaryTable">
+      <thead>
+        <tr>
+          <th>ID</th><th>Name</th><th>Total Paid</th><th>Total Balance</th><th>Total Product Amount</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
 
-<h2>Detailed Payments</h2>
-<table>
-  <thead>
-    <tr>
-      <th>ID</th><th>Name</th><th>Place</th><th>Phone</th><th>Product</th>
-      <th>Paid</th><th>Balance</th><th>Dues</th><th>Date</th>
-    </tr>
-  </thead>
-  <tbody id="reportTable"></tbody>
-</table>
+    <h2>Detailed Payments</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Name</th><th>Place</th><th>Phone</th><th>Product</th>
+          <th>Paid</th><th>Balance</th><th>Dues</th><th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="reportTable"></tbody>
+    </table>
+  </main>
 
-  </main>  <script>
+  <script>
     let customers = [], flatReport = [], pieChart, barChart;
     let allSuggestions = new Set();
 
@@ -229,7 +237,9 @@
       filtered.forEach(r => {
         const key = `${r.id}||${r.name}`;
         if (!customerMap.has(key)) {
-          customerMap.set(key, { paid: 0, balance: 0 });
+          const customer = customers.find(c => c.id === r.id);
+          const totalAmount = customer ? customer.products.reduce((sum, p) => sum + (p.total || 0), 0) : 0;
+          customerMap.set(key, { paid: 0, balance: 0, total: totalAmount });
         }
         const data = customerMap.get(key);
         data.paid += r.paid;
@@ -243,6 +253,7 @@
           <td>${name}</td>
           <td>₹${data.paid.toFixed(2)}</td>
           <td>₹${data.balance.toFixed(2)}</td>
+          <td>₹${data.total.toFixed(2)}</td>
         </tr>`;
         piePaid += data.paid;
         pieBalance += data.balance;
@@ -259,10 +270,7 @@
         type: "pie",
         data: {
           labels: ["Paid", "Balance"],
-          datasets: [{
-            data: [paid, balance],
-            backgroundColor: ["#00e676", "#ff5252"]
-          }]
+          datasets: [{ data: [paid, balance], backgroundColor: ["#00e676", "#ff5252"] }]
         }
       });
 
@@ -317,7 +325,7 @@
       const box = document.getElementById("suggestions");
       if (!input || input.length < 1) return box.style.display = "none";
       const results = [...allSuggestions].filter(s => s.toLowerCase().includes(input.toLowerCase())).slice(0, 10);
-      box.innerHTML = results.map(r => `<div onclick=\"selectSuggestion('${r}')\">${r}</div>`).join("");
+      box.innerHTML = results.map(r => `<div onclick="selectSuggestion('${r}')">${r}</div>`).join("");
       box.style.display = results.length ? "block" : "none";
     }
 
@@ -326,5 +334,6 @@
       document.getElementById("suggestions").style.display = "none";
       filterData();
     }
-  </script></body>
+  </script>
+</body>
 </html>
