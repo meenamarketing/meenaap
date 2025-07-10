@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Add Collections - Agent App</title>
@@ -84,32 +83,27 @@
     <a href="index.html">Home</a>
     <a href="entries.html">Add Collection</a>
     <a href="view.html">Today's Entries</a>
-  </nav>
-
-  <main>
+  </nav>  <main>
     <h1>Add Collection Entry</h1>
     <input type="text" id="searchBox" placeholder="Search by ID, Name or Phone" oninput="showSuggestions(this.value)">
-    <div id="suggestions"></div>
+    <div id="suggestions"></div><div class="customer-box" id="customerInfo" style="display:none;">
+  <p><strong>ID:</strong> <span id="custId"></span></p>
+  <p><strong>Name:</strong> <span id="custName"></span></p>
+  <p><strong>Phone:</strong> <span id="custPhone"></span></p>
+  <p><strong>Place:</strong> <span id="custPlace"></span></p>
 
-    <div class="customer-box" id="customerInfo" style="display:none;">
-      <p><strong>ID:</strong> <span id="custId"></span></p>
-      <p><strong>Name:</strong> <span id="custName"></span></p>
-      <p><strong>Phone:</strong> <span id="custPhone"></span></p>
-      <p><strong>Place:</strong> <span id="custPlace"></span></p>
+  <div id="productSection">
+    <label>Select Product:</label>
+    <select id="productDropdown"></select>
+    <div id="productInfo"></div>
+  </div>
 
-      <div id="productSection">
-        <label>Select Product:</label>
-        <select id="productDropdown"></select>
-        <div id="productInfo"></div>
-      </div>
+  <input type="number" id="amount" placeholder="Enter Amount Collected">
+  <input type="date" id="date" value="">
+  <button onclick="saveEntry()">Save Entry</button>
+</div>
 
-      <input type="number" id="amount" placeholder="Enter Amount Collected">
-      <input type="date" id="date" value="">
-      <button onclick="saveEntry()">Save Entry</button>
-    </div>
-  </main>
-
-  <script>
+  </main>  <script>
     let customers = JSON.parse(localStorage.getItem('agent_customers') || '[]');
     let entries = JSON.parse(localStorage.getItem('agent_entries') || '[]');
     let selectedCustomer = null;
@@ -214,18 +208,30 @@
         return;
       }
 
+      const baseDues = selectedCustomer.paidDues || 0;
+      const dueNumber = baseDues + (prod.payments?.length || 0) + 1;
+
+      const payment = { amount: amt, date, dueNumber };
+
+      if (!Array.isArray(selectedCustomer.products[prodIndex].payments)) {
+        selectedCustomer.products[prodIndex].payments = [];
+      }
+      selectedCustomer.products[prodIndex].payments.push(payment);
+
       const entry = {
         id: selectedCustomer.id,
         name: selectedCustomer.name,
         phone: selectedCustomer.phone,
         product: prod.name,
         amount: amt,
-        date: date
+        date: date,
+        dueNumber: dueNumber
       };
 
       entries.push(entry);
       localStorage.setItem("agent_entries", JSON.stringify(entries));
-      alert("Entry saved successfully!");
+      localStorage.setItem("agent_customers", JSON.stringify(customers));
+      alert(`Entry saved with Due #${dueNumber}`);
 
       // Reset
       document.getElementById("customerInfo").style.display = "none";
@@ -236,6 +242,5 @@
     }
 
     document.getElementById("date").value = new Date().toISOString().split("T")[0];
-  </script>
-</body>
+  </script></body>
 </html>
