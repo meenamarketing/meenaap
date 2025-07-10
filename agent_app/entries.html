@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Entries - EMI Manager</title>
+  <title>Add Collection - Agent App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
@@ -15,14 +15,14 @@
     nav {
       background: #1f1f1f;
       display: flex;
-      padding: 10px;
-      gap: 15px;
       flex-wrap: wrap;
+      padding: 10px;
+      gap: 10px;
     }
     nav a {
       color: white;
       background: #333;
-      padding: 8px 15px;
+      padding: 10px 15px;
       border-radius: 5px;
       text-decoration: none;
     }
@@ -40,44 +40,41 @@
       padding: 10px;
       margin: 10px 0;
       border-radius: 5px;
-      border: 1px solid #444;
       background: #1e1e1e;
       color: white;
+      border: 1px solid #444;
+      width: 100%;
     }
     button {
       background: #00bcd4;
       color: black;
       font-weight: bold;
-      border: none;
       cursor: pointer;
     }
     button:hover {
       background: #26c6da;
     }
-    .product-block {
-      background: #1e1e1e;
+    .product-box {
+      background: #1f1f1f;
       padding: 15px;
-      border-radius: 6px;
-      margin: 15px 0;
+      border-radius: 8px;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
   <nav>
     <a href="index.html">Dashboard</a>
-    <a href="customers.html">Customers</a>
-    <a href="entries.html">Entries</a>
-    <a href="review.html">Agent Review</a>
-    <a href="report.html">Reports</a>
+    <a href="entries.html">Add Collection</a>
+    <a href="view.html">Today's Entries</a>
+    <a href="customer_report.html">Customer Report</a>
   </nav>
 
   <main>
-    <h1>Daily Payment Entry</h1>
-    <input type="file" accept=".json" onchange="loadJSON(event)">
-    <br>
-    <input id="searchId" placeholder="Search by Customer ID or Name" oninput="searchCustomer()">
-    <div id="resultArea"></div>
-    <button onclick="exportUpdated()">Export Updated JSON</button>
+    <h1>Add Collection Entry</h1>
+    <input type="file" accept=".json" onchange="loadJSON(event)" />
+    <input type="text" id="searchInput" placeholder="Search by ID or Name" oninput="searchCustomer()" />
+    <div id="customerBox"></div>
   </main>
 
   <script>
@@ -87,125 +84,89 @@
       const file = event.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = function (e) {
+      reader.onload = e => {
         customers = JSON.parse(e.target.result);
-        alert("✅ Data loaded. Search customer to proceed.");
+        alert("✅ Customer file loaded!");
       };
       reader.readAsText(file);
     }
 
     function searchCustomer() {
-      const key = document.getElementById("searchId").value.toLowerCase();
-      const match = customers.find(c =>
-        c.id.toLowerCase().includes(key) || c.name.toLowerCase().includes(key)
+      const query = document.getElementById("searchInput").value.toLowerCase();
+      const customer = customers.find(c =>
+        c.id.toLowerCase().includes(query) || c.name.toLowerCase().includes(query)
       );
-      const div = document.getElementById("resultArea");
-      div.innerHTML = "";
 
-      if (!match) {
-        div.innerHTML = "<p>No customer found.</p>";
+      const box = document.getElementById("customerBox");
+      box.innerHTML = "";
+
+      if (!customer) {
+        box.innerHTML = "<p>No customer found.</p>";
         return;
       }
 
-      const details = `
-        <h3>${match.name} (${match.id})</h3>
-        <p><strong>Phone:</strong> ${match.phone} | <strong>Place:</strong> ${match.place}</p>
-      `;
+      const div = document.createElement("div");
+      div.innerHTML = `<h3>${customer.name} (${customer.id})</h3><p>Phone: ${customer.phone}</p><p>Place: ${customer.place}</p>`;
 
-      const productSelector = document.createElement("select");
-      productSelector.innerHTML = match.products.map((p, i) => `<option value="${i}">${p.name}</option>`).join("");
-      productSelector.onchange = () => showProduct(match, parseInt(productSelector.value));
+      customer.products.forEach((p, i) => {
+        if (!Array.isArray(p.payments)) p.payments = [];
 
-      const container = document.createElement("div");
-      container.innerHTML = details;
-      container.appendChild(productSelector);
+        // Convert from old format
+        if (p.datesPaid && p.paid && p.payments.length === 0) {
+          const avg = p.paid / p.datesPaid.length;
+          p.datesPaid.forEach((date, idx) => {
+            p.payments.push({
+              date,
+              amount: Math.round(avg * 100) / 100,
+              dueNumber: (customer.paidDues || 0) + 1 + idx
+            });
+          });
+          delete p.paid;
+          delete p.datesPaid;
+        }
 
-      const productArea = document.createElement("div");
-      productArea.id = "productArea";
-      container.appendChild(productArea);
+        const paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
+        const balance = p.total - paid;
+        const nextDue = (customer.paidDues || 0) + 1 + p.payments.length;
 
-      div.appendChild(container);
+        const pDiv = document.createElement("div");
+        pDiv.className = "product-box";
+        pDiv.innerHTML = `
+          <strong>${p.name}</strong><br>
+          Total: ₹${p.total}, Paid: ₹${paid.toFixed(2)}, Balance: ₹${balance.toFixed(2)}<br>
+          <strong>Next Due:</strong> #${nextDue}<br>
+          <input type="number" id="amt_${customer.id}_${i}" placeholder="Amount">
+          <input type="date" id="date_${customer.id}_${i}" value="${new Date().toISOString().split("T")[0]}">
+          <button onclick="addPayment('${customer.id}', ${i}, ${nextDue})">Add Payment</button>
+        `;
+        div.appendChild(pDiv);
+      });
 
-      // Show first product by default
-      showProduct(match, 0);
+      box.appendChild(div);
     }
 
-    function getPaidTotal(product) {
-      if (Array.isArray(product.payments)) {
-        return product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-      } else if (typeof product.paid === "number") {
-        return product.paid;
-      }
-      return 0;
-    }
-
-    function showProduct(customer, productIndex) {
-      const p = customer.products[productIndex];
-
-      // Convert old format if needed
-      if (!p.payments && Array.isArray(p.datesPaid)) {
-        const avg = (p.paid || 0) / p.datesPaid.length;
-        p.payments = p.datesPaid.map((date, index) => ({
-          date,
-          amount: Math.round(avg * 100) / 100,
-          dueNumber: index + 1
-        }));
-      }
-
-      p.payments = p.payments || [];
-
-      const paid = getPaidTotal(p);
-      const balance = Math.max(0, p.total - paid);
-      const baseDue = (customer.paidDues || 0) + 1;
-      const nextDue = baseDue + p.payments.length;
-
-      const prodHTML = `
-        <div class="product-block">
-          <p><strong>Product:</strong> ${p.name}</p>
-          <p><strong>Total:</strong> ₹${p.total} | <strong>Paid:</strong> ₹${paid} | <strong>Balance:</strong> ₹${balance}</p>
-          <p><strong>Next Due Number:</strong> #${nextDue}</p>
-          <input type="number" id="amountInput" placeholder="Enter amount">
-          <input type="date" id="dateInput" value="${new Date().toISOString().split('T')[0]}">
-          <button onclick="addPayment('${customer.id}', ${productIndex})">Add Payment</button>
-        </div>
-      `;
-      document.getElementById("productArea").innerHTML = prodHTML;
-    }
-
-    function addPayment(custId, productIndex) {
-      const amount = parseFloat(document.getElementById("amountInput").value);
-      const date = document.getElementById("dateInput").value;
+    function addPayment(custId, prodIndex, dueNo) {
+      const cust = customers.find(c => c.id === custId);
+      const prod = cust.products[prodIndex];
+      const amtInput = document.getElementById(`amt_${custId}_${prodIndex}`);
+      const dateInput = document.getElementById(`date_${custId}_${prodIndex}`);
+      const amount = parseFloat(amtInput.value);
+      const date = dateInput.value;
 
       if (isNaN(amount) || amount <= 0 || !date) {
-        alert("⚠ Please enter a valid amount and date.");
+        alert("❌ Enter valid amount and date.");
         return;
       }
 
-      const customer = customers.find(c => c.id === custId);
-      const product = customer.products[productIndex];
+      prod.payments.push({
+        date,
+        amount,
+        dueNumber: dueNo
+      });
 
-      product.payments = product.payments || [];
-
-      delete product.paid;
-      delete product.datesPaid;
-
-      const baseDue = (customer.paidDues || 0) + 1;
-      const dueNumber = baseDue + product.payments.length;
-
-      product.payments.push({ date, amount, dueNumber });
-      customer.paidDues = dueNumber;
-
-      alert(`✅ ₹${amount.toFixed(2)} added for "${product.name}". Due #${dueNumber}`);
-      searchCustomer(); // Refresh view
-    }
-
-    function exportUpdated() {
-      const blob = new Blob([JSON.stringify(customers, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "updated_customers.json";
-      a.click();
+      alert(`✅ Payment added. Due number: ${dueNo}`);
+      amtInput.value = "";
+      searchCustomer();
     }
   </script>
 </body>
