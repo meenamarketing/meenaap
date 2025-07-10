@@ -65,6 +65,25 @@
     tr:nth-child(odd) {
       background: #1d1d1d;
     }
+    #suggestions {
+      position: absolute;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 5px;
+      z-index: 999;
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    #suggestions div {
+      padding: 10px;
+      border-bottom: 1px solid #333;
+      cursor: pointer;
+    }
+    #suggestions div:hover {
+      background: #00bcd4;
+      color: black;
+    }
   </style>
 </head>
 <body>
@@ -77,76 +96,51 @@
   </nav>
 
   <main>
-    <h1>📊 Customer Reports</h1>
+    <h1>📊 Reports & Filter</h1>
+
     <input type="file" accept=".json" onchange="loadData(event)">
+    <br>
+
+    <label for="jumpSelect">Jump to Customer:</label>
+    <select id="jumpSelect" onchange="jumpToCustomer(this.value)">
+      <option value="">-- Select --</option>
+    </select>
+
+    <div style="position:relative;">
+      <input id="searchId" placeholder="Search by ID / Name / Phone" oninput="filterData(); showSuggestions(this.value)">
+      <div id="suggestions"></div>
+    </div>
+    <input id="searchPlace" placeholder="Place" oninput="filterData()">
+    <input id="searchProduct" placeholder="Product Name" oninput="filterData()">
+    <label>From: <input type="date" id="fromDate" onchange="filterData()"></label>
+    <label>To: <input type="date" id="toDate" onchange="filterData()"></label>
+    <button onclick="exportCSV()">Export CSV</button>
+
     <h3 id="reportTotal">Total Paid: ₹0</h3>
     <h3 id="reportBalance">Total Balance: ₹0</h3>
 
+    <canvas id="paidBalanceChart" height="150"></canvas>
+    <canvas id="barChart" height="150"></canvas>
+
+    <h2>Customer Summary</h2>
+    <table id="summaryTable">
+      <thead><tr><th>ID</th><th>Name</th><th>Total Paid</th><th>Total Balance</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>Monthly Breakdown</h2>
+    <table id="monthlyTable">
+      <thead><tr><th>Month</th><th>Total Paid</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>Detailed Payments</h2>
     <table>
       <thead>
         <tr>
-          <th>ID</th><th>Name</th><th>Product</th><th>Paid</th><th>Total</th><th>Balance</th>
+          <th>ID</th><th>Name</th><th>Place</th><th>Phone</th><th>Product</th>
+          <th>Paid</th><th>Balance</th><th>Date</th>
         </tr>
       </thead>
       <tbody id="reportTable"></tbody>
     </table>
-  </main>
-
-  <script>
-    let customers = [];
-
-    function loadData(event) {
-      const file = event.target.files[0];
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        customers = JSON.parse(e.target.result);
-        renderTable();
-      };
-      reader.readAsText(file);
-    }
-
-    function renderTable() {
-      const table = document.getElementById("reportTable");
-      table.innerHTML = "";
-      let totalPaid = 0;
-      let totalBalance = 0;
-
-      customers.forEach(c => {
-        if (!Array.isArray(c.products)) return;
-
-        c.products.forEach(p => {
-          let paid = 0;
-          const total = p.total || 0;
-
-          if (Array.isArray(p.payments)) {
-            paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
-          } else {
-            paid = p.paid || 0;
-          }
-
-          const balance = Math.max(0, total - paid);
-
-          if (balance === 0) return; // skip fully paid products
-
-          totalPaid += paid;
-          totalBalance += balance;
-
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${c.id}</td>
-            <td>${c.name}</td>
-            <td>${p.name}</td>
-            <td>₹${paid}</td>
-            <td>₹${total}</td>
-            <td>₹${balance}</td>
-          `;
-          table.appendChild(row);
-        });
-      });
-
-      document.getElementById("reportTotal").innerText = `Total Paid: ₹${totalPaid.toFixed(2)}`;
-      document.getElementById("reportBalance").innerText = `Total Balance: ₹${totalBalance.toFixed(2)}`;
-    }
-  </script>
-</body>
-</html>
