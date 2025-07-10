@@ -1,76 +1,37 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Review Agent Collections - Main App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
-      background: #121212;
-      color: #eee;
-      font-family: sans-serif;
-      margin: 0;
-    }
+    body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; }
     nav {
-      background: #1f1f1f;
-      display: flex;
-      gap: 10px;
-      padding: 10px;
+      background: #1f1f1f; display: flex; gap: 10px; padding: 10px;
     }
     nav a {
-      color: white;
-      background: #333;
-      padding: 10px 15px;
-      border-radius: 5px;
-      text-decoration: none;
+      color: white; background: #333; padding: 10px 15px; border-radius: 5px; text-decoration: none;
     }
-    nav a:hover {
-      background: #00bcd4;
-      color: black;
-    }
-    main {
-      padding: 20px;
-    }
+    nav a:hover { background: #00bcd4; color: black; }
+    main { padding: 20px; }
     input[type="file"], input[type="text"] {
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 5px;
-      background: #1e1e1e;
-      color: white;
-      border: 1px solid #555;
-      width: 100%;
+      padding: 10px; margin: 10px 0; border-radius: 5px;
+      background: #1e1e1e; color: white; border: 1px solid #555; width: 100%;
     }
     table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
+      width: 100%; border-collapse: collapse; margin-top: 20px;
     }
     th, td {
-      padding: 10px;
-      border: 1px solid #333;
-      text-align: center;
+      padding: 10px; border: 1px solid #333; text-align: center;
     }
-    thead {
-      background: #2c2c2c;
-    }
-    tr:nth-child(even) {
-      background: #1f1f1f;
-    }
+    thead { background: #2c2c2c; }
+    tr:nth-child(even) { background: #1f1f1f; }
     button {
-      background: #00bcd4;
-      color: black;
-      padding: 10px 15px;
-      margin-top: 10px;
-      font-weight: bold;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
+      background: #00bcd4; color: black; padding: 10px 15px; margin-top: 10px;
+      font-weight: bold; border: none; border-radius: 5px; cursor: pointer;
     }
-    button:hover {
-      background: #26c6da;
-    }
-    #summary {
-      margin: 10px 0;
-    }
+    button:hover { background: #26c6da; }
+    #summary { margin: 10px 0; }
   </style>
 </head>
 <body>
@@ -80,39 +41,43 @@
     <a href="entry.html">Add Payment</a>
     <a href="report.html">Reports</a>
     <a href="review.html">Review Agent</a>
-  </nav>  <main>
+  </nav>
+
+  <main>
     <h1>Review Agent Collections</h1>
     <input type="file" accept=".json" onchange="loadMainData(event)" />
     <input type="file" accept=".json" onchange="loadAgentData(event)" />
     <input type="text" id="searchId" placeholder="🔍 Search by Customer ID" oninput="filterTable()" />
-    <div id="summary"></div><table id="agentTable" style="display:none;">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Name</th>
-      <th>Phone</th>
-      <th>Product</th>
-      <th>Amount</th>
-      <th>Due</th>
-      <th>Date</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+    <div id="summary"></div>
 
-<button id="approveBtn" onclick="approveData()" style="display:none;">✅ Approve & Merge</button>
-<button onclick="exportMainJSON()" style="display:none;" id="exportBtn">📤 Export Updated Main JSON</button>
+    <table id="agentTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Product</th>
+          <th>Amount</th>
+          <th>Due</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
 
-  </main>  <script>
+    <button id="approveBtn" onclick="approveData()" style="display:none;">✅ Approve & Merge</button>
+    <button onclick="exportMainJSON()" style="display:none;" id="exportBtn">📤 Export Updated Main JSON</button>
+  </main>
+
+  <script>
     let agentEntries = [];
     let mainCustomers = [];
 
     function loadMainData(event) {
       const file = event.target.files[0];
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = function (e) {
         mainCustomers = JSON.parse(e.target.result);
-        localStorage.setItem("main_customers", JSON.stringify(mainCustomers));
         alert("✅ Main database loaded");
       };
       reader.readAsText(file);
@@ -121,7 +86,7 @@
     function loadAgentData(event) {
       const file = event.target.files[0];
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = function (e) {
         agentEntries = JSON.parse(e.target.result);
         showAgentData(agentEntries);
       };
@@ -169,29 +134,39 @@
       agentEntries.forEach(entry => {
         const cust = mainCustomers.find(c => c.id === entry.id);
         if (!cust) return;
+
         const prod = cust.products.find(p => p.name === entry.product);
         if (!prod) return;
 
         if (!prod.payments) prod.payments = [];
-        const lastDue = Math.max(...prod.payments.map(p => p.dueNumber || 0), cust.paidDues || 0);
-        const nextDueNumber = lastDue + 1;
+        if (!prod.datesPaid) prod.datesPaid = [];
 
+        // Get last due number
+        const lastDue = Math.max(
+          ...prod.payments.map(p => p.dueNumber || 0),
+          cust.paidDues || 0
+        );
+
+        const nextDue = lastDue + 1;
+
+        // Add payment
         prod.payments.push({
           date: entry.date,
           amount: parseFloat(entry.amount),
-          dueNumber: nextDueNumber
+          dueNumber: nextDue
         });
 
-        prod.paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
-        cust.paidDues = nextDueNumber;
-
-        if (!prod.datesPaid) prod.datesPaid = [];
         prod.datesPaid.push(entry.date);
+
+        // Recalculate total paid
+        prod.paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
+
+        // Update paid dues
+        cust.paidDues = nextDue;
 
         updated++;
       });
 
-      localStorage.setItem("main_customers", JSON.stringify(mainCustomers));
       alert(`✅ Approved and merged ${updated} entries`);
     }
 
@@ -203,21 +178,25 @@
         place: c.place || "",
         totalDues: c.totalDues || 0,
         paidDues: c.paidDues || 0,
-        products: c.products.map(p => ({
+        products: (c.products || []).map(p => ({
           name: p.name,
           total: p.total || 0,
-          datesPaid: p.datesPaid || p.payments?.map(pmt => pmt.date) || [],
-          paid: p.payments?.reduce((sum, pay) => sum + pay.amount, 0) || 0,
+          paid: p.paid || 0,
+          datesPaid: p.datesPaid || [],
           payments: p.payments || []
         }))
       }));
 
-      const blob = new Blob([JSON.stringify(exported, null, 2)], { type: "application/json" });
+      const blob = new Blob([JSON.stringify(exported, null, 2)], {
+        type: "application/json"
+      });
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = "updated_main_customers.json";
       a.click();
     }
-  </script></body>
+  </script>
+</body>
 </html>
