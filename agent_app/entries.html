@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Add Collection - Agent App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>Today's Entries - Agent App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       background: #121212;
@@ -15,14 +15,14 @@
     nav {
       background: #1f1f1f;
       display: flex;
+      flex-wrap: wrap;
       padding: 10px;
       gap: 10px;
-      flex-wrap: wrap;
     }
     nav a {
       color: white;
       background: #333;
-      padding: 8px 15px;
+      padding: 10px 15px;
       border-radius: 5px;
       text-decoration: none;
     }
@@ -33,33 +33,34 @@
     main {
       padding: 20px;
     }
-    input, select, button {
-      padding: 10px;
-      margin: 8px 0;
-      border-radius: 5px;
-      background: #1e1e1e;
-      color: white;
-      border: 1px solid #444;
+    table {
       width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #333;
+      text-align: center;
+    }
+    thead {
+      background: #2c2c2c;
+    }
+    tr:nth-child(odd) {
+      background: #1e1e1e;
     }
     button {
       background: #00bcd4;
       color: black;
       font-weight: bold;
+      padding: 8px 15px;
+      border: none;
+      border-radius: 5px;
       cursor: pointer;
+      margin-top: 10px;
     }
     button:hover {
       background: #26c6da;
-    }
-    .box {
-      border: 1px solid #333;
-      padding: 15px;
-      border-radius: 10px;
-      margin-top: 15px;
-      background: #1c1c1c;
-    }
-    h2 {
-      color: #00bcd4;
     }
   </style>
 </head>
@@ -72,114 +73,86 @@
   </nav>
 
   <main>
-    <h2>Upload Customer JSON</h2>
-    <input type="file" accept=".json" onchange="loadCustomers(event)">
-    
-    <h2>Search Customer</h2>
-    <input type="text" id="searchBox" placeholder="Search by ID, Name or Phone" oninput="searchCustomer()">
+    <h2>📅 Today's Collections</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Product</th>
+          <th>Amount</th>
+          <th>Date</th>
+          <th>Due</th>
+        </tr>
+      </thead>
+      <tbody id="entryTable"></tbody>
+    </table>
 
-    <div id="resultArea"></div>
+    <button onclick="mergeAndExport()">✅ Merge & Export</button>
   </main>
 
   <script>
-    let customers = [];
-    let entries = JSON.parse(localStorage.getItem("agent_entries") || "[]");
+    const entries = JSON.parse(localStorage.getItem("agent_entries") || "[]");
+    const customers = JSON.parse(localStorage.getItem("agent_customers") || "[]");
 
-    function loadCustomers(event) {
-      const file = event.target.files[0];
-      const reader = new FileReader();
-      reader.onload = e => {
-        customers = JSON.parse(e.target.result);
-        localStorage.setItem("agent_customers", JSON.stringify(customers));
-        alert("✅ Customers loaded into memory.");
-      };
-      reader.readAsText(file);
-    }
+    function renderEntries() {
+      const tbody = document.getElementById("entryTable");
+      tbody.innerHTML = "";
 
-    function searchCustomer() {
-      const query = document.getElementById("searchBox").value.toLowerCase();
-      const found = customers.find(c =>
-        c.id.toLowerCase().includes(query) ||
-        c.name.toLowerCase().includes(query) ||
-        c.phone.includes(query)
-      );
-
-      const resultDiv = document.getElementById("resultArea");
-      resultDiv.innerHTML = "";
-
-      if (!found) {
-        resultDiv.innerHTML = "<p>❌ Customer not found.</p>";
-        return;
-      }
-
-      const div = document.createElement("div");
-      div.className = "box";
-      div.innerHTML = `<strong>ID:</strong> ${found.id}<br>
-        <strong>Name:</strong> ${found.name}<br>
-        <strong>Phone:</strong> ${found.phone}<br>
-        <strong>Place:</strong> ${found.place}<br><br>`;
-
-      found.products.forEach((p, i) => {
-        if (!Array.isArray(p.payments)) p.payments = [];
-
-        const paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
-        const balance = p.total - paid;
-        const nextDue = (found.paidDues || 0) + 1 + p.payments.length;
-
-        div.innerHTML += `
-          <div class="box">
-            <strong>Product:</strong> ${p.name}<br>
-            <strong>Total:</strong> ₹${p.total}<br>
-            <strong>Paid:</strong> ₹${paid}<br>
-            <strong>Balance:</strong> ₹${balance}<br>
-            <strong>Next Due:</strong> #${nextDue}<br><br>
-            <input type="number" id="amt_${found.id}_${i}" placeholder="Enter amount">
-            <input type="date" id="date_${found.id}_${i}" value="${new Date().toISOString().split('T')[0]}">
-            <button onclick="addPayment('${found.id}', ${i})">Save Entry</button>
-          </div>
+      entries.forEach(entry => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${entry.id}</td>
+          <td>${entry.name}</td>
+          <td>${entry.phone}</td>
+          <td>${entry.product}</td>
+          <td>₹${parseFloat(entry.amount).toFixed(2)}</td>
+          <td>${entry.date}</td>
+          <td>${entry.dueNumber || '-'}</td>
         `;
+        tbody.appendChild(tr);
       });
-
-      resultDiv.appendChild(div);
     }
 
-    function addPayment(custId, prodIndex) {
-      const customer = customers.find(c => c.id === custId);
-      const product = customer.products[prodIndex];
-      const amtInput = document.getElementById(`amt_${custId}_${prodIndex}`);
-      const dateInput = document.getElementById(`date_${custId}_${prodIndex}`);
-      const amount = parseFloat(amtInput.value);
-      const date = dateInput.value;
+    function mergeAndExport() {
+      let updated = 0;
 
-      if (isNaN(amount) || amount <= 0 || !date) {
-        alert("❌ Enter valid amount and date.");
-        return;
-      }
+      entries.forEach(entry => {
+        const cust = customers.find(c => c.id === entry.id);
+        if (!cust) return;
 
-      if (!Array.isArray(product.payments)) product.payments = [];
+        const product = cust.products.find(p => p.name === entry.product);
+        if (!product) return;
 
-      const nextDue = (customer.paidDues || 0) + 1 + product.payments.length;
+        if (!Array.isArray(product.payments)) product.payments = [];
 
-      product.payments.push({
-        date,
-        amount,
-        dueNumber: nextDue
+        product.payments.push({
+          date: entry.date,
+          amount: parseFloat(entry.amount),
+          dueNumber: entry.dueNumber
+        });
+
+        product.paid = product.payments.reduce((sum, p) => sum + p.amount, 0);
+        cust.paidDues = Math.max(cust.paidDues || 0, entry.dueNumber);
+
+        if (!product.datesPaid) product.datesPaid = [];
+        product.datesPaid.push(entry.date);
+
+        updated++;
       });
 
-      entries.push({
-        id: customer.id,
-        name: customer.name,
-        phone: customer.phone,
-        product: product.name,
-        amount,
-        date,
-        dueNumber: nextDue
-      });
+      const blob = new Blob([JSON.stringify(customers, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "updated_customers.json";
+      a.click();
 
-      localStorage.setItem("agent_entries", JSON.stringify(entries));
-      alert(`✅ Entry saved with Due #${nextDue}`);
-      amtInput.value = "";
+      alert(`✅ Merged and exported ${updated} entries`);
     }
+
+    renderEntries();
   </script>
 </body>
-  </html>
+</html>
