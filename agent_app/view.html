@@ -45,11 +45,9 @@
       border: 1px solid #444;
       padding: 10px;
       text-align: center;
-      font-size: 16px;
     }
     thead {
       background: #2c2c2c;
-      font-weight: bold;
     }
     tr:nth-child(odd) {
       background: #1d1d1d;
@@ -58,12 +56,11 @@
       background: #00bcd4;
       color: black;
       font-weight: bold;
-      padding: 10px 16px;
+      padding: 8px 12px;
       border: none;
       border-radius: 5px;
       cursor: pointer;
-      margin: 10px 10px 10px 0;
-      font-size: 16px;
+      margin: 10px 5px;
     }
     button:hover {
       background: #26c6da;
@@ -80,8 +77,8 @@
 
   <main>
     <h1>📄 Today's Payment Entries</h1>
-    <button onclick="exportTodayJSON()">📤 Export JSON</button>
-    <button onclick="exportPDF()">🖨️ Export PDF</button>
+    <button onclick="exportJSON()">Export JSON</button>
+    <button onclick="exportPDF()">Export PDF</button>
     <h3 id="totalCollected">Total: ₹0</h3>
 
     <table>
@@ -98,16 +95,16 @@
   <script>
     let entries = [];
 
+    function getTodayDateStr() {
+      return new Date().toISOString().split("T")[0];
+    }
+
     function loadEntries() {
       try {
         entries = JSON.parse(localStorage.getItem("agent_entries")) || [];
       } catch {
         entries = [];
       }
-    }
-
-    function getTodayDateStr() {
-      return new Date().toISOString().split("T")[0];
     }
 
     function renderEntries() {
@@ -119,7 +116,6 @@
       entries.forEach((e, i) => {
         const amount = parseFloat(e.amount || 0);
         total += amount;
-
         const row = document.createElement("tr");
         row.innerHTML = `
           <td>${e.id}</td>
@@ -145,14 +141,12 @@
       }
     }
 
-    function exportTodayJSON() {
-      const today = getTodayDateStr();
-      const data = JSON.stringify(entries, null, 2);
-      const blob = new Blob([data], { type: "application/json" });
+    function exportJSON() {
+      const blob = new Blob([JSON.stringify(entries, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `collection_${today}.json`;
+      a.download = `collection_${getTodayDateStr()}.json`;
       a.click();
     }
 
@@ -169,17 +163,21 @@
       const colWidths = [20, 40, 35, 35, 25, 30, 15];
       const cellHeight = 10;
 
-      // Table header
+      // Header
+      let x = 10;
       headers.forEach((h, i) => {
-        const x = 10 + colWidths.slice(0, i).reduce((a, b) => a + b, 0);
+        doc.setFillColor(60, 60, 60);
+        doc.rect(x, startY, colWidths[i], cellHeight, "F");
+        doc.setTextColor(255, 255, 255);
         doc.setFontSize(12);
-        doc.setFont("Helvetica", "bold");
         doc.text(h, x + 2, startY + 7);
-        doc.rect(x, startY, colWidths[i], cellHeight);
+        x += colWidths[i];
       });
 
+      doc.setTextColor(0, 0, 0); // Reset to black
+
       let total = 0;
-      // Table body
+
       entries.forEach((e, idx) => {
         const y = startY + (idx + 1) * cellHeight;
         const row = [
@@ -193,16 +191,23 @@
         ];
         total += parseFloat(e.amount || 0);
 
+        let cellX = 10;
+
+        if (idx % 2 === 0) {
+          doc.setFillColor(240, 240, 240);
+          doc.rect(cellX, y, colWidths.reduce((a, b) => a + b), cellHeight, "F");
+        }
+
         row.forEach((val, i) => {
-          const x = 10 + colWidths.slice(0, i).reduce((a, b) => a + b, 0);
           doc.setFontSize(11);
           doc.setFont("Helvetica", "normal");
-          doc.text(String(val), x + 2, y + 7);
-          doc.rect(x, y, colWidths[i], cellHeight);
+          doc.text(String(val), cellX + 2, y + 7);
+          doc.rect(cellX, y, colWidths[i], cellHeight);
+          cellX += colWidths[i];
         });
       });
 
-      // Total at the bottom
+      // Total
       const finalY = startY + (entries.length + 1) * cellHeight + 10;
       doc.setFont("Helvetica", "bold");
       doc.setFontSize(14);
