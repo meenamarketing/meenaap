@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Reports - EMI Manager</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       background: #121212;
@@ -35,7 +36,7 @@
     h1 {
       color: #00bcd4;
     }
-    input, button {
+    input, button, select {
       padding: 10px;
       margin: 5px 10px 15px 0;
       border-radius: 5px;
@@ -49,16 +50,13 @@
       font-weight: bold;
       cursor: pointer;
     }
-    button:hover {
-      background: #26c6da;
-    }
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 10px;
     }
     th, td {
-      padding: 10px;
+      padding: 8px;
       border: 1px solid #333;
     }
     thead {
@@ -66,6 +64,25 @@
     }
     tr:nth-child(odd) {
       background: #1d1d1d;
+    }
+    #suggestions {
+      position: absolute;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 5px;
+      z-index: 999;
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    #suggestions div {
+      padding: 10px;
+      border-bottom: 1px solid #333;
+      cursor: pointer;
+    }
+    #suggestions div:hover {
+      background: #00bcd4;
+      color: black;
     }
   </style>
 </head>
@@ -75,28 +92,54 @@
     <a href="customers.html">Customers</a>
     <a href="entries.html">Entries</a>
     <a href="review.html">Agent Review</a>
-    <a href="report.html">Reports</a>
+    <a href="reports.html">Reports</a>
   </nav>
 
   <main>
-    <h1>📊 Customer Product & Payment Report</h1>
+    <h1>📊 Reports & Filter</h1>
 
-    <input type="file" accept=".json" onchange="loadJSON(event)">
-    <h3 id="totalPaid">Total Paid: ₹0</h3>
-    <h3 id="totalBalance">Total Balance: ₹0</h3>
+    <input type="file" accept=".json" onchange="loadData(event)">
+    <br>
 
+    <label for="jumpSelect">Jump to Customer:</label>
+    <select id="jumpSelect" onchange="jumpToCustomer(this.value)">
+      <option value="">-- Select --</option>
+    </select>
+
+    <div style="position:relative;">
+      <input id="searchId" placeholder="Search by ID / Name / Phone" oninput="filterData(); showSuggestions(this.value)">
+      <div id="suggestions"></div>
+    </div>
+    <input id="searchPlace" placeholder="Place" oninput="filterData()">
+    <input id="searchProduct" placeholder="Product Name" oninput="filterData()">
+    <label>From: <input type="date" id="fromDate" onchange="filterData()"></label>
+    <label>To: <input type="date" id="toDate" onchange="filterData()"></label>
+    <button onclick="exportCSV()">Export CSV</button>
+
+    <h3 id="reportTotal">Total Paid: ₹0</h3>
+    <h3 id="reportBalance">Total Balance: ₹0</h3>
+
+    <canvas id="paidBalanceChart" height="150"></canvas>
+    <canvas id="barChart" height="150"></canvas>
+
+    <h2>Customer Summary</h2>
+    <table id="summaryTable">
+      <thead><tr><th>ID</th><th>Name</th><th>Total Paid</th><th>Total Balance</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>Monthly Breakdown</h2>
+    <table id="monthlyTable">
+      <thead><tr><th>Month</th><th>Total Paid</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>Detailed Payments</h2>
     <table>
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Place</th>
-          <th>Product</th>
-          <th>Paid</th>
-          <th>Total</th>
-          <th>Balance</th>
-          <th>Payment Dates</th>
+          <th>ID</th><th>Name</th><th>Place</th><th>Phone</th><th>Product</th>
+          <th>Paid</th><th>Balance</th><th>Date</th>
         </tr>
       </thead>
       <tbody id="reportTable"></tbody>
@@ -105,56 +148,224 @@
 
   <script>
     let customers = [];
+    let flatReport = [];
+    let allSuggestions = new Set();
+    let pieChart, barChart;
 
-    function loadJSON(event) {
+    function loadData(event) {
       const file = event.target.files[0];
-      if (!file) return;
-
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = function (e) {
         customers = JSON.parse(e.target.result);
-        renderReport();
+        flattenData();
+        filterData();
+        updateDropdown();
       };
       reader.readAsText(file);
     }
 
-    function renderReport() {
-      const tbody = document.getElementById("reportTable");
-      tbody.innerHTML = "";
+    function flattenData() {
+      flatReport = [];
+      allSuggestions.clear();
 
-      let totalPaid = 0;
-      let totalBalance = 0;
+      customers.forEach(c => {
+        allSuggestions.add(c.id);
+        allSuggestions.add(c.name);
+        allSuggestions.add(c.phone);
 
-      customers.forEach(cust => {
-        if (!cust.products || !Array.isArray(cust.products)) return;
+        c.products.forEach(p => {
+          const total = p.total || 0;
+          let paidSoFar = 0;
 
-        cust.products.forEach(prod => {
-          const paid = prod.paid || 0;
-          const total = prod.total || 0;
-          const balance = Math.max(0, total - paid);
-          const dates = prod.datesPaid ? prod.datesPaid.join(", ") : "—";
+          // calculate totalPaid
+          let totalPaid = 0;
+          if (Array.isArray(p.payments)) {
+            totalPaid = p.payments.reduce((sum, payment) => sum + payment.amount, 0);
+            if (totalPaid >= total) return; // Skip fully paid
+          } else if (Array.isArray(p.datesPaid)) {
+            totalPaid = p.paid || 0;
+            if (totalPaid >= total) return;
+          }
 
-          totalPaid += paid;
-          totalBalance += balance;
-
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${cust.id}</td>
-            <td>${cust.name}</td>
-            <td>${cust.phone}</td>
-            <td>${cust.place}</td>
-            <td>${prod.name}</td>
-            <td>₹${paid.toFixed(2)}</td>
-            <td>₹${total.toFixed(2)}</td>
-            <td>₹${balance.toFixed(2)}</td>
-            <td>${dates}</td>
-          `;
-          tbody.appendChild(row);
+          if (Array.isArray(p.payments)) {
+            p.payments.forEach(payment => {
+              paidSoFar += payment.amount;
+              flatReport.push({
+                id: c.id,
+                name: c.name,
+                place: c.place,
+                phone: c.phone,
+                product: p.name,
+                paid: payment.amount,
+                balance: Math.max(0, total - paidSoFar),
+                date: payment.date
+              });
+            });
+          } else if (Array.isArray(p.datesPaid)) {
+            const avg = totalPaid / p.datesPaid.length;
+            p.datesPaid.forEach((date, idx) => {
+              paidSoFar += avg;
+              flatReport.push({
+                id: c.id,
+                name: c.name,
+                place: c.place,
+                phone: c.phone,
+                product: p.name,
+                paid: avg,
+                balance: Math.max(0, total - paidSoFar),
+                date: date
+              });
+            });
+          }
         });
       });
+    }
 
-      document.getElementById("totalPaid").innerText = `Total Paid: ₹${totalPaid.toFixed(2)}`;
-      document.getElementById("totalBalance").innerText = `Total Balance: ₹${totalBalance.toFixed(2)}`;
+    function updateDropdown() {
+      const select = document.getElementById("jumpSelect");
+      const unique = [...new Set(flatReport.map(r => `${r.id} - ${r.name}`))];
+      select.innerHTML = `<option value="">-- Select --</option>`;
+      unique.forEach(val => {
+        select.innerHTML += `<option value="${val}">${val}</option>`;
+      });
+    }
+
+    function jumpToCustomer(value) {
+      if (!value) return;
+      const id = value.split(" - ")[0];
+      document.getElementById("searchId").value = id;
+      filterData();
+    }
+
+    function filterData() {
+      const id = document.getElementById("searchId").value.toLowerCase();
+      const place = document.getElementById("searchPlace").value.toLowerCase();
+      const product = document.getElementById("searchProduct").value.toLowerCase();
+      const fromDate = document.getElementById("fromDate").value;
+      const toDate = document.getElementById("toDate").value;
+
+      const filtered = flatReport.filter(r => {
+        return (
+          (!id || r.id.toLowerCase().includes(id) || r.name.toLowerCase().includes(id) || r.phone.includes(id)) &&
+          (!place || r.place.toLowerCase().includes(place)) &&
+          (!product || r.product.toLowerCase().includes(product)) &&
+          (!fromDate || r.date >= fromDate) &&
+          (!toDate || r.date <= toDate)
+        );
+      });
+
+      const tbody = document.getElementById("reportTable");
+      tbody.innerHTML = "";
+      let totalPaid = 0;
+
+      filtered.forEach(r => {
+        totalPaid += r.paid;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${r.id}</td><td>${r.name}</td><td>${r.place}</td><td>${r.phone}</td>
+          <td>${r.product}</td><td>₹${r.paid.toFixed(2)}</td>
+          <td>₹${r.balance.toFixed(2)}</td><td>${r.date}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      document.getElementById("reportTotal").innerText = `Total Paid: ₹${totalPaid.toFixed(2)}`;
+      updateSummaries(filtered);
+    }
+
+    function updateSummaries(filtered) {
+      const summaryTable = document.querySelector("#summaryTable tbody");
+      const monthlyTable = document.querySelector("#monthlyTable tbody");
+      summaryTable.innerHTML = "";
+      monthlyTable.innerHTML = "";
+
+      const customerMap = new Map();
+      const monthlyMap = new Map();
+      let piePaid = 0, pieBalance = 0;
+
+      filtered.forEach(r => {
+        if (!customerMap.has(r.id)) {
+          customerMap.set(r.id, { name: r.name, paid: 0, balance: 0 });
+        }
+        customerMap.get(r.id).paid += r.paid;
+        customerMap.get(r.id).balance = r.balance;
+
+        const month = r.date?.slice(0, 7);
+        monthlyMap.set(month, (monthlyMap.get(month) || 0) + r.paid);
+      });
+
+      customerMap.forEach((data, id) => {
+        summaryTable.innerHTML += `<tr><td>${id}</td><td>${data.name}</td><td>₹${data.paid.toFixed(2)}</td><td>₹${data.balance.toFixed(2)}</td></tr>`;
+        piePaid += data.paid;
+        pieBalance += data.balance;
+      });
+
+      monthlyMap.forEach((amt, month) => {
+        monthlyTable.innerHTML += `<tr><td>${month}</td><td>₹${amt.toFixed(2)}</td></tr>`;
+      });
+
+      document.getElementById("reportBalance").innerText = `Total Balance: ₹${pieBalance.toFixed(2)}`;
+      drawCharts(piePaid, pieBalance, customerMap);
+    }
+
+    function drawCharts(paid, balance, customerMap) {
+      const pieCtx = document.getElementById('paidBalanceChart').getContext('2d');
+      if (pieChart) pieChart.destroy();
+      pieChart = new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+          labels: ['Paid', 'Balance'],
+          datasets: [{ data: [paid, balance], backgroundColor: ['#00e676', '#ff5252'] }]
+        }
+      });
+
+      const barCtx = document.getElementById('barChart').getContext('2d');
+      if (barChart) barChart.destroy();
+      const labels = [], data = [];
+      customerMap.forEach((v) => {
+        labels.push(v.name);
+        data.push(v.paid);
+      });
+      barChart = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{ label: 'Paid Amount', data, backgroundColor: '#00bcd4' }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    function exportCSV() {
+      let csv = "ID,Name,Place,Phone,Product,Paid,Balance,Date\n";
+      document.querySelectorAll("#reportTable tr").forEach(r => {
+        const row = Array.from(r.querySelectorAll("td")).map(td => td.innerText).join(",");
+        csv += row + "\n";
+      });
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "filtered_report.csv";
+      a.click();
+    }
+
+    function showSuggestions(input) {
+      const box = document.getElementById("suggestions");
+      if (!input || input.length < 1) return box.style.display = "none";
+      const results = [...allSuggestions].filter(s => s.toLowerCase().includes(input.toLowerCase())).slice(0, 10);
+      box.innerHTML = results.map(r => `<div onclick="selectSuggestion('${r}')">${r}</div>`).join("");
+      box.style.display = results.length ? "block" : "none";
+    }
+
+    function selectSuggestion(value) {
+      document.getElementById("searchId").value = value;
+      document.getElementById("suggestions").style.display = "none";
+      filterData();
     }
   </script>
 </body>
