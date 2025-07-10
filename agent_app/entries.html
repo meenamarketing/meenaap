@@ -35,7 +35,7 @@
     h1 {
       color: #00bcd4;
     }
-    input, button {
+    input, button, select {
       padding: 10px;
       margin: 10px 0;
       border-radius: 5px;
@@ -74,6 +74,9 @@
       background: #00bcd4;
       color: black;
     }
+    #productInfo {
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -94,6 +97,12 @@
       <p><strong>Phone:</strong> <span id="custPhone"></span></p>
       <p><strong>Place:</strong> <span id="custPlace"></span></p>
 
+      <div id="productSection">
+        <label>Select Product:</label>
+        <select id="productDropdown"></select>
+        <div id="productInfo"></div>
+      </div>
+
       <input type="number" id="amount" placeholder="Enter Amount Collected">
       <input type="date" id="date" value="">
       <button onclick="saveEntry()">Save Entry</button>
@@ -104,6 +113,7 @@
     let customers = JSON.parse(localStorage.getItem('agent_customers') || '[]');
     let entries = JSON.parse(localStorage.getItem('agent_entries') || '[]');
     let selectedCustomer = null;
+    let unpaidProducts = [];
 
     function showSuggestions(input) {
       const box = document.getElementById("suggestions");
@@ -122,7 +132,6 @@
       box.style.display = results.length ? "block" : "none";
 
       const rect = document.getElementById("searchBox").getBoundingClientRect();
-      box.style.position = "absolute";
       box.style.left = rect.left + "px";
       box.style.top = rect.bottom + window.scrollY + "px";
       box.style.width = rect.width + "px";
@@ -137,14 +146,71 @@
       document.getElementById("customerInfo").style.display = "block";
       document.getElementById("suggestions").style.display = "none";
       document.getElementById("searchBox").value = selectedCustomer.name;
+
+      loadUnpaidProducts();
+    }
+
+    function loadUnpaidProducts() {
+      const dropdown = document.getElementById("productDropdown");
+      const productInfo = document.getElementById("productInfo");
+      unpaidProducts = [];
+
+      dropdown.innerHTML = "";
+      selectedCustomer.products.forEach((p, index) => {
+        let paid = 0;
+        if (p.payments && Array.isArray(p.payments)) {
+          paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
+        } else {
+          paid = p.paid || 0;
+        }
+
+        const balance = p.total - paid;
+        if (balance > 0) {
+          unpaidProducts.push({ ...p, index, paid, balance });
+          dropdown.innerHTML += `<option value="${index}">${p.name} - ₹${balance.toFixed(2)} due</option>`;
+        }
+      });
+
+      if (unpaidProducts.length === 0) {
+        dropdown.innerHTML = "<option>No unpaid products</option>";
+        productInfo.innerHTML = `<p>✅ All products fully paid.</p>`;
+        document.getElementById("amount").disabled = true;
+        document.getElementById("date").disabled = true;
+      } else {
+        updateProductInfo();
+        document.getElementById("amount").disabled = false;
+        document.getElementById("date").disabled = false;
+      }
+
+      dropdown.onchange = updateProductInfo;
+    }
+
+    function updateProductInfo() {
+      const selectedIdx = document.getElementById("productDropdown").value;
+      const prod = unpaidProducts.find(p => p.index == selectedIdx);
+      if (!prod) return;
+
+      document.getElementById("productInfo").innerHTML = `
+        <p><strong>Product:</strong> ${prod.name}</p>
+        <p><strong>Total:</strong> ₹${prod.total}</p>
+        <p><strong>Paid:</strong> ₹${prod.paid}</p>
+        <p><strong>Balance:</strong> ₹${prod.balance}</p>
+      `;
     }
 
     function saveEntry() {
       const amt = parseFloat(document.getElementById("amount").value);
       const date = document.getElementById("date").value;
+      const prodIndex = parseInt(document.getElementById("productDropdown").value);
+      const prod = unpaidProducts.find(p => p.index == prodIndex);
 
-      if (!selectedCustomer || isNaN(amt) || !date) {
+      if (!selectedCustomer || isNaN(amt) || !date || !prod) {
         alert("Please fill all fields");
+        return;
+      }
+
+      if (amt > prod.balance) {
+        alert("Amount exceeds remaining balance!");
         return;
       }
 
@@ -152,6 +218,7 @@
         id: selectedCustomer.id,
         name: selectedCustomer.name,
         phone: selectedCustomer.phone,
+        product: prod.name,
         amount: amt,
         date: date
       };
@@ -160,16 +227,15 @@
       localStorage.setItem("agent_entries", JSON.stringify(entries));
       alert("Entry saved successfully!");
 
-      // Clear form
+      // Reset
       document.getElementById("customerInfo").style.display = "none";
       document.getElementById("amount").value = "";
       document.getElementById("searchBox").value = "";
       selectedCustomer = null;
+      unpaidProducts = [];
     }
 
-    // Set today's date
     document.getElementById("date").value = new Date().toISOString().split("T")[0];
   </script>
 </body>
 </html>
-    
