@@ -2,81 +2,116 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Customer Report - Meena Groups</title>
+  <title>Reports</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
-      background: #121212;
-      color: #eee;
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
+    :root {
+      --primary: #00bcd4;
+      --bg: #121212;
+      --box: #1e1e1e;
+      --text: #eee;
+      --accent: #2e2e2e;
     }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', sans-serif;
+    }
+
     nav {
       background: #1f1f1f;
       display: flex;
       flex-wrap: wrap;
-      padding: 10px 20px;
-      gap: 12px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+      padding: 10px;
+      gap: 10px;
+      justify-content: center;
     }
+
     nav a {
       color: white;
       background: #2c2c2c;
-      padding: 10px 16px;
-      border-radius: 8px;
+      padding: 10px 14px;
+      border-radius: 6px;
       text-decoration: none;
-      transition: background 0.3s, color 0.3s;
+      font-size: 14px;
     }
+
     nav a:hover {
-      background: #00bcd4;
-      color: #000;
+      background: var(--primary);
+      color: black;
     }
+
     main {
-      padding: 30px 20px;
+      padding: 20px;
+      max-width: 700px;
+      margin: auto;
     }
+
     h1 {
-      color: #00bcd4;
-    }
-    input[type="text"] {
-      padding: 12px;
-      width: 100%;
-      max-width: 400px;
-      border-radius: 8px;
-      background: #1e1e1e;
-      border: 1px solid #444;
-      color: white;
+      font-size: 22px;
+      color: var(--primary);
+      text-align: center;
       margin-bottom: 20px;
     }
-    .report {
-      background: #1d1d1d;
-      padding: 20px;
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--box);
+      color: white;
+      border: 1px solid #444;
+      font-size: 16px;
+      margin-bottom: 20px;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary);
+    }
+
+    .report-card {
+      background: var(--box);
+      padding: 15px;
       border-radius: 10px;
-      border: 1px solid #333;
-      max-width: 600px;
+      margin-bottom: 20px;
+      border: 1px solid #2a2a2a;
     }
-    .summary {
-      background: #222;
-      padding: 10px;
-      margin-bottom: 15px;
-      border-radius: 8px;
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid #2d2d2d;
     }
-    .product {
-      background: #2a2a2a;
-      margin-top: 10px;
-      padding: 10px;
-      border-radius: 8px;
-      cursor: pointer;
+
+    .row:last-child {
+      border-bottom: none;
     }
-    .product-details {
-      display: none;
-      padding-top: 8px;
-      border-top: 1px solid #444;
-    }
-    .product.open .product-details {
-      display: block;
-    }
+
     .label {
       color: #aaa;
+      font-size: 14px;
+    }
+
+    .value {
+      font-size: 15px;
+    }
+
+    .product-title {
+      font-weight: bold;
+      font-size: 16px;
+      color: var(--primary);
+      margin: 12px 0 6px;
+    }
+
+    .not-found {
+      text-align: center;
+      margin-top: 20px;
+      font-style: italic;
+      color: #777;
     }
   </style>
 </head>
@@ -84,13 +119,13 @@
   <nav>
     <a href="index.html">Dashboard</a>
     <a href="entries.html">Add Entry</a>
-    <a href="view.html">Today's Entries</a>
-    <a href="customer_report.html">Customer Report</a>
+    <a href="view.html">Today</a>
+    <a href="customer_report.html">Reports</a>
   </nav>
 
   <main>
-    <h1>🔍 Customer Report</h1>
-    <input type="text" id="searchBox" placeholder="Search by Name, ID, or Phone..." oninput="searchCustomer(this.value)">
+    <h1>Reports</h1>
+    <input type="text" id="searchBox" placeholder="Search by Name, ID, or Phone" oninput="searchCustomer(this.value)">
     <div id="reportContainer"></div>
   </main>
 
@@ -100,6 +135,7 @@
     function searchCustomer(value) {
       const container = document.getElementById("reportContainer");
       container.innerHTML = "";
+
       if (!value || value.trim().length < 2) return;
 
       const cust = customers.find(c =>
@@ -109,55 +145,38 @@
       );
 
       if (!cust) {
-        container.innerHTML = `<p>No customer found.</p>`;
+        container.innerHTML = `<p class="not-found">No customer found.</p>`;
         return;
       }
 
-      // Total calculations
-      let totalDue = 0, totalPaid = 0;
+      let totalBalance = 0;
 
-      cust.products.forEach(p => {
+      let html = `<div class="report-card">
+        <div class="row"><span class="label">Name</span><span class="value">${cust.name}</span></div>
+        <div class="row"><span class="label">Phone</span><span class="value">${cust.phone}</span></div>
+        <div class="row"><span class="label">Place</span><span class="value">${cust.place}</span></div>
+        <div class="row"><span class="label">Products</span><span class="value">${cust.products.length}</span></div>
+      </div>`;
+
+      cust.products.forEach((p, i) => {
         const total = Number(p.total || p.paid);
         const paid = Number(p.paid || 0);
         const balance = total - paid;
-        totalDue += total;
-        totalPaid += paid;
-      });
+        totalBalance += balance;
 
-      const totalBalance = totalDue - totalPaid;
-
-      // Build HTML
-      let html = `<div class="report">`;
-      html += `
-        <div class="summary">
-          <p><strong>Name:</strong> ${cust.name}</p>
-          <p><strong>ID:</strong> ${cust.id}</p>
-          <p><strong>Phone:</strong> ${cust.phone}</p>
-          <p><strong>Place:</strong> ${cust.place}</p>
-          <p><strong>Total Due:</strong> ₹${totalDue}</p>
-          <p><strong>Total Paid:</strong> ₹${totalPaid}</p>
-          <p><strong>Total Balance:</strong> ₹${totalBalance}</p>
+        html += `<div class="report-card">
+          <div class="product-title">Product ${i + 1}: ${p.name}</div>
+          <div class="row"><span class="label">Total</span><span class="value">₹${total}</span></div>
+          <div class="row"><span class="label">Paid</span><span class="value">₹${paid}</span></div>
+          <div class="row"><span class="label">Balance</span><span class="value">₹${balance}</span></div>
+          <div class="row"><span class="label">Paid Dates</span><span class="value">${Array.isArray(p.datesPaid) ? p.datesPaid.join(", ") : "N/A"}</span></div>
         </div>`;
-
-      cust.products.forEach((p, index) => {
-        const total = Number(p.total || p.paid);
-        const paid = Number(p.paid || 0);
-        const balance = total - paid;
-        const dates = Array.isArray(p.datesPaid) ? p.datesPaid.join(", ") : "N/A";
-
-        html += `
-          <div class="product" onclick="this.classList.toggle('open')">
-            <p><strong>Product ${index + 1}:</strong> ${p.name}</p>
-            <div class="product-details">
-              <p><span class="label">Total:</span> ₹${total}</p>
-              <p><span class="label">Paid:</span> ₹${paid}</p>
-              <p><span class="label">Balance:</span> ₹${balance}</p>
-              <p><span class="label">Paid Dates:</span> ${dates}</p>
-            </div>
-          </div>`;
       });
 
-      html += `</div>`;
+      html += `<div class="report-card">
+        <div class="row"><span class="label">Total Balance Across All Products</span><span class="value">₹${totalBalance}</span></div>
+      </div>`;
+
       container.innerHTML = html;
     }
   </script>
