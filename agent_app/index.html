@@ -1,122 +1,85 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EMI Manager - Dashboard</title>
-    <style>
-        body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; padding: 0; }
-        nav { background: #1f1f1f; display: flex; padding: 10px; gap: 15px; flex-wrap: wrap; }
-        nav a { color: white; background: #333; padding: 8px 15px; border-radius: 5px; text-decoration: none; }
-        nav a:hover { background: #00bcd4; color: black; }
-        main { padding: 20px; }
-        h1 { color: #00bcd4; }
-        input[type="file"] { margin: 15px 0; }
-        button { padding: 10px 15px; margin-top: 15px; border-radius: 5px; border: none; background: #00bcd4; color: #000; font-weight: bold; cursor: pointer; }
-        button:hover { background: #26c6da; }
-        .message { margin-top: 20px; padding: 10px; background-color: #28a745; border-radius: 5px; color: white; display: none; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Agent Dashboard - EMI Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    nav {
+      background: #1f1f1f;
+      display: flex;
+      padding: 10px;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    nav a {
+      color: white;
+      background: #333;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+    nav a:hover {
+      background: #00bcd4;
+      color: black;
+    }
+    main {
+      padding: 20px;
+    }
+    input[type="file"] {
+      margin-top: 20px;
+      padding: 10px;
+      background: #1e1e1e;
+      color: white;
+      border: 1px solid #444;
+      border-radius: 5px;
+    }
+    h1 {
+      color: #00bcd4;
+    }
+    .info {
+      margin-top: 10px;
+      color: #0f0;
+    }
+  </style>
 </head>
 <body>
-    <nav>
-        <a href="index.html">Dashboard</a>
-        <a href="entries.html">Entries</a>
-        <a href="view.html">Agent Review</a>
-        <a href="customer_report.html">Customer Reports</a>
-        </nav>
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="entries.html">Add Entry</a>
+    <a href="view.html">View Entries</a>
+    <a href="customer_report.html">Customer Report</a>
+    <a href="review.html">Agent Review</a>
+  </nav>
 
-    <main>
-        <h1>Dashboard</h1>
-        <p>Welcome to the EMI Manager. Please upload the main customer JSON file to get started.</p>
+  <main>
+    <h1>📂 Load Main Customer File</h1>
+    <input type="file" accept=".json" onchange="loadMainJSON(event)">
+    <p class="info" id="statusText">No file loaded.</p>
+  </main>
 
-        <input type="file" id="customerFile" accept=".json" onchange="loadCustomerData(event)">
-        <p class="message" id="loadMessage">File loaded successfully!</p>
-
-        <h2>Merge Agent Collections</h2>
-        <p>Upload an agent's daily collection JSON file to merge it with the main customer data. You will review changes before final approval.</p>
-        <input type="file" id="agentCollectionFile" accept=".json" onchange="previewAgentMerge(event)">
-        <p class="message" id="mergeMessage">Agent collection loaded for review.</p>
-        <button onclick="applyMerge()">Apply Merged Data (After Review)</button>
-        <button onclick="exportMainCustomers()">Export Main Customers JSON</button>
-        <p>Note: The merge process will be reviewed in the 'Agent Review' section.</p>
-    </main>
-
-    <script>
-        let customers = []; // This will hold the main customer data
-        let agentCollectionToMerge = null; // This will hold the data from the agent's file
-
-        // Function to load the main customer JSON file
-        function loadCustomerData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                try {
-                    customers = JSON.parse(e.target.result);
-                    localStorage.setItem('mainCustomers', JSON.stringify(customers)); // Store in local storage
-                    document.getElementById('loadMessage').innerText = "Main customer data loaded and saved!";
-                    document.getElementById('loadMessage').style.display = 'block';
-                    console.log("Main customers loaded:", customers);
-                } catch (error) {
-                    alert("Error parsing customer JSON file: " + error.message);
-                }
-            };
-            reader.readAsText(file);
+  <script>
+    function loadMainJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const data = JSON.parse(e.target.result);
+          localStorage.setItem("main_customers", JSON.stringify(data));
+          document.getElementById("statusText").innerText = "✅ Main customer file loaded successfully!";
+        } catch (err) {
+          alert("❌ Invalid JSON file.");
         }
-
-        // Function to preview agent collection (stores it in memory for review)
-        function previewAgentMerge(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                try {
-                    agentCollectionToMerge = JSON.parse(e.target.result);
-                    localStorage.setItem('agentCollectionToMerge', JSON.stringify(agentCollectionToMerge)); // Store for review page
-                    document.getElementById('mergeMessage').innerText = "Agent collection loaded for review. Please go to 'Agent Review' page.";
-                    document.getElementById('mergeMessage').style.display = 'block';
-                    console.log("Agent collection loaded for merge:", agentCollectionToMerge);
-                } catch (error) {
-                    alert("Error parsing agent collection JSON file: " + error.message);
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        // This function will be triggered *after* review on the view.html page
-        // For now, it's a placeholder. The actual merge logic will be in view.html
-        function applyMerge() {
-            alert("Please go to the 'Agent Review' page to review and apply the merge.");
-        }
-
-        // Function to export the current state of main customers
-        function exportMainCustomers() {
-            const currentCustomers = JSON.parse(localStorage.getItem('mainCustomers') || '[]');
-            if (currentCustomers.length === 0) {
-                alert("No customer data to export. Please load a file first.");
-                return;
-            }
-            const blob = new Blob([JSON.stringify(currentCustomers, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "main_customers_updated.json";
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        // Load customers from local storage on page load
-        window.onload = function() {
-            const storedCustomers = localStorage.getItem('mainCustomers');
-            if (storedCustomers) {
-                customers = JSON.parse(storedCustomers);
-                console.log("Customers loaded from local storage:", customers);
-                document.getElementById('loadMessage').innerText = "Main customer data loaded from last session.";
-                document.getElementById('loadMessage').style.display = 'block';
-            }
-        };
-    </script>
+      };
+      reader.readAsText(file);
+    }
+  </script>
 </body>
 </html>
