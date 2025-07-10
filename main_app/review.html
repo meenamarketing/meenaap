@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Review Agent Collections - Main App</title>
@@ -81,33 +80,30 @@
     <a href="entry.html">Add Payment</a>
     <a href="report.html">Reports</a>
     <a href="review.html">Review Agent</a>
-  </nav>
-
-  <main>
+  </nav>  <main>
     <h1>Review Agent Collections</h1>
     <input type="file" accept=".json" onchange="loadMainData(event)" />
     <input type="file" accept=".json" onchange="loadAgentData(event)" />
-    <input type="text" id="searchId" placeholder="🔍 Search by Customer ID" oninput="filterTable()" />
+    <input type="text" id="searchId" placeholder="🔍 Search by Customer ID" oninput="filterTable()" /><div id="summary"></div>
+<table id="agentTable" style="display:none;">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Phone</th>
+      <th>Product</th>
+      <th>Amount</th>
+      <th>Due</th>
+      <th>Date</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
-    <div id="summary"></div>
-    <table id="agentTable" style="display:none;">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Amount</th>
-          <th>Date</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+<button id="approveBtn" onclick="approveData()" style="display:none;">✅ Approve & Merge</button>
+<button onclick="exportMainJSON()" style="display:none;" id="exportBtn">📤 Export Updated Main JSON</button>
 
-    <button id="approveBtn" onclick="approveData()" style="display:none;">✅ Approve & Merge</button>
-    <button onclick="exportMainJSON()" style="display:none;" id="exportBtn">📤 Export Updated Main JSON</button>
-  </main>
-
-  <script>
+  </main>  <script>
     let agentEntries = [];
     let mainCustomers = [];
 
@@ -144,7 +140,9 @@
           <td>${entry.id}</td>
           <td>${entry.name}</td>
           <td>${entry.phone}</td>
+          <td>${entry.product || '-'}</td>
           <td>₹${parseFloat(entry.amount).toFixed(2)}</td>
+          <td>${entry.dueNumber || '-'}</td>
           <td>${entry.date}</td>
         `;
         tbody.appendChild(row);
@@ -170,7 +168,7 @@
       agentEntries.forEach(entry => {
         const cust = mainCustomers.find(c => c.id === entry.id);
         if (cust) {
-          const prod = cust.products[0];
+          const prod = cust.products.find(p => p.name === entry.product) || cust.products[0];
           if (!prod.paid) prod.paid = 0;
           if (!prod.datesPaid) prod.datesPaid = [];
           if (!prod.payments) prod.payments = [];
@@ -178,7 +176,8 @@
           // Add new payment record
           prod.payments.push({
             date: entry.date,
-            amount: parseFloat(entry.amount)
+            amount: parseFloat(entry.amount),
+            dueNumber: entry.dueNumber || prod.payments.length + 1
           });
 
           // Update total paid
@@ -203,6 +202,5 @@
       a.download = "updated_main_customers.json";
       a.click();
     }
-  </script>
-</body>
+  </script></body>
 </html>
