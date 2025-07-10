@@ -1,347 +1,332 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Reports - EMI Manager</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      background: #121212;
-      color: #eee;
-      font-family: sans-serif;
-      margin: 0;
-    }
-    nav {
-      background: #1f1f1f;
-      display: flex;
-      padding: 10px;
-      gap: 15px;
-      flex-wrap: wrap;
-    }
-    nav a {
-      color: white;
-      background: #333;
-      padding: 8px 15px;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-    nav a:hover {
-      background: #00bcd4;
-      color: black;
-    }
-    main {
-      padding: 20px;
-    }
-    input, button, select {
-      padding: 10px;
-      margin: 5px 10px 15px 0;
-      border-radius: 5px;
-      background: #1e1e1e;
-      color: white;
-      border: 1px solid #444;
-    }
-    button {
-      background: #00bcd4;
-      color: black;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      padding: 8px;
-      border: 1px solid #333;
-    }
-    thead {
-      background: #2c2c2c;
-    }
-    tr:nth-child(odd) {
-      background: #1d1d1d;
-    }
-    #suggestions {
-      position: absolute;
-      background: #222;
-      border: 1px solid #333;
-      border-radius: 5px;
-      z-index: 999;
-      display: none;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-    #suggestions div {
-      padding: 10px;
-      border-bottom: 1px solid #333;
-      cursor: pointer;
-    }
-    #suggestions div:hover {
-      background: #00bcd4;
-      color: black;
-    }
-  </style>
-</head>
-<body>
-  <nav>
-    <a href="index.html">Dashboard</a>
-    <a href="customers.html">Customers</a>
-    <a href="entries.html">Entries</a>
-    <a href="review.html">Agent Review</a>
-    <a href="reports.html">Reports</a>
-  </nav>
+<!DOCTYPE html>  <html lang="en">  
+<head>  
+  <meta charset="UTF-8" />  
+  <title>Reports - EMI Manager</title>  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  
+  <style>  
+    body {  
+      background: #121212;  
+      color: #eee;  
+      font-family: sans-serif;  
+      margin: 0;  
+    }  
+    nav {  
+      background: #1f1f1f;  
+      display: flex;  
+      padding: 10px;  
+      gap: 15px;  
+      flex-wrap: wrap;  
+    }  
+    nav a {  
+      color: white;  
+      background: #333;  
+      padding: 8px 15px;  
+      border-radius: 5px;  
+      text-decoration: none;  
+    }  
+    nav a:hover {  
+      background: #00bcd4;  
+      color: black;  
+    }  
+    main {  
+      padding: 20px;  
+    }  
+    input, button, select {  
+      padding: 10px;  
+      margin: 5px 10px 15px 0;  
+      border-radius: 5px;  
+      background: #1e1e1e;  
+      color: white;  
+      border: 1px solid #444;  
+    }  
+    button {  
+      background: #00bcd4;  
+      color: black;  
+      font-weight: bold;  
+      cursor: pointer;  
+    }  
+    table {  
+      width: 100%;  
+      border-collapse: collapse;  
+      margin-top: 10px;  
+    }  
+    th, td {  
+      padding: 8px;  
+      border: 1px solid #333;  
+    }  
+    thead {  
+      background: #2c2c2c;  
+    }  
+    tr:nth-child(odd) {  
+      background: #1d1d1d;  
+    }  
+    #suggestions {  
+      position: absolute;  
+      background: #222;  
+      border: 1px solid #333;  
+      border-radius: 5px;  
+      z-index: 999;  
+      display: none;  
+      max-height: 200px;  
+      overflow-y: auto;  
+    }  
+    #suggestions div {  
+      padding: 10px;  
+      border-bottom: 1px solid #333;  
+      cursor: pointer;  
+    }  
+    #suggestions div:hover {  
+      background: #00bcd4;  
+      color: black;  
+    }  
+  </style>  
+</head>  
+<body>  
+  <nav>  
+    <a href="index.html">Dashboard</a>  
+    <a href="customers.html">Customers</a>  
+    <a href="entries.html">Entries</a>  
+    <a href="review.html">Agent Review</a>  
+    <a href="reports.html">Reports</a>  
+  </nav>    <main>  
+    <h1>📊 Reports & Filter</h1>  
+    <input type="file" accept=".json" onchange="loadData(event)" /><br />  
+    <label for="jumpSelect">Jump to Customer:</label>  
+    <select id="jumpSelect" onchange="jumpToCustomer(this.value)">  
+      <option value="">-- Select --</option>  
+    </select>  
+    <div style="position:relative;">  
+      <input id="searchId" placeholder="Search by ID / Name / Phone" oninput="filterData(); showSuggestions(this.value)" />  
+      <div id="suggestions"></div>  
+    </div>  
+    <input id="searchPlace" placeholder="Place" oninput="filterData()" />  
+    <input id="searchProduct" placeholder="Product Name" oninput="filterData()" />  
+    <label>From: <input type="date" id="fromDate" onchange="filterData()" /></label>  
+    <label>To: <input type="date" id="toDate" onchange="filterData()" /></label>  
+    <button onclick="exportCSV()">Export CSV</button>  <h3 id="reportTotal">Total Paid: ₹0</h3>  
+<h3 id="reportBalance">Total Balance: ₹0</h3>  
 
-  <main>
-    <h1>📊 Reports & Filter</h1>
-    <input type="file" accept=".json" onchange="loadData(event)" /><br />
-    <label for="jumpSelect">Jump to Customer:</label>
-    <select id="jumpSelect" onchange="jumpToCustomer(this.value)">
-      <option value="">-- Select --</option>
-    </select>
-    <div style="position:relative;">
-      <input id="searchId" placeholder="Search by ID / Name / Phone" oninput="filterData(); showSuggestions(this.value)" />
-      <div id="suggestions"></div>
-    </div>
-    <input id="searchPlace" placeholder="Place" oninput="filterData()" />
-    <input id="searchProduct" placeholder="Product Name" oninput="filterData()" />
-    <label>From: <input type="date" id="fromDate" onchange="filterData()" /></label>
-    <label>To: <input type="date" id="toDate" onchange="filterData()" /></label>
-    <button onclick="exportCSV()">Export CSV</button>
+<canvas id="paidBalanceChart" height="150"></canvas>  
+<canvas id="barChart" height="150"></canvas>  
 
-    <h3 id="reportTotal">Total Paid: ₹0</h3>
-    <h3 id="reportBalance">Total Balance: ₹0</h3>
+<h2>Customer Summary</h2>  
+<table id="summaryTable">  
+  <thead>  
+    <tr>  
+      <th>ID</th><th>Name</th><th>Total Paid</th><th>Total Balance</th><th>Total Product Amount</th>  
+    </tr>  
+  </thead>  
+  <tbody></tbody>  
+</table>  
 
-    <canvas id="paidBalanceChart" height="150"></canvas>
-    <canvas id="barChart" height="150"></canvas>
+<h2>Detailed Payments</h2>  
+<table>  
+  <thead>  
+    <tr>  
+      <th>ID</th><th>Name</th><th>Place</th><th>Phone</th><th>Product</th>  
+      <th>Paid</th><th>Balance</th><th>Dues</th><th>Date</th>  
+    </tr>  
+  </thead>  
+  <tbody id="reportTable"></tbody>  
+</table>
 
-    <h2>Customer Summary</h2>
-    <table id="summaryTable">
-      <thead>
-        <tr>
-          <th>ID</th><th>Name</th><th>Total Paid</th><th>Total Balance</th><th>Total Product Amount</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <h2>Detailed Payments</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th><th>Name</th><th>Place</th><th>Phone</th><th>Product</th>
-          <th>Paid</th><th>Balance</th><th>Dues</th><th>Date</th>
-        </tr>
-      </thead>
-      <tbody id="reportTable"></tbody>
-    </table>
-  </main>
-
-  <script>
-    let customers = [], flatReport = [], pieChart, barChart;
-    let allSuggestions = new Set();
-
-    function loadData(event) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        customers = JSON.parse(e.target.result);
-        flattenData();
-        filterData();
-        updateDropdown();
-      };
-      reader.readAsText(event.target.files[0]);
-    }
-
-    function flattenData() {
-      flatReport = [];
-      allSuggestions.clear();
-
-      customers.forEach(c => {
-        allSuggestions.add(c.id);
-        allSuggestions.add(c.name);
-        allSuggestions.add(c.phone);
-
-        const paidDues = parseInt(c.paidDues || 0); // base dues
-
-        c.products.forEach(p => {
-          const total = p.total || 0;
-          const totalDues = p.totalDues || c.totalDues || 0;
-          let payments = Array.isArray(p.payments) ? p.payments.slice() : [];
-
-          // fallback to old structure
-          if (payments.length === 0 && Array.isArray(p.datesPaid)) {
-            const avg = (p.paid || 0) / p.datesPaid.length;
-            payments = p.datesPaid.map((date, i) => ({
-              date,
-              amount: avg,
-              dueNumber: paidDues + 1 + i
-            }));
-          }
-
-          let paidSoFar = 0;
-
-          payments.forEach((pay, i) => {
-            paidSoFar += pay.amount;
-
-            flatReport.push({
-              id: c.id,
-              name: c.name,
-              place: c.place,
-              phone: c.phone,
-              product: p.name,
-              paid: pay.amount,
-              balance: Math.max(0, total - paidSoFar),
-              date: pay.date,
-              paidDues: pay.dueNumber || (paidDues + 1 + i),
-              totalDues
-            });
-          });
-        });
-      });
-    }
-
-    function filterData() {
-      const id = document.getElementById("searchId").value.toLowerCase();
-      const place = document.getElementById("searchPlace").value.toLowerCase();
-      const product = document.getElementById("searchProduct").value.toLowerCase();
-      const fromDate = document.getElementById("fromDate").value;
-      const toDate = document.getElementById("toDate").value;
-
-      const filtered = flatReport.filter(r =>
-        (!id || r.id.toLowerCase().includes(id) || r.name.toLowerCase().includes(id) || r.phone.includes(id)) &&
-        (!place || r.place.toLowerCase().includes(place)) &&
-        (!product || r.product.toLowerCase().includes(product)) &&
-        (!fromDate || r.date >= fromDate) &&
-        (!toDate || r.date <= toDate)
-      );
-
-      const tbody = document.getElementById("reportTable");
-      tbody.innerHTML = "";
-      let totalPaid = 0, totalBalance = 0;
-
-      filtered.forEach(r => {
-        totalPaid += r.paid;
-        totalBalance += r.balance;
-        tbody.innerHTML += `
-          <tr>
-            <td>${r.id}</td><td>${r.name}</td><td>${r.place}</td><td>${r.phone}</td>
-            <td>${r.product}</td><td>₹${r.paid.toFixed(2)}</td><td>₹${r.balance.toFixed(2)}</td>
-            <td>${r.paidDues}/${r.totalDues || "?"}</td><td>${r.date}</td>
-          </tr>`;
-      });
-
-      document.getElementById("reportTotal").innerText = `Total Paid: ₹${totalPaid.toFixed(2)}`;
-      document.getElementById("reportBalance").innerText = `Total Balance: ₹${totalBalance.toFixed(2)}`;
-      updateSummaries(filtered);
-    }
-
-    function updateSummaries(filtered) {
-      const summaryTable = document.querySelector("#summaryTable tbody");
-      summaryTable.innerHTML = "";
-
-      const customerMap = new Map();
-      let piePaid = 0, pieBalance = 0;
-
-      filtered.forEach(r => {
-        const key = `${r.id}||${r.name}`;
-        if (!customerMap.has(key)) {
-          const customer = customers.find(c => c.id === r.id);
-          const totalAmount = customer ? customer.products.reduce((sum, p) => sum + (p.total || 0), 0) : 0;
-          customerMap.set(key, { paid: 0, balance: 0, total: totalAmount });
-        }
-        const data = customerMap.get(key);
-        data.paid += r.paid;
-        data.balance = r.balance;
-      });
-
-      customerMap.forEach((data, key) => {
-        const [id, name] = key.split("||");
-        summaryTable.innerHTML += `<tr>
-          <td>${id}</td>
-          <td>${name}</td>
-          <td>₹${data.paid.toFixed(2)}</td>
-          <td>₹${data.balance.toFixed(2)}</td>
-          <td>₹${data.total.toFixed(2)}</td>
-        </tr>`;
-        piePaid += data.paid;
-        pieBalance += data.balance;
-      });
-
-      drawCharts(piePaid, pieBalance, customerMap);
-    }
-
-    function drawCharts(paid, balance, customerMap) {
-      if (pieChart) pieChart.destroy();
-      if (barChart) barChart.destroy();
-
-      pieChart = new Chart(document.getElementById("paidBalanceChart").getContext("2d"), {
-        type: "pie",
-        data: {
-          labels: ["Paid", "Balance"],
-          datasets: [{ data: [paid, balance], backgroundColor: ["#00e676", "#ff5252"] }]
-        }
-      });
-
-      const labels = [], data = [];
-      customerMap.forEach((v, key) => {
-        const name = key.split("||")[1];
-        labels.push(name);
-        data.push(v.paid);
-      });
-
-      barChart = new Chart(document.getElementById("barChart").getContext("2d"), {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{ label: "Paid Amount", data, backgroundColor: "#00bcd4" }]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true } }
-        }
-      });
-    }
-
-    function updateDropdown() {
-      const select = document.getElementById("jumpSelect");
-      const unique = [...new Set(flatReport.map(r => `${r.id} - ${r.name}`))];
-      select.innerHTML = `<option value="">-- Select --</option>`;
-      unique.forEach(val => select.innerHTML += `<option value="${val}">${val}</option>`);
-    }
-
-    function jumpToCustomer(value) {
-      if (!value) return;
-      const id = value.split(" - ")[0];
-      document.getElementById("searchId").value = id;
-      filterData();
-    }
-
-    function exportCSV() {
-      let csv = "ID,Name,Place,Phone,Product,Paid,Balance,Dues,Date\n";
-      document.querySelectorAll("#reportTable tr").forEach(row => {
-        csv += [...row.querySelectorAll("td")].map(td => td.innerText).join(",") + "\n";
-      });
-      const blob = new Blob([csv], { type: "text/csv" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "filtered_report.csv";
-      a.click();
-    }
-
-    function showSuggestions(input) {
-      const box = document.getElementById("suggestions");
-      if (!input || input.length < 1) return box.style.display = "none";
-      const results = [...allSuggestions].filter(s => s.toLowerCase().includes(input.toLowerCase())).slice(0, 10);
-      box.innerHTML = results.map(r => `<div onclick="selectSuggestion('${r}')">${r}</div>`).join("");
-      box.style.display = results.length ? "block" : "none";
-    }
-
-    function selectSuggestion(value) {
-      document.getElementById("searchId").value = value;
-      document.getElementById("suggestions").style.display = "none";
-      filterData();
-    }
-  </script>
-</body>
-</html>
+  </main>    <script>  
+    let customers = [], flatReport = [], pieChart, barChart;  
+    let allSuggestions = new Set();  
+  
+    function loadData(event) {  
+      const reader = new FileReader();  
+      reader.onload = e => {  
+        customers = JSON.parse(e.target.result);  
+        flattenData();  
+        filterData();  
+        updateDropdown();  
+      };  
+      reader.readAsText(event.target.files[0]);  
+    }  
+  
+    function flattenData() {  
+      flatReport = [];  
+      allSuggestions.clear();  
+  
+      customers.forEach(c => {  
+        allSuggestions.add(c.id);  
+        allSuggestions.add(c.name);  
+        allSuggestions.add(c.phone);  
+  
+        c.products.forEach(p => {  
+          const total = p.total || 0;  
+          const totalDues = p.totalDues || c.totalDues || 0;  
+          const startingDue = c.paidDues || 0;  
+  
+          let payments = p.payments || [];  
+          if (!payments.length && Array.isArray(p.datesPaid)) {  
+            const avg = (p.paid || 0) / p.datesPaid.length;  
+            payments = p.datesPaid.map(date => ({ date, amount: avg }));  
+          }  
+  
+          let paidSoFar = 0;  
+          payments.forEach((payment, index) => {  
+            paidSoFar += payment.amount;  
+            flatReport.push({  
+              id: c.id,  
+              name: c.name,  
+              place: c.place,  
+              phone: c.phone,  
+              product: p.name,  
+              paid: payment.amount,  
+              balance: Math.max(0, total - paidSoFar),  
+              date: payment.date,  
+              paidDues: startingDue + index + 1,  
+              totalDues  
+            });  
+          });  
+        });  
+      });  
+    }  
+  
+    function filterData() {  
+      const id = document.getElementById("searchId").value.toLowerCase();  
+      const place = document.getElementById("searchPlace").value.toLowerCase();  
+      const product = document.getElementById("searchProduct").value.toLowerCase();  
+      const fromDate = document.getElementById("fromDate").value;  
+      const toDate = document.getElementById("toDate").value;  
+  
+      const filtered = flatReport.filter(r =>  
+        (!id || r.id.toLowerCase().includes(id) || r.name.toLowerCase().includes(id) || r.phone.includes(id)) &&  
+        (!place || r.place.toLowerCase().includes(place)) &&  
+        (!product || r.product.toLowerCase().includes(product)) &&  
+        (!fromDate || r.date >= fromDate) &&  
+        (!toDate || r.date <= toDate)  
+      );  
+  
+      const tbody = document.getElementById("reportTable");  
+      tbody.innerHTML = "";  
+      let totalPaid = 0, totalBalance = 0;  
+  
+      filtered.forEach(r => {  
+        totalPaid += r.paid;  
+        totalBalance += r.balance;  
+        tbody.innerHTML += `  
+          <tr>  
+            <td>${r.id}</td><td>${r.name}</td><td>${r.place}</td><td>${r.phone}</td>  
+            <td>${r.product}</td><td>₹${r.paid.toFixed(2)}</td><td>₹${r.balance.toFixed(2)}</td>  
+            <td>${r.paidDues}/${r.totalDues || "?"}</td><td>${r.date}</td>  
+          </tr>`;  
+      });  
+  
+      document.getElementById("reportTotal").innerText = `Total Paid: ₹${totalPaid.toFixed(2)}`;  
+      document.getElementById("reportBalance").innerText = `Total Balance: ₹${totalBalance.toFixed(2)}`;  
+      updateSummaries(filtered);  
+    }  
+  
+    function updateSummaries(filtered) {  
+      const summaryTable = document.querySelector("#summaryTable tbody");  
+      summaryTable.innerHTML = "";  
+  
+      const customerMap = new Map();  
+      let piePaid = 0, pieBalance = 0;  
+  
+      filtered.forEach(r => {  
+        const key = `${r.id}||${r.name}`;  
+        if (!customerMap.has(key)) {  
+          const customer = customers.find(c => c.id === r.id);  
+          const totalAmount = customer ? customer.products.reduce((sum, p) => sum + (p.total || 0), 0) : 0;  
+          customerMap.set(key, { paid: 0, balance: 0, total: totalAmount });  
+        }  
+        const data = customerMap.get(key);  
+        data.paid += r.paid;  
+        data.balance = r.balance;  
+      });  
+  
+      customerMap.forEach((data, key) => {  
+        const [id, name] = key.split("||");  
+        summaryTable.innerHTML += `<tr>  
+          <td>${id}</td>  
+          <td>${name}</td>  
+          <td>₹${data.paid.toFixed(2)}</td>  
+          <td>₹${data.balance.toFixed(2)}</td>  
+          <td>₹${data.total.toFixed(2)}</td>  
+        </tr>`;  
+        piePaid += data.paid;  
+        pieBalance += data.balance;  
+      });  
+  
+      drawCharts(piePaid, pieBalance, customerMap);  
+    }  
+  
+    function drawCharts(paid, balance, customerMap) {  
+      if (pieChart) pieChart.destroy();  
+      if (barChart) barChart.destroy();  
+  
+      pieChart = new Chart(document.getElementById("paidBalanceChart").getContext("2d"), {  
+        type: "pie",  
+        data: {  
+          labels: ["Paid", "Balance"],  
+          datasets: [{ data: [paid, balance], backgroundColor: ["#00e676", "#ff5252"] }]  
+        }  
+      });  
+  
+      const labels = [], data = [];  
+      customerMap.forEach((v, key) => {  
+        const name = key.split("||")[1];  
+        labels.push(name);  
+        data.push(v.paid);  
+      });  
+  
+      barChart = new Chart(document.getElementById("barChart").getContext("2d"), {  
+        type: "bar",  
+        data: {  
+          labels,  
+          datasets: [{ label: "Paid Amount", data, backgroundColor: "#00bcd4" }]  
+        },  
+        options: {  
+          responsive: true,  
+          plugins: { legend: { display: false } },  
+          scales: { y: { beginAtZero: true } }  
+        }  
+      });  
+    }  
+  
+    function updateDropdown() {  
+      const select = document.getElementById("jumpSelect");  
+      const unique = [...new Set(flatReport.map(r => `${r.id} - ${r.name}`))];  
+      select.innerHTML = `<option value="">-- Select --</option>`;  
+      unique.forEach(val => select.innerHTML += `<option value="${val}">${val}</option>`);  
+    }  
+  
+    function jumpToCustomer(value) {  
+      if (!value) return;  
+      const id = value.split(" - ")[0];  
+      document.getElementById("searchId").value = id;  
+      filterData();  
+    }  
+  
+    function exportCSV() {  
+      let csv = "ID,Name,Place,Phone,Product,Paid,Balance,Dues,Date\n";  
+      document.querySelectorAll("#reportTable tr").forEach(row => {  
+        csv += [...row.querySelectorAll("td")].map(td => td.innerText).join(",") + "\n";  
+      });  
+      const blob = new Blob([csv], { type: "text/csv" });  
+      const a = document.createElement("a");  
+      a.href = URL.createObjectURL(blob);  
+      a.download = "filtered_report.csv";  
+      a.click();  
+    }  
+  
+    function showSuggestions(input) {  
+      const box = document.getElementById("suggestions");  
+      if (!input || input.length < 1) return box.style.display = "none";  
+      const results = [...allSuggestions].filter(s => s.toLowerCase().includes(input.toLowerCase())).slice(0, 10);  
+      box.innerHTML = results.map(r => `<div onclick="selectSuggestion('${r}')">${r}</div>`).join("");  
+      box.style.display = results.length ? "block" : "none";  
+    }  
+  
+    function selectSuggestion(value) {  
+      document.getElementById("searchId").value = value;  
+      document.getElementById("suggestions").style.display = "none";  
+      filterData();  
+    }  
+  </script>  </body>  
+</html>  
