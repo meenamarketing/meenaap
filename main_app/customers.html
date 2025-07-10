@@ -117,10 +117,8 @@
     <button onclick="addCustomer()">Add Customer</button>
 
     <h2>Add Product to Existing Customer</h2>
-    <div style="position: relative;">
-      <input id="existingId" placeholder="Customer ID or Name" oninput="showSuggestions()">
-      <div id="suggestions"></div>
-    </div>
+    <input id="existingId" placeholder="Customer ID" oninput="showSuggestions()">
+    <div id="suggestions"></div>
     <input id="addProductName" placeholder="Product Name" />
     <input id="addProductTotal" placeholder="Total Amount" type="number" />
     <input id="addProductPaid" placeholder="Amount Paid" type="number" />
@@ -143,14 +141,13 @@
     function loadJSON(event) {
       const file = event.target.files[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = function (e) {
         try {
           customers = JSON.parse(e.target.result);
           renderTable();
-        } catch (err) {
-          alert("Invalid JSON file.");
+        } catch {
+          alert("Invalid JSON format!");
         }
       };
       reader.readAsText(file);
@@ -159,15 +156,12 @@
     function renderTable() {
       const table = document.getElementById("customerTable");
       table.innerHTML = "";
-
       customers.forEach(c => {
         const row = document.createElement("tr");
-        let productList = "";
-        c.products.forEach(p => {
-          const bal = p.total - p.paid;
-          productList += `<div><strong>${p.name}</strong><br>Paid: ₹${p.paid} / ₹${p.total} (Balance: ₹${bal})</div><br>`;
-        });
-
+        const productList = c.products.map(p => {
+          const balance = p.total - p.paid;
+          return `<div>${p.name}: ₹${p.paid}/₹${p.total} (Balance: ₹${balance})</div>`;
+        }).join("");
         row.innerHTML = `
           <td>${c.id}</td>
           <td>${c.name}</td>
@@ -189,12 +183,7 @@
       const paid = parseFloat(document.getElementById("newPaid").value);
 
       if (!id || customers.find(c => c.id === id)) {
-        alert("Invalid or duplicate ID.");
-        return;
-      }
-
-      if (!product || isNaN(total) || isNaN(paid)) {
-        alert("Please enter valid product details.");
+        alert("Invalid or duplicate ID");
         return;
       }
 
@@ -213,30 +202,18 @@
     }
 
     function addProduct() {
-      const input = document.getElementById("existingId").value.trim().toLowerCase();
-      const customer = customers.find(c =>
-        c.id.toLowerCase() === input || c.name.toLowerCase() === input
-      );
-
-      if (!customer) {
-        alert("Customer not found.");
-        return;
-      }
+      const id = document.getElementById("existingId").value.trim();
+      const customer = customers.find(c => c.id === id);
+      if (!customer) return alert("Customer not found");
 
       const name = document.getElementById("addProductName").value.trim();
       const total = parseFloat(document.getElementById("addProductTotal").value);
       const paid = parseFloat(document.getElementById("addProductPaid").value);
 
-      if (!name || isNaN(total) || isNaN(paid)) {
-        alert("Enter valid product details.");
-        return;
-      }
+      if (!name || isNaN(total) || isNaN(paid)) return alert("Fill all fields properly");
 
       const duplicate = customer.products.find(p => p.name.toLowerCase() === name.toLowerCase());
-      if (duplicate) {
-        alert("Product already exists for this customer.");
-        return;
-      }
+      if (duplicate) return alert("Product with same name already exists");
 
       customer.products.push({
         name,
@@ -246,7 +223,7 @@
       });
 
       renderTable();
-      alert("Product added successfully!");
+      alert("Product added!");
     }
 
     function downloadJSON() {
@@ -264,39 +241,26 @@
       const value = input.value.toLowerCase();
       suggestionsBox.innerHTML = "";
 
-      if (!value) {
-        suggestionsBox.style.display = "none";
-        return;
-      }
+      if (!value) return;
 
       const matches = customers.filter(c =>
         c.id.toLowerCase().includes(value) || c.name.toLowerCase().includes(value)
       );
 
-      if (matches.length === 0) {
-        suggestionsBox.style.display = "none";
-        return;
-      }
-
-      suggestionsBox.innerHTML = matches.slice(0, 5).map(c => {
-        return `<div onclick="selectCustomer('${c.id}')">${c.id} - ${c.name}</div>`;
-      }).join("");
-      suggestionsBox.style.display = "block";
-
-      const rect = input.getBoundingClientRect();
-      suggestionsBox.style.left = rect.left + "px";
-      suggestionsBox.style.top = rect.bottom + window.scrollY + "px";
-    }
-
-    function selectCustomer(id) {
-      document.getElementById("existingId").value = id;
-      document.getElementById("suggestions").style.display = "none";
+      matches.slice(0, 5).forEach(c => {
+        const div = document.createElement("div");
+        div.textContent = `${c.id} - ${c.name}`;
+        div.onclick = () => {
+          input.value = c.id;
+          suggestionsBox.innerHTML = "";
+        };
+        suggestionsBox.appendChild(div);
+      });
     }
 
     document.addEventListener("click", function (e) {
       if (!e.target.closest("#existingId") && !e.target.closest("#suggestions")) {
         document.getElementById("suggestions").innerHTML = "";
-        document.getElementById("suggestions").style.display = "none";
       }
     });
   </script>
