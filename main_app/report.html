@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+8<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -94,7 +94,232 @@
     <a href="review.html">Agent Review</a>
     <a href="reports.html">Reports</a>
   </nav>
+<script>
+  let customers = [];
+  let flatReport = [];
+  let allSuggestions = new Set();
+  let pieChart, barChart;
 
+  function loadData(event) {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      customers = JSON.parse(e.target.result);
+      flattenData();
+      filterData();
+      updateDropdown();
+    };
+    reader.readAsText(file);
+  }
+
+  function flattenData() {
+    flatReport = [];
+    allSuggestions.clear();
+
+    customers.forEach(c => {
+      allSuggestions.add(c.id);
+      allSuggestions.add(c.name);
+      allSuggestions.add(c.phone);
+
+      c.products.forEach(p => {
+        const total = p.total || 0;
+        let totalPaid = 0;
+
+        if (Array.isArray(p.payments)) {
+          totalPaid = p.payments.reduce((sum, payment) => sum + payment.amount, 0);
+        } else if (Array.isArray(p.datesPaid)) {
+          totalPaid = p.paid || 0;
+        }
+
+        // Skip fully paid product
+        if (totalPaid >= total) return;
+
+        let paidSoFar = 0;
+
+        if (Array.isArray(p.payments)) {
+          p.payments.forEach(payment => {
+            paidSoFar += payment.amount;
+            flatReport.push({
+              id: c.id,
+              name: c.name,
+              place: c.place,
+              phone: c.phone,
+              product: p.name,
+              paid: payment.amount,
+              balance: Math.max(0, total - paidSoFar),
+              date: payment.date
+            });
+          });
+        } else if (Array.isArray(p.datesPaid)) {
+          const avg = totalPaid / p.datesPaid.length;
+          p.datesPaid.forEach(date => {
+            paidSoFar += avg;
+            flatReport.push({
+              id: c.id,
+              name: c.name,
+              place: c.place,
+              phone: c.phone,
+              product: p.name,
+              paid: avg,
+              balance: Math.max(0, total - paidSoFar),
+              date: date
+            });
+          });
+        }
+      });
+    });
+  }
+
+  function updateDropdown() {
+    const select = document.getElementById("jumpSelect");
+    const unique = [...new Set(flatReport.map(r => `${r.id} - ${r.name}`))];
+    select.innerHTML = `<option value="">-- Select --</option>`;
+    unique.forEach(val => {
+      select.innerHTML += `<option value="${val}">${val}</option>`;
+    });
+  }
+
+  function jumpToCustomer(value) {
+    if (!value) return;
+    const id = value.split(" - ")[0];
+    document.getElementById("searchId").value = id;
+    filterData();
+  }
+
+  function filterData() {
+    const id = document.getElementById("searchId").value.toLowerCase();
+    const place = document.getElementById("searchPlace").value.toLowerCase();
+    const product = document.getElementById("searchProduct").value.toLowerCase();
+    const fromDate = document.getElementById("fromDate").value;
+    const toDate = document.getElementById("toDate").value;
+
+    const filtered = flatReport.filter(r => {
+      return (
+        (!id || r.id.toLowerCase().includes(id) || r.name.toLowerCase().includes(id) || r.phone.includes(id)) &&
+        (!place || r.place.toLowerCase().includes(place)) &&
+        (!product || r.product.toLowerCase().includes(product)) &&
+        (!fromDate || r.date >= fromDate) &&
+        (!toDate || r.date <= toDate)
+      );
+    });
+
+    const tbody = document.getElementById("reportTable");
+    tbody.innerHTML = "";
+    let totalPaid = 0;
+
+    filtered.forEach(r => {
+      totalPaid += r.paid;
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${r.id}</td><td>${r.name}</td><td>${r.place}</td><td>${r.phone}</td>
+        <td>${r.product}</td><td>₹${r.paid.toFixed(2)}</td>
+        <td>₹${r.balance.toFixed(2)}</td><td>${r.date}</td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    document.getElementById("reportTotal").innerText = `Total Paid: ₹${totalPaid.toFixed(2)}`;
+    updateSummaries(filtered);
+  }
+
+  function updateSummaries(filtered) {
+    const summaryTable = document.querySelector("#summaryTable tbody");
+    const monthlyTable = document.querySelector("#monthlyTable tbody");
+    summaryTable.innerHTML = "";
+    monthlyTable.innerHTML = "";
+
+    const customerMap = new Map();
+    const monthlyMap = new Map();
+    let piePaid = 0, pieBalance = 0;
+
+    filtered.forEach(r => {
+      if (!customerMap.has(r.id)) {
+        customerMap.set(r.id, { name: r.name, paid: 0, balance: 0 });
+      }
+      const curr = customerMap.get(r.id);
+      curr.paid += r.paid;
+      curr.balance += r.balance;
+
+      const month = r.date?.slice(0, 7);
+      monthlyMap.set(month, (monthlyMap.get(month) || 0) + r.paid);
+    });
+
+    customerMap.forEach((data, id) => {
+      summaryTable.innerHTML += `<tr><td>${id}</td><td>${data.name}</td><td>₹${data.paid.toFixed(2)}</td><td>₹${data.balance.toFixed(2)}</td></tr>`;
+      piePaid += data.paid;
+      pieBalance += data.balance;
+    });
+
+    monthlyMap.forEach((amt, month) => {
+      monthlyTable.innerHTML += `<tr><td>${month}</td><td>₹${amt.toFixed(2)}</td></tr>`;
+    });
+
+    document.getElementById("reportBalance").innerText = `Total Balance: ₹${pieBalance.toFixed(2)}`;
+    drawCharts(piePaid, pieBalance, customerMap);
+  }
+
+  function drawCharts(paid, balance, customerMap) {
+    const pieCtx = document.getElementById('paidBalanceChart').getContext('2d');
+    if (pieChart) pieChart.destroy();
+    pieChart = new Chart(pieCtx, {
+      type: 'pie',
+      data: {
+        labels: ['Paid', 'Balance'],
+        datasets: [{ data: [paid, balance], backgroundColor: ['#00e676', '#ff5252'] }]
+      }
+    });
+
+    const barCtx = document.getElementById('barChart').getContext('2d');
+    if (barChart) barChart.destroy();
+    const labels = [], data = [];
+    customerMap.forEach((v) => {
+      labels.push(v.name);
+      data.push(v.paid);
+    });
+    barChart = new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{ label: 'Paid Amount', data, backgroundColor: '#00bcd4' }]
+      },
+      options: {
+        responsive: true,
+        scales: { y: { beginAtZero: true } },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+
+  function exportCSV() {
+    let csv = "ID,Name,Place,Phone,Product,Paid,Balance,Date\n";
+    document.querySelectorAll("#reportTable tr").forEach(r => {
+      const row = Array.from(r.querySelectorAll("td")).map(td => td.innerText).join(",");
+      csv += row + "\n";
+    });
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "filtered_report.csv";
+    a.click();
+  }
+
+  function showSuggestions(input) {
+    const box = document.getElementById("suggestions");
+    if (!input || input.length < 1) return box.style.display = "none";
+    const results = [...allSuggestions].filter(s => s.toLowerCase().includes(input.toLowerCase())).slice(0, 10);
+    box.innerHTML = results.map(r => `<div onclick="selectSuggestion('${r}')">${r}</div>`).join("");
+    box.style.display = results.length ? "block" : "none";
+  }
+
+  function selectSuggestion(value) {
+    document.getElementById("searchId").value = value;
+    document.getElementById("suggestions").style.display = "none";
+    filterData();
+  }
+</script>
+</body>
+</html>
   <main>
     <h1>📊 Reports & Filter</h1>
 
