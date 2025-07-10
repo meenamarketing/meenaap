@@ -157,13 +157,7 @@
 
       dropdown.innerHTML = "";
       selectedCustomer.products.forEach((p, index) => {
-        let paid = 0;
-        if (Array.isArray(p.payments)) {
-          paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
-        } else {
-          paid = p.paid || 0;
-        }
-
+        let paid = Array.isArray(p.payments) ? p.payments.reduce((sum, pay) => sum + pay.amount, 0) : (p.paid || 0);
         const balance = p.total - paid;
         if (balance > 0) {
           unpaidProducts.push({ ...p, index, paid, balance });
@@ -209,19 +203,28 @@
         return;
       }
 
-      const payments = prod.payments || [];
-      const baseDue = selectedCustomer.paidDues || 0;
-      const dueNumber = baseDue + payments.length + 1;
-
+      // Ensure payments array exists
       if (!Array.isArray(prod.payments)) {
         prod.payments = [];
       }
 
-      prod.payments.push({
-        amount: amt,
-        date,
-        dueNumber
-      });
+      // Get the due number based on paid dues and existing payments
+      const paidDues = selectedCustomer.paidDues || 0;
+      const dueNumber = paidDues + prod.payments.length + 1;
+
+      // Validate amount
+      const totalPaid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
+      const balance = prod.total - totalPaid;
+      if (amt > balance) {
+        alert("Amount exceeds remaining balance!");
+        return;
+      }
+
+      // Add payment
+      prod.payments.push({ amount: amt, date, dueNumber });
+
+      // Update paidDues
+      selectedCustomer.paidDues = dueNumber;
 
       entries.push({
         id: selectedCustomer.id,
@@ -235,7 +238,8 @@
 
       localStorage.setItem("agent_entries", JSON.stringify(entries));
       localStorage.setItem("agent_customers", JSON.stringify(customers));
-      alert(`Entry saved with Due #${dueNumber}/${selectedCustomer.totalDues || "?"}`);
+
+      alert(`✅ Entry saved with Due #${dueNumber}/${selectedCustomer.totalDues || "?"}`);
 
       // Reset
       document.getElementById("customerInfo").style.display = "none";
