@@ -157,17 +157,16 @@
 
       dropdown.innerHTML = "";
       selectedCustomer.products.forEach((p, index) => {
-        let paid = 0;
-        if (Array.isArray(p.payments)) {
-          paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
-        } else {
-          paid = p.paid || 0;
-        }
+        let paid = Array.isArray(p.payments)
+          ? p.payments.reduce((sum, pay) => sum + pay.amount, 0)
+          : p.paid || 0;
 
         const balance = p.total - paid;
+        const dueCount = Array.isArray(p.payments) ? p.payments.length : 0;
+
         if (balance > 0) {
-          unpaidProducts.push({ ...p, index, paid, balance });
-          dropdown.innerHTML += `<option value="${index}">${p.name} - ₹${balance.toFixed(2)} due</option>`;
+          unpaidProducts.push({ ...p, index, paid, balance, dueCount });
+          dropdown.innerHTML += `<option value="${index}">${p.name} - ₹${balance.toFixed(2)} due (Next Due: #${dueCount + 1})</option>`;
         }
       });
 
@@ -186,22 +185,18 @@
     }
 
     function updateProductInfo() {
-      const selectedIdx = document.getElementById("productDropdown").value;
-      const prod = unpaidProducts.find(p => p.index == selectedIdx);
+      const selectedIdx = parseInt(document.getElementById("productDropdown").value);
+      const prod = unpaidProducts.find(p => p.index === selectedIdx);
       if (!prod) return;
 
-      const paidDues = selectedCustomer.paidDues || 0;
       const dueCount = prod.payments?.length || 0;
-      const nextDue = paidDues + dueCount + 1;
-
-      const totalDues = selectedCustomer.totalDues || prod.totalDues || "?";
 
       document.getElementById("productInfo").innerHTML = `
         <p><strong>Product:</strong> ${prod.name}</p>
         <p><strong>Total:</strong> ₹${prod.total}</p>
         <p><strong>Paid:</strong> ₹${prod.paid}</p>
         <p><strong>Balance:</strong> ₹${prod.balance}</p>
-        <p><strong>Next Due:</strong> #${nextDue} / ${totalDues}</p>
+        <p><strong>Next Due Number:</strong> #${dueCount + 1}</p>
       `;
     }
 
@@ -216,13 +211,19 @@
         return;
       }
 
-      const paidDues = selectedCustomer.paidDues || 0;
-      const paymentCount = prod.payments?.length || 0;
-      const dueNumber = paidDues + paymentCount + 1;
-
       if (!Array.isArray(prod.payments)) {
         prod.payments = [];
       }
+
+      const paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
+      const balance = prod.total - paid;
+
+      if (amt > balance) {
+        alert("Amount exceeds remaining balance!");
+        return;
+      }
+
+      const dueNumber = prod.payments.length + 1;
 
       prod.payments.push({
         date,
@@ -243,8 +244,7 @@
       localStorage.setItem("agent_entries", JSON.stringify(entries));
       localStorage.setItem("agent_customers", JSON.stringify(customers));
 
-      const totalDues = selectedCustomer.totalDues || prod.totalDues || "?";
-      alert(`✅ Entry saved with Due #${dueNumber}/${totalDues}`);
+      alert(`✅ Entry saved with Due #${dueNumber}`);
 
       // Reset
       document.getElementById("customerInfo").style.display = "none";
