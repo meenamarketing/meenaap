@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <title>Reports</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- jsPDF & AutoTable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   <style>
     body {
       margin: 0;
@@ -94,6 +97,16 @@
       font-style: italic;
       color: #777;
     }
+    button.download {
+      padding: 10px 20px;
+      font-size: 14px;
+      background: #00bcd4;
+      color: black;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
@@ -126,7 +139,7 @@
         } else if (typeof entry === 'number') {
           total += entry;
         } else {
-          total += 0; // for string entries without amount
+          total += 0;
         }
       }
       return total;
@@ -166,13 +179,18 @@
       }
 
       let totalBalance = 0;
-
       let html = `
         <div class="report-card">
           <div class="row"><span class="label">Name</span><span class="value">${cust.name}</span></div>
           <div class="row"><span class="label">Phone</span><span class="value">${cust.phone}</span></div>
           <div class="row"><span class="label">Place</span><span class="value">${cust.place}</span></div>
           <div class="row"><span class="label">Products</span><span class="value">${cust.products.length}</span></div>
+        </div>
+
+        <div style="text-align:center;">
+          <button class="download" onclick='downloadPDF(${JSON.stringify(cust).replace(/'/g, "\\'").replace(/"/g, '&quot;')})'>
+            📄 Download PDF
+          </button>
         </div>
       `;
 
@@ -203,6 +221,75 @@
       `;
 
       container.innerHTML = html;
+    }
+
+    async function downloadPDF(customer) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      doc.setFontSize(16);
+      doc.text("Customer Report - Meena Groups", 14, 14);
+      doc.setFontSize(10);
+      doc.text("Powered by Goorac", 14, 20);
+
+      // Customer Info Table
+      doc.autoTable({
+        startY: 25,
+        head: [["Field", "Value"]],
+        body: [
+          ["ID", customer.id || "-"],
+          ["Name", customer.name || "-"],
+          ["Phone", customer.phone || "-"],
+          ["Place", customer.place || "-"],
+          ["Total Products", customer.products?.length || 0]
+        ],
+        styles: { fontSize: 10 }
+      });
+
+      let startY = doc.lastAutoTable.finalY + 10;
+
+      for (let i = 0; i < customer.products.length; i++) {
+        const p = customer.products[i];
+        const total = Number(p.total || 0);
+        const paid = calculatePaid(p.datesPaid);
+        const balance = total - paid;
+
+        doc.setFontSize(12);
+        doc.text(`Product ${i + 1}: ${p.name}`, 14, startY);
+
+        doc.autoTable({
+          startY: startY + 4,
+          head: [["Total", "Paid", "Balance"]],
+          body: [[
+            `₹${total.toLocaleString("en-IN")}`,
+            `₹${paid.toLocaleString("en-IN")}`,
+            `₹${balance.toLocaleString("en-IN")}`
+          ]],
+          styles: { fontSize: 10 }
+        });
+
+        let payments = [["Date", "Amount"]];
+        if (Array.isArray(p.datesPaid)) {
+          p.datesPaid.forEach(entry => {
+            if (typeof entry === 'object' && entry.date && entry.amount != null) {
+              payments.push([entry.date, `₹${Number(entry.amount).toLocaleString("en-IN")}`]);
+            } else if (typeof entry === 'string') {
+              payments.push([entry, "✓ Paid"]);
+            }
+          });
+        }
+
+        doc.autoTable({
+          startY: doc.lastAutoTable.finalY + 2,
+          head: [["Date", "Amount"]],
+          body: payments,
+          styles: { fontSize: 9 }
+        });
+
+        startY = doc.lastAutoTable.finalY + 10;
+      }
+
+      doc.save(`${customer.name}_Report.pdf`);
     }
   </script>
 </body>
