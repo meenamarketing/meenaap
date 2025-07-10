@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Today's Collections - Agent App</title>
@@ -72,29 +71,26 @@
     <a href="entries.html">Add Collection</a>
     <a href="view.html">Today's Entries</a>
     <a href="customer_report.html">Customer Report</a>
-  </nav>
-
-  <main>
+  </nav>  <main>
     <h1>Today's Collections</h1>
     <button onclick="exportJSON()">Export Agent File</button>
-    <h3 id="totalCollected">Total: ₹0</h3>
+    <h3 id="totalCollected">Total: ₹0</h3><table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Phone</th>
+      <th>Product</th>
+      <th>Amount</th>
+      <th>Date</th>
+      <th>Due</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody id="entryTable"></tbody>
+</table>
 
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Amount</th>
-          <th>Date</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="entryTable"></tbody>
-    </table>
-  </main>
-
-  <script>
+  </main>  <script>
     let entries = JSON.parse(localStorage.getItem("agent_entries") || "[]");
 
     function renderEntries() {
@@ -109,8 +105,10 @@
           <td>${e.id}</td>
           <td>${e.name}</td>
           <td>${e.phone}</td>
+          <td>${e.product || '-'}</td>
           <td>₹${e.amount.toFixed(2)}</td>
           <td>${e.date}</td>
+          <td>${e.dueNumber || '-'}</td>
           <td><button onclick="removeEntry(${i})">Delete</button></td>
         `;
         tbody.appendChild(row);
@@ -128,24 +126,24 @@
     }
 
     function exportJSON() {
-      // ✔ Format matches what Main App expects
       const formatted = entries.map(e => ({
         id: e.id,
         name: e.name,
         phone: e.phone,
+        product: e.product,
         amount: e.amount,
-        date: e.date
+        date: e.date,
+        dueNumber: e.dueNumber || null
       }));
 
       const blob = new Blob([JSON.stringify(formatted, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "agent_collections.json";
+      a.download = "agent_collections_with_due.json";
       a.click();
     }
 
     renderEntries();
-  </script>
-</body>
+  </script></body>
 </html>
