@@ -1,77 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Review Agent Collections - Main App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
-      background: #121212;
-      color: #eee;
-      font-family: sans-serif;
-      margin: 0;
-    }
-    nav {
-      background: #1f1f1f;
-      display: flex;
-      gap: 10px;
-      padding: 10px;
-    }
-    nav a {
-      color: white;
-      background: #333;
-      padding: 10px 15px;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-    nav a:hover {
-      background: #00bcd4;
-      color: black;
-    }
-    main {
-      padding: 20px;
-    }
-    input[type="file"], input[type="text"] {
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 5px;
-      background: #1e1e1e;
-      color: white;
-      border: 1px solid #555;
-      width: 100%;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #333;
-      text-align: center;
-    }
-    thead {
-      background: #2c2c2c;
-    }
-    tr:nth-child(even) {
-      background: #1f1f1f;
-    }
-    button {
-      background: #00bcd4;
-      color: black;
-      padding: 10px 15px;
-      margin-top: 10px;
-      font-weight: bold;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #26c6da;
-    }
-    #summary {
-      margin: 10px 0;
-    }
+    body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; }
+    nav { background: #1f1f1f; display: flex; gap: 10px; padding: 10px; }
+    nav a { color: white; background: #333; padding: 10px 15px; border-radius: 5px; text-decoration: none; }
+    nav a:hover { background: #00bcd4; color: black; }
+    main { padding: 20px; }
+    input[type="file"], input[type="text"] { padding: 10px; margin: 10px 0; border-radius: 5px; background: #1e1e1e; color: white; border: 1px solid #555; width: 100%; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 10px; border: 1px solid #333; text-align: center; }
+    thead { background: #2c2c2c; }
+    tr:nth-child(even) { background: #1f1f1f; }
+    button { background: #00bcd4; color: black; padding: 10px 15px; margin-top: 10px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #26c6da; }
+    #summary { margin: 10px 0; }
   </style>
 </head>
 <body>
@@ -81,57 +26,50 @@
     <a href="entry.html">Add Payment</a>
     <a href="report.html">Reports</a>
     <a href="review.html">Review Agent</a>
-  </nav>
-
-  <main>
+  </nav>  <main>
     <h1>Review Agent Collections</h1>
     <input type="file" accept=".json" onchange="loadMainData(event)" />
     <input type="file" accept=".json" onchange="loadAgentData(event)" />
     <input type="text" id="searchId" placeholder="🔍 Search by Customer ID" oninput="filterTable()" />
-    <div id="summary"></div>
+    <div id="summary"></div><table id="agentTable" style="display:none;">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Phone</th>
+      <th>Product</th>
+      <th>Amount</th>
+      <th>Due</th>
+      <th>Date</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
-    <table id="agentTable" style="display:none;">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Product</th>
-          <th>Amount</th>
-          <th>Due</th>
-          <th>Date</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+<button id="approveBtn" onclick="approveData()" style="display:none;">✅ Approve & Merge</button>
+<button onclick="exportMainJSON()" style="display:none;" id="exportBtn">📤 Export Updated Main JSON</button>
 
-    <button id="approveBtn" onclick="approveData()" style="display:none;">✅ Approve & Merge</button>
-    <button onclick="exportMainJSON()" style="display:none;" id="exportBtn">📤 Export Updated Main JSON</button>
-  </main>
-
-  <script>
+  </main>  <script>
     let agentEntries = [];
     let mainCustomers = [];
 
     function loadMainData(event) {
-      const file = event.target.files[0];
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = e => {
         mainCustomers = JSON.parse(e.target.result);
         localStorage.setItem("main_customers", JSON.stringify(mainCustomers));
         alert("✅ Main database loaded");
       };
-      reader.readAsText(file);
+      reader.readAsText(event.target.files[0]);
     }
 
     function loadAgentData(event) {
-      const file = event.target.files[0];
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = e => {
         agentEntries = JSON.parse(e.target.result);
         showAgentData(agentEntries);
       };
-      reader.readAsText(file);
+      reader.readAsText(event.target.files[0]);
     }
 
     function showAgentData(data) {
@@ -140,20 +78,17 @@
       let total = 0;
 
       data.forEach(entry => {
-        const amount = parseFloat(entry.amount) || 0;
-        total += amount;
-
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${entry.id || ''}</td>
-          <td>${entry.name || ''}</td>
-          <td>${entry.phone || ''}</td>
-          <td>${entry.product || '-'}</td>
-          <td>₹${amount.toFixed(2)}</td>
-          <td>${entry.dueNumber || '-'}</td>
-          <td>${entry.date || '-'}</td>
-        `;
-        tbody.appendChild(row);
+        total += parseFloat(entry.amount || 0);
+        tbody.innerHTML += `
+          <tr>
+            <td>${entry.id}</td>
+            <td>${entry.name}</td>
+            <td>${entry.phone}</td>
+            <td>${entry.product}</td>
+            <td>₹${parseFloat(entry.amount || 0).toFixed(2)}</td>
+            <td>${entry.dueNumber}</td>
+            <td>${entry.date}</td>
+          </tr>`;
       });
 
       document.getElementById("agentTable").style.display = "table";
@@ -164,8 +99,7 @@
 
     function filterTable() {
       const value = document.getElementById("searchId").value.toLowerCase();
-      const rows = document.querySelectorAll("#agentTable tbody tr");
-      rows.forEach(row => {
+      document.querySelectorAll("#agentTable tbody tr").forEach(row => {
         const id = row.children[0].innerText.toLowerCase();
         row.style.display = id.includes(value) ? "" : "none";
       });
@@ -176,31 +110,25 @@
 
       agentEntries.forEach(entry => {
         const cust = mainCustomers.find(c => c.id === entry.id);
-        if (cust) {
-          const prod = cust.products.find(p => p.name === entry.product);
-          if (!prod) return;
+        if (!cust) return;
 
-          if (!prod.payments) prod.payments = [];
+        const prod = cust.products.find(p => p.name === entry.product);
+        if (!prod) return;
 
-          const lastDue = Math.max(...prod.payments.map(p => p.dueNumber || 0), cust.paidDues || 0);
-          const nextDueNumber = lastDue + 1;
+        if (!prod.payments) prod.payments = [];
+        if (!prod.datesPaid) prod.datesPaid = [];
 
-          const amount = parseFloat(entry.amount) || 0;
+        prod.payments.push({
+          date: entry.date,
+          amount: parseFloat(entry.amount || 0),
+          dueNumber: parseInt(entry.dueNumber || prod.payments.length + 1)
+        });
 
-          prod.payments.push({
-            date: entry.date,
-            amount,
-            dueNumber: nextDueNumber
-          });
+        prod.datesPaid.push(entry.date);
+        prod.paid = prod.payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+        cust.paidDues = Math.max(cust.paidDues || 0, ...prod.payments.map(p => p.dueNumber || 0));
 
-          prod.paid = prod.payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-          cust.paidDues = nextDueNumber;
-
-          if (!prod.datesPaid) prod.datesPaid = [];
-          prod.datesPaid.push(entry.date);
-
-          updated++;
-        }
+        updated++;
       });
 
       localStorage.setItem("main_customers", JSON.stringify(mainCustomers));
@@ -231,6 +159,5 @@
       a.download = "updated_main_customers.json";
       a.click();
     }
-  </script>
-</body>
+  </script></body>
 </html>
