@@ -103,6 +103,7 @@
     <a href="view.html">Today</a>
     <a href="customer_report.html">Reports</a>
   </nav>
+
   <main>
     <h1>Reports</h1>
     <input type="text" id="searchBox" placeholder="Search by Name, ID, or Phone" oninput="searchCustomer(this.value)">
@@ -122,8 +123,10 @@
       for (let entry of datesPaid) {
         if (typeof entry === 'object' && entry.amount) {
           total += Number(entry.amount);
+        } else if (typeof entry === 'number') {
+          total += entry;
         } else {
-          total += 0; // string-only entries, no amount
+          total += 0; // for string entries without amount
         }
       }
       return total;
@@ -138,7 +141,7 @@
         if (typeof p === 'object' && p.date && p.amount != null) {
           return `<div class="payment-entry"><span>• ${p.date}</span><span>${format(p.amount)}</span></div>`;
         } else if (typeof p === 'string') {
-          return `<div class="payment-entry"><span>• ${p}</span><span>✓</span></div>`;
+          return `<div class="payment-entry"><span>• ${p}</span><span>✓ Paid</span></div>`;
         } else {
           return '';
         }
@@ -164,12 +167,14 @@
 
       let totalBalance = 0;
 
-      let html = `<div class="report-card">
-        <div class="row"><span class="label">Name</span><span class="value">${cust.name}</span></div>
-        <div class="row"><span class="label">Phone</span><span class="value">${cust.phone}</span></div>
-        <div class="row"><span class="label">Place</span><span class="value">${cust.place}</span></div>
-        <div class="row"><span class="label">Products</span><span class="value">${cust.products.length}</span></div>
-      </div>`;
+      let html = `
+        <div class="report-card">
+          <div class="row"><span class="label">Name</span><span class="value">${cust.name}</span></div>
+          <div class="row"><span class="label">Phone</span><span class="value">${cust.phone}</span></div>
+          <div class="row"><span class="label">Place</span><span class="value">${cust.place}</span></div>
+          <div class="row"><span class="label">Products</span><span class="value">${cust.products.length}</span></div>
+        </div>
+      `;
 
       cust.products.forEach((p, i) => {
         const total = Number(p.total || 0);
@@ -187,12 +192,15 @@
               <p><strong>Payment History:</strong></p>
               ${renderPayments(p.datesPaid)}
             </div>
-          </div>`;
+          </div>
+        `;
       });
 
-      html += `<div class="report-card">
-        <div class="row"><span class="label">Total Balance</span><span class="value">${format(totalBalance)}</span></div>
-      </div>`;
+      html += `
+        <div class="report-card">
+          <div class="row"><span class="label">Total Balance</span><span class="value">${format(totalBalance)}</span></div>
+        </div>
+      `;
 
       container.innerHTML = html;
     }
