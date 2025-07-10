@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Add Collections - Agent App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       background: #121212;
@@ -157,7 +157,13 @@
 
       dropdown.innerHTML = "";
       selectedCustomer.products.forEach((p, index) => {
-        let paid = Array.isArray(p.payments) ? p.payments.reduce((sum, pay) => sum + pay.amount, 0) : (p.paid || 0);
+        let paid = 0;
+        if (Array.isArray(p.payments)) {
+          paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
+        } else {
+          paid = p.paid || 0;
+        }
+
         const balance = p.total - paid;
         if (balance > 0) {
           unpaidProducts.push({ ...p, index, paid, balance });
@@ -184,11 +190,18 @@
       const prod = unpaidProducts.find(p => p.index == selectedIdx);
       if (!prod) return;
 
+      const paidDues = selectedCustomer.paidDues || 0;
+      const dueCount = prod.payments?.length || 0;
+      const nextDue = paidDues + dueCount + 1;
+
+      const totalDues = selectedCustomer.totalDues || prod.totalDues || "?";
+
       document.getElementById("productInfo").innerHTML = `
         <p><strong>Product:</strong> ${prod.name}</p>
         <p><strong>Total:</strong> ₹${prod.total}</p>
         <p><strong>Paid:</strong> ₹${prod.paid}</p>
         <p><strong>Balance:</strong> ₹${prod.balance}</p>
+        <p><strong>Next Due:</strong> #${nextDue} / ${totalDues}</p>
       `;
     }
 
@@ -203,28 +216,19 @@
         return;
       }
 
-      // Ensure payments array exists
+      const paidDues = selectedCustomer.paidDues || 0;
+      const paymentCount = prod.payments?.length || 0;
+      const dueNumber = paidDues + paymentCount + 1;
+
       if (!Array.isArray(prod.payments)) {
         prod.payments = [];
       }
 
-      // Get the due number based on paid dues and existing payments
-      const paidDues = selectedCustomer.paidDues || 0;
-      const dueNumber = paidDues + prod.payments.length + 1;
-
-      // Validate amount
-      const totalPaid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
-      const balance = prod.total - totalPaid;
-      if (amt > balance) {
-        alert("Amount exceeds remaining balance!");
-        return;
-      }
-
-      // Add payment
-      prod.payments.push({ amount: amt, date, dueNumber });
-
-      // Update paidDues
-      selectedCustomer.paidDues = dueNumber;
+      prod.payments.push({
+        date,
+        amount: amt,
+        dueNumber
+      });
 
       entries.push({
         id: selectedCustomer.id,
@@ -239,7 +243,8 @@
       localStorage.setItem("agent_entries", JSON.stringify(entries));
       localStorage.setItem("agent_customers", JSON.stringify(customers));
 
-      alert(`✅ Entry saved with Due #${dueNumber}/${selectedCustomer.totalDues || "?"}`);
+      const totalDues = selectedCustomer.totalDues || prod.totalDues || "?";
+      alert(`✅ Entry saved with Due #${dueNumber}/${totalDues}`);
 
       // Reset
       document.getElementById("customerInfo").style.display = "none";
