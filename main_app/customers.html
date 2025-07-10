@@ -64,6 +64,7 @@
     th, td {
       padding: 10px;
       border: 1px solid #333;
+      vertical-align: top;
     }
     thead {
       background: #2c2c2c;
@@ -116,8 +117,10 @@
     <button onclick="addCustomer()">Add Customer</button>
 
     <h2>Add Product to Existing Customer</h2>
-    <input id="existingId" placeholder="Customer ID" oninput="showSuggestions()">
-    <div id="suggestions"></div>
+    <div style="position: relative;">
+      <input id="existingId" placeholder="Customer ID or Name" oninput="showSuggestions()">
+      <div id="suggestions"></div>
+    </div>
     <input id="addProductName" placeholder="Product Name" />
     <input id="addProductTotal" placeholder="Total Amount" type="number" />
     <input id="addProductPaid" placeholder="Amount Paid" type="number" />
@@ -143,8 +146,12 @@
 
       const reader = new FileReader();
       reader.onload = function (e) {
-        customers = JSON.parse(e.target.result);
-        renderTable();
+        try {
+          customers = JSON.parse(e.target.result);
+          renderTable();
+        } catch (err) {
+          alert("Invalid JSON file.");
+        }
       };
       reader.readAsText(file);
     }
@@ -158,7 +165,7 @@
         let productList = "";
         c.products.forEach(p => {
           const bal = p.total - p.paid;
-          productList += `<div>${p.name} - ₹${p.paid}/₹${p.total} (Balance: ₹${bal})</div>`;
+          productList += `<div><strong>${p.name}</strong><br>Paid: ₹${p.paid} / ₹${p.total} (Balance: ₹${bal})</div><br>`;
         });
 
         row.innerHTML = `
@@ -182,7 +189,12 @@
       const paid = parseFloat(document.getElementById("newPaid").value);
 
       if (!id || customers.find(c => c.id === id)) {
-        alert("Invalid or duplicate ID");
+        alert("Invalid or duplicate ID.");
+        return;
+      }
+
+      if (!product || isNaN(total) || isNaN(paid)) {
+        alert("Please enter valid product details.");
         return;
       }
 
@@ -201,10 +213,13 @@
     }
 
     function addProduct() {
-      const id = document.getElementById("existingId").value.trim();
-      const customer = customers.find(c => c.id === id);
+      const input = document.getElementById("existingId").value.trim().toLowerCase();
+      const customer = customers.find(c =>
+        c.id.toLowerCase() === input || c.name.toLowerCase() === input
+      );
+
       if (!customer) {
-        alert("Customer not found");
+        alert("Customer not found.");
         return;
       }
 
@@ -213,13 +228,13 @@
       const paid = parseFloat(document.getElementById("addProductPaid").value);
 
       if (!name || isNaN(total) || isNaN(paid)) {
-        alert("Please enter valid product details.");
+        alert("Enter valid product details.");
         return;
       }
 
       const duplicate = customer.products.find(p => p.name.toLowerCase() === name.toLowerCase());
       if (duplicate) {
-        alert("Product with this name already exists for this customer.");
+        alert("Product already exists for this customer.");
         return;
       }
 
@@ -249,26 +264,39 @@
       const value = input.value.toLowerCase();
       suggestionsBox.innerHTML = "";
 
-      if (!value) return;
+      if (!value) {
+        suggestionsBox.style.display = "none";
+        return;
+      }
 
       const matches = customers.filter(c =>
         c.id.toLowerCase().includes(value) || c.name.toLowerCase().includes(value)
       );
 
-      matches.slice(0, 5).forEach(c => {
-        const div = document.createElement("div");
-        div.textContent = `${c.id} - ${c.name}`;
-        div.onclick = () => {
-          input.value = c.id;
-          suggestionsBox.innerHTML = "";
-        };
-        suggestionsBox.appendChild(div);
-      });
+      if (matches.length === 0) {
+        suggestionsBox.style.display = "none";
+        return;
+      }
+
+      suggestionsBox.innerHTML = matches.slice(0, 5).map(c => {
+        return `<div onclick="selectCustomer('${c.id}')">${c.id} - ${c.name}</div>`;
+      }).join("");
+      suggestionsBox.style.display = "block";
+
+      const rect = input.getBoundingClientRect();
+      suggestionsBox.style.left = rect.left + "px";
+      suggestionsBox.style.top = rect.bottom + window.scrollY + "px";
+    }
+
+    function selectCustomer(id) {
+      document.getElementById("existingId").value = id;
+      document.getElementById("suggestions").style.display = "none";
     }
 
     document.addEventListener("click", function (e) {
       if (!e.target.closest("#existingId") && !e.target.closest("#suggestions")) {
         document.getElementById("suggestions").innerHTML = "";
+        document.getElementById("suggestions").style.display = "none";
       }
     });
   </script>
