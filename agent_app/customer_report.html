@@ -55,7 +55,7 @@
       margin-bottom: 20px;
       outline: none;
     }
-    .report-card {
+    .report-card, .product-block {
       background: #1e1e1e;
       padding: 15px;
       border-radius: 10px;
@@ -68,21 +68,9 @@
       padding: 6px 0;
       border-bottom: 1px solid #2d2d2d;
     }
-    .row:last-child {
-      border-bottom: none;
-    }
+    .row:last-child { border-bottom: none; }
     .label { color: #aaa; font-size: 14px; }
     .value { font-size: 15px; }
-    .product-block {
-      margin-top: 10px;
-      border: 1px solid #333;
-      border-radius: 10px;
-      padding: 10px;
-      background: #1a1a1a;
-      cursor: pointer;
-    }
-    .product-block.open .details { display: block; }
-    .details { display: none; margin-top: 10px; }
     .payment-entry {
       font-size: 14px;
       padding: 4px 0;
@@ -115,7 +103,6 @@
     <a href="view.html">Today</a>
     <a href="customer_report.html">Reports</a>
   </nav>
-
   <main>
     <h1>Reports</h1>
     <input type="text" id="searchBox" placeholder="Search by Name, ID, or Phone" oninput="searchCustomer(this.value)">
@@ -130,17 +117,14 @@
     }
 
     function getPaidAmount(payments) {
-      if (!Array.isArray(payments)) return 0;
-      return payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      return payments?.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) || 0;
     }
 
     function renderPayments(payments) {
       if (!Array.isArray(payments) || payments.length === 0) {
         return `<div class="payment-entry">No payment records.</div>`;
       }
-
-      let balance = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-      return payments.map((p, i) => `
+      return payments.map(p => `
         <div class="payment-entry">
           <span>${p.date || '-'} (Due ${p.dueNumber || '-'})</span>
           <span>${format(p.amount)}</span>
@@ -165,15 +149,12 @@
         return;
       }
 
-      let totalBalance = 0;
       let html = `
         <div class="report-card">
           <div class="row"><span class="label">Name</span><span class="value">${cust.name}</span></div>
           <div class="row"><span class="label">Phone</span><span class="value">${cust.phone}</span></div>
           <div class="row"><span class="label">Place</span><span class="value">${cust.place}</span></div>
-          <div class="row"><span class="label">Products</span><span class="value">${cust.products.length}</span></div>
         </div>
-
         <div style="text-align:center;">
           <button class="download" onclick='downloadPDF(${JSON.stringify(cust).replace(/'/g, "\\'").replace(/"/g, '&quot;')})'>
             📄 Download PDF
@@ -185,10 +166,9 @@
         const total = Number(p.total || 0);
         const paid = getPaidAmount(p.payments);
         const balance = total - paid;
-        totalBalance += balance;
 
         html += `
-          <div class="product-block" onclick="this.classList.toggle('open')">
+          <div class="product-block">
             <div class="row"><span class="label">Product ${i + 1}</span><span class="value">${p.name}</span></div>
             <div class="row"><span class="label">Total</span><span class="value">${format(total)}</span></div>
             <div class="row"><span class="label">Paid</span><span class="value">${format(paid)}</span></div>
@@ -201,20 +181,13 @@
         `;
       });
 
-      html += `
-        <div class="report-card">
-          <div class="row"><span class="label">Total Balance</span><span class="value">${format(totalBalance)}</span></div>
-        </div>
-      `;
-
       container.innerHTML = html;
     }
 
-    async function downloadPDF(customer) {
+    function downloadPDF(customer) {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
-      // Branding header
       doc.setFontSize(18);
       doc.setFont("helvetica", "bold");
       doc.text("Meena Groups", 105, 14, { align: "center" });
@@ -223,7 +196,6 @@
       doc.setFont("helvetica", "normal");
       doc.text("Powered by Goorac", 105, 20, { align: "center" });
 
-      doc.setFontSize(12);
       doc.autoTable({
         startY: 26,
         head: [["Field", "Value"]],
@@ -239,11 +211,41 @@
 
       let startY = doc.lastAutoTable.finalY + 10;
 
-      for (let i = 0; i < customer.products.length; i++) {
-        const p = customer.products[i];
+      customer.products.forEach((p, i) => {
         const total = Number(p.total || 0);
-        const paid = getPaidAmount(p.payments);
-        let balance = total;
+        const payments = p.payments || [];
+
+        const grouped = {};
+        let totalPaid = 0;
+        const dueSet = new Set();
+
+        payments.forEach(pay => {
+          const due = Number(pay.dueNumber);
+          dueSet.add(due);
+          if (!grouped[due]) grouped[due] = [];
+          grouped[due].push(pay);
+          totalPaid += Number(pay.amount || 0);
+        });
+
+        const allDues = [...dueSet].sort((a, b) => a - b);
+        const minDue = allDues[0];
+        const maxDue = allDues[allDues.length - 1];
+
+        let rows = [];
+        let runningBalance = total;
+
+        for (let d = minDue; d <= maxDue; d++) {
+          const duePays = grouped[d] || [];
+          const totalForDue = duePays.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+          const lastDate = duePays.length > 0 ? duePays[duePays.length - 1].date : "-";
+          runningBalance -= totalForDue;
+          rows.push([
+            `Due ${d}`,
+            lastDate,
+            `₹${totalForDue.toLocaleString("en-IN")}`,
+            `₹${runningBalance.toLocaleString("en-IN")}`
+          ]);
+        }
 
         doc.setFontSize(13);
         doc.setTextColor(0, 188, 212);
@@ -255,33 +257,21 @@
           head: [["Total", "Paid", "Balance"]],
           body: [[
             `₹${total.toLocaleString("en-IN")}`,
-            `₹${paid.toLocaleString("en-IN")}`,
-            `₹${(total - paid).toLocaleString("en-IN")}`
+            `₹${totalPaid.toLocaleString("en-IN")}`,
+            `₹${(total - totalPaid).toLocaleString("en-IN")}`
           ]],
           styles: { fontSize: 10 }
         });
 
-        let rows = [];
-        (p.payments || []).forEach(entry => {
-          const amt = Number(entry.amount || 0);
-          balance -= amt;
-          rows.push([
-            entry.date || "-",
-            `Due ${entry.dueNumber || "-"}`,
-            `₹${amt.toLocaleString("en-IN")}`,
-            `₹${balance.toLocaleString("en-IN")}`
-          ]);
-        });
-
         doc.autoTable({
           startY: doc.lastAutoTable.finalY + 4,
-          head: [["Date", "Due No.", "Paid Amount", "Balance After"]],
+          head: [["Due No.", "Date", "Paid Amount", "Balance After"]],
           body: rows.length ? rows : [["-", "-", "-", "-"]],
           styles: { fontSize: 9 }
         });
 
         startY = doc.lastAutoTable.finalY + 12;
-      }
+      });
 
       doc.save(`${customer.name}_Report.pdf`);
     }
