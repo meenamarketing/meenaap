@@ -157,14 +157,12 @@
 
       dropdown.innerHTML = "";
       selectedCustomer.products.forEach((p, index) => {
-        let paid = 0;
-        if (Array.isArray(p.payments)) {
-          paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
-        } else {
-          paid = p.paid || 0;
-        }
+        let paid = Array.isArray(p.payments)
+          ? p.payments.reduce((sum, pay) => sum + pay.amount, 0)
+          : (p.paid || 0);
 
         const balance = p.total - paid;
+
         if (balance > 0) {
           unpaidProducts.push({ ...p, index, paid, balance });
           dropdown.innerHTML += `<option value="${index}">${p.name} - ₹${balance.toFixed(2)} due</option>`;
@@ -187,17 +185,22 @@
 
     function updateProductInfo() {
       const selectedIdx = document.getElementById("productDropdown").value;
-      const prod = unpaidProducts.find(p => p.index == selectedIdx);
+      const prod = selectedCustomer.products[selectedIdx];
       if (!prod) return;
 
+      if (!Array.isArray(prod.payments)) prod.payments = [];
+
       const baseDue = selectedCustomer.paidDues || 0;
-      const nextDue = baseDue + (prod.payments?.length || 0) + 1;
+      const nextDue = baseDue + prod.payments.length + 1;
+
+      const paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
+      const balance = prod.total - paid;
 
       document.getElementById("productInfo").innerHTML = `
         <p><strong>Product:</strong> ${prod.name}</p>
         <p><strong>Total:</strong> ₹${prod.total}</p>
-        <p><strong>Paid:</strong> ₹${prod.paid}</p>
-        <p><strong>Balance:</strong> ₹${prod.balance}</p>
+        <p><strong>Paid:</strong> ₹${paid}</p>
+        <p><strong>Balance:</strong> ₹${balance}</p>
         <p><strong>Next Due Number:</strong> #${nextDue}</p>
       `;
     }
@@ -213,12 +216,7 @@
         return;
       }
 
-      if (!Array.isArray(prod.payments)) {
-        prod.payments = [];
-      }
-
-      const baseDue = selectedCustomer.paidDues || 0;
-      const dueNumber = baseDue + prod.payments.length + 1;
+      if (!Array.isArray(prod.payments)) prod.payments = [];
 
       const paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
       const balance = prod.total - paid;
@@ -228,10 +226,11 @@
         return;
       }
 
-      // Save payment
+      const baseDue = selectedCustomer.paidDues || 0;
+      const dueNumber = baseDue + prod.payments.length + 1;
+
       prod.payments.push({ date, amount: amt, dueNumber });
 
-      // Save entry
       entries.push({
         id: selectedCustomer.id,
         name: selectedCustomer.name,
