@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Review Agent Collections - Main App</title>
@@ -80,30 +81,32 @@
     <a href="entry.html">Add Payment</a>
     <a href="report.html">Reports</a>
     <a href="review.html">Review Agent</a>
-  </nav>  <main>
+  </nav>
+  <main>
     <h1>Review Agent Collections</h1>
     <input type="file" accept=".json" onchange="loadMainData(event)" />
     <input type="file" accept=".json" onchange="loadAgentData(event)" />
     <input type="text" id="searchId" placeholder="🔍 Search by Customer ID" oninput="filterTable()" />
-    <div id="summary"></div><table id="agentTable" style="display:none;">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Name</th>
-      <th>Phone</th>
-      <th>Product</th>
-      <th>Amount</th>
-      <th>Due</th>
-      <th>Date</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+    <div id="summary"></div>
+    <table id="agentTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Product</th>
+          <th>Amount</th>
+          <th>Due</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button id="approveBtn" onclick="approveData()" style="display:none;">✅ Approve & Merge</button>
+    <button onclick="exportMainJSON()" style="display:none;" id="exportBtn">📤 Export Updated Main JSON</button>
+  </main>
 
-<button id="approveBtn" onclick="approveData()" style="display:none;">✅ Approve & Merge</button>
-<button onclick="exportMainJSON()" style="display:none;" id="exportBtn">📤 Export Updated Main JSON</button>
-
-  </main>  <script>
+  <script>
     let agentEntries = [];
     let mainCustomers = [];
 
@@ -142,7 +145,7 @@
           <td>${entry.phone}</td>
           <td>${entry.product || '-'}</td>
           <td>₹${parseFloat(entry.amount).toFixed(2)}</td>
-          <td>#${entry.dueNumber || '-'}</td>
+          <td>${entry.dueNumber || '-'}</td>
           <td>${entry.date}</td>
         `;
         tbody.appendChild(row);
@@ -173,8 +176,8 @@
           if (!prod) return;
 
           if (!prod.payments) prod.payments = [];
+          if (!prod.datesPaid) prod.datesPaid = [];
 
-          // Compute next due number correctly
           const lastDue = Math.max(...prod.payments.map(p => p.dueNumber || 0), cust.paidDues || 0);
           const nextDueNumber = lastDue + 1;
 
@@ -184,12 +187,9 @@
             dueNumber: nextDueNumber
           });
 
+          prod.datesPaid.push(entry.date);
           prod.paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
           cust.paidDues = nextDueNumber;
-
-          if (!prod.datesPaid) prod.datesPaid = [];
-          prod.datesPaid.push(entry.date);
-
           updated++;
         }
       });
@@ -209,9 +209,13 @@
         products: c.products.map(p => ({
           name: p.name,
           total: p.total,
-          datesPaid: p.datesPaid || [],
           paid: p.paid || 0,
-          payments: p.payments || []
+          datesPaid: p.datesPaid || [],
+          payments: p.payments?.map(pay => ({
+            date: pay.date,
+            amount: pay.amount,
+            dueNumber: pay.dueNumber
+          })) || []
         }))
       }));
 
@@ -222,5 +226,6 @@
       a.download = "updated_main_customers.json";
       a.click();
     }
-  </script></body>
+  </script>
+</body>
 </html>
