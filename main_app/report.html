@@ -156,26 +156,30 @@
         c.products.forEach(p => {
           const total = p.total || 0;
           const totalDues = p.totalDues || c.totalDues || 0;
-          const paidDues = p.payments?.length || 0;
+          const startingDue = c.paidDues || 0;
 
-          if (Array.isArray(p.payments)) {
-            let paidSoFar = 0;
-            p.payments.forEach((payment, index) => {
-              paidSoFar += payment.amount;
-              flatReport.push({
-                id: c.id,
-                name: c.name,
-                place: c.place,
-                phone: c.phone,
-                product: p.name,
-                paid: payment.amount,
-                balance: Math.max(0, total - paidSoFar),
-                date: payment.date,
-                paidDues: index + 1,
-                totalDues: totalDues
-              });
-            });
+          let payments = p.payments || [];
+          if (!payments.length && Array.isArray(p.datesPaid)) {
+            const avg = (p.paid || 0) / p.datesPaid.length;
+            payments = p.datesPaid.map(date => ({ date, amount: avg }));
           }
+
+          let paidSoFar = 0;
+          payments.forEach((payment, index) => {
+            paidSoFar += payment.amount;
+            flatReport.push({
+              id: c.id,
+              name: c.name,
+              place: c.place,
+              phone: c.phone,
+              product: p.name,
+              paid: payment.amount,
+              balance: Math.max(0, total - paidSoFar),
+              date: payment.date,
+              paidDues: startingDue + index + 1,
+              totalDues
+            });
+          });
         });
       });
     }
@@ -244,7 +248,6 @@
         pieBalance += data.balance;
       });
 
-      document.getElementById("reportBalance").innerText = `Total Balance: ₹${pieBalance.toFixed(2)}`;
       drawCharts(piePaid, pieBalance, customerMap);
     }
 
