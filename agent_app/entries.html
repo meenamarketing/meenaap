@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Add Collection - Agent App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       background: #121212;
@@ -175,7 +175,9 @@
         const payments = Array.isArray(p.payments) ? p.payments : [];
         const paid = payments.reduce((sum, pay) => sum + pay.amount, 0);
         const balance = p.total - paid;
-        const nextDue = (selectedCustomer.paidDues || 0) + payments.length + 1;
+
+        const startingDue = (selectedCustomer.paidDues || 0) + 1;
+        const nextDue = startingDue + payments.length;
 
         unpaidProducts.push({ ...p, index, paid, balance, nextDue });
 
@@ -212,9 +214,13 @@
 
       if (!Array.isArray(prod.payments)) prod.payments = [];
 
-      const dueNumber = (selectedCustomer.paidDues || 0) + prod.payments.length + 1;
+      const baseDue = (selectedCustomer.paidDues || 0);
+      const dueNumber = baseDue + prod.payments.length + 1;
 
       prod.payments.push({ date, amount, dueNumber });
+
+      // Update paidDues
+      selectedCustomer.paidDues = dueNumber;
 
       entries.push({
         id: selectedCustomer.id,
