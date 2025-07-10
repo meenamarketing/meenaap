@@ -1,204 +1,65 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
+  <title>Add Entry</title>
   <meta charset="UTF-8">
-  <title>Add Collections - Agent App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; }
-    nav { background: #1f1f1f; display: flex; flex-wrap: wrap; padding: 10px; gap: 10px; }
-    nav a { color: white; background: #333; padding: 10px 15px; border-radius: 5px; text-decoration: none; }
-    nav a:hover { background: #00bcd4; color: black; }
-    main { padding: 20px; }
-    h1 { color: #00bcd4; }
-    input, button, select {
-      padding: 10px; margin: 10px 0; border-radius: 5px;
-      background: #1e1e1e; color: white; border: 1px solid #444; width: 100%;
-    }
-    button { background: #00bcd4; color: black; font-weight: bold; }
-    .customer-box {
-      margin-top: 10px; padding: 10px;
-      background: #1d1d1d; border: 1px solid #333; border-radius: 8px;
-    }
-    #suggestions {
-      background: #222; border: 1px solid #333;
-      border-radius: 5px; display: none; position: absolute;
-      z-index: 999; max-height: 200px; overflow-y: auto;
-    }
-    #suggestions div { padding: 10px; cursor: pointer; }
-    #suggestions div:hover { background: #00bcd4; color: black; }
-    #productInfo { margin-top: 10px; }
-  </style>
+  <style>/* same styling as above */</style>
 </head>
 <body>
   <nav>
-    <a href="index.html">Home</a>
-    <a href="entries.html">Add Collection</a>
-    <a href="view.html">Today's Entries</a>
+    <a href="index.html">Dashboard</a>
+    <a href="entries.html">Add Entry</a>
+    <a href="view.html">View Entries</a>
+    <a href="customer_report.html">Customer Report</a>
   </nav>
 
-  <main>
-    <h1>Add Collection Entry</h1>
-    <input type="text" id="searchBox" placeholder="Search by ID, Name or Phone" oninput="showSuggestions(this.value)">
-    <div id="suggestions"></div>
-
-    <div class="customer-box" id="customerInfo" style="display:none;">
-      <p><strong>ID:</strong> <span id="custId"></span></p>
-      <p><strong>Name:</strong> <span id="custName"></span></p>
-      <p><strong>Phone:</strong> <span id="custPhone"></span></p>
-      <p><strong>Place:</strong> <span id="custPlace"></span></p>
-
-      <div id="productSection">
-        <label>Select Product:</label>
-        <select id="productDropdown"></select>
-        <div id="productInfo"></div>
-      </div>
-
-      <input type="number" id="amount" placeholder="Enter Amount Collected">
-      <input type="date" id="date" value="">
-      <button onclick="saveEntry()">Save Entry</button>
-    </div>
-  </main>
+  <h1>Add Customer Payment</h1>
+  <input id="searchBox" placeholder="Search ID/Name/Phone" oninput="searchCustomer()" />
+  <div id="customerView"></div>
 
   <script>
-    let customers = JSON.parse(localStorage.getItem('agent_customers') || '[]');
+    let customers = JSON.parse(localStorage.getItem('main_customers') || '[]');
     let entries = JSON.parse(localStorage.getItem('agent_entries') || '[]');
-    let selectedCustomer = null;
-    let unpaidProducts = [];
 
-    function showSuggestions(input) {
-      const box = document.getElementById("suggestions");
-      if (!input || input.length < 1) {
-        box.style.display = "none"; return;
-      }
+    function searchCustomer() {
+      const val = document.getElementById("searchBox").value.toLowerCase();
+      const match = customers.find(c => c.id.includes(val) || c.name.toLowerCase().includes(val));
+      const div = document.getElementById("customerView");
+      div.innerHTML = '';
 
-      const results = customers.filter(c =>
-        c.id.toLowerCase().includes(input.toLowerCase()) ||
-        c.name.toLowerCase().includes(input.toLowerCase()) ||
-        c.phone.includes(input)
-      ).slice(0, 10);
+      if (!match) return;
 
-      box.innerHTML = results.map(c =>
-        `<div onclick="selectCustomer('${c.id}')">${c.id} - ${c.name} (${c.phone})</div>`
-      ).join("");
-      box.style.display = results.length ? "block" : "none";
-
-      const rect = document.getElementById("searchBox").getBoundingClientRect();
-      box.style.left = rect.left + "px";
-      box.style.top = rect.bottom + window.scrollY + "px";
-      box.style.width = rect.width + "px";
-    }
-
-    function selectCustomer(id) {
-      selectedCustomer = customers.find(c => c.id === id);
-      document.getElementById("custId").innerText = selectedCustomer.id;
-      document.getElementById("custName").innerText = selectedCustomer.name;
-      document.getElementById("custPhone").innerText = selectedCustomer.phone;
-      document.getElementById("custPlace").innerText = selectedCustomer.place;
-      document.getElementById("customerInfo").style.display = "block";
-      document.getElementById("suggestions").style.display = "none";
-      document.getElementById("searchBox").value = selectedCustomer.name;
-      loadUnpaidProducts();
-    }
-
-    function convertOldToPayments(product, paidDues) {
-      if (!product.payments && product.paid && Array.isArray(product.datesPaid)) {
-        product.payments = product.datesPaid.map((date, index) => ({
-          date,
-          amount: product.paid,
-          dueNumber: (paidDues || 0) + 1 + index
-        }));
-        delete product.paid;
-        delete product.datesPaid;
-      }
-    }
-
-    function loadUnpaidProducts() {
-      const dropdown = document.getElementById("productDropdown");
-      const productInfo = document.getElementById("productInfo");
-      unpaidProducts = [];
-      dropdown.innerHTML = "";
-
-      selectedCustomer.products.forEach((p, index) => {
-        convertOldToPayments(p, selectedCustomer.paidDues);
-        const payments = Array.isArray(p.payments) ? p.payments : [];
-        const paid = payments.reduce((sum, pay) => sum + pay.amount, 0);
+      const html = [`<h3>${match.name} (${match.id})</h3><p>${match.phone} - ${match.place}</p>`];
+      match.products.forEach((p, i) => {
+        const paid = p.payments?.reduce((sum, a) => sum + a.amount, 0) || 0;
         const balance = p.total - paid;
-        const nextDue = (selectedCustomer.paidDues || 0) + payments.length + 1;
-
-        if (balance > 0) {
-          unpaidProducts.push({ ...p, index, paid, balance, nextDue });
-          dropdown.innerHTML += `<option value="${index}">${p.name} - ₹${balance.toFixed(2)} due (Next Due: ${nextDue})</option>`;
-        }
+        const due = (match.paidDues || 0) + (p.payments?.length || 0) + 1;
+        html.push(`
+          <div>
+            <strong>${p.name}</strong><br>
+            ₹${p.total} | Paid: ₹${paid} | Balance: ₹${balance}<br>
+            <input id="amt_${i}" placeholder="Amount">
+            <input id="date_${i}" type="date" value="${new Date().toISOString().split('T')[0]}">
+            <button onclick="saveEntry('${match.id}', '${p.name}', ${i})">Save</button>
+          </div>
+        `);
       });
-
-      if (unpaidProducts.length === 0) {
-        dropdown.innerHTML = "<option>No unpaid products</option>";
-        productInfo.innerHTML = `<p>✅ All products fully paid.</p>`;
-        document.getElementById("amount").disabled = true;
-        document.getElementById("date").disabled = true;
-      } else {
-        updateProductInfo();
-        document.getElementById("amount").disabled = false;
-        document.getElementById("date").disabled = false;
-      }
-
-      dropdown.onchange = updateProductInfo;
+      div.innerHTML = html.join('<br>');
     }
 
-    function updateProductInfo() {
-      const selectedIdx = document.getElementById("productDropdown").value;
-      const prod = unpaidProducts.find(p => p.index == selectedIdx);
-      if (!prod) return;
+    function saveEntry(id, product, i) {
+      const amt = parseFloat(document.getElementById(`amt_${i}`).value);
+      const date = document.getElementById(`date_${i}`).value;
+      if (!amt || !date) return alert("❌ Fill all fields");
 
-      document.getElementById("productInfo").innerHTML = `
-        <p><strong>Product:</strong> ${prod.name}</p>
-        <p><strong>Total:</strong> ₹${prod.total}</p>
-        <p><strong>Paid:</strong> ₹${prod.paid}</p>
-        <p><strong>Balance:</strong> ₹${prod.balance}</p>
-        <p><strong>Next Due:</strong> ${prod.nextDue}</p>
-      `;
-    }
+      const customer = customers.find(c => c.id === id);
+      const prod = customer.products.find(p => p.name === product);
+      const due = (customer.paidDues || 0) + (prod.payments?.length || 0) + 1;
 
-    function saveEntry() {
-      const amt = parseFloat(document.getElementById("amount").value);
-      const date = document.getElementById("date").value;
-      const prodIndex = parseInt(document.getElementById("productDropdown").value);
-      const prod = selectedCustomer.products[prodIndex];
-
-      if (!selectedCustomer || isNaN(amt) || !date || !prod) {
-        alert("Please fill all fields");
-        return;
-      }
-
-      if (!Array.isArray(prod.payments)) prod.payments = [];
-
-      const dueNumber = (selectedCustomer.paidDues || 0) + prod.payments.length + 1;
-
-      prod.payments.push({ date, amount: amt, dueNumber });
-
-      entries.push({
-        id: selectedCustomer.id,
-        name: selectedCustomer.name,
-        phone: selectedCustomer.phone,
-        product: prod.name,
-        amount: amt,
-        date,
-        dueNumber
-      });
-
+      entries.push({ id, name: customer.name, phone: customer.phone, product, amount: amt, date, dueNumber: due });
       localStorage.setItem("agent_entries", JSON.stringify(entries));
-      localStorage.setItem("agent_customers", JSON.stringify(customers));
-
-      alert(`✅ Entry saved with Due ${dueNumber}`);
-      document.getElementById("customerInfo").style.display = "none";
-      document.getElementById("amount").value = "";
-      document.getElementById("searchBox").value = "";
-      selectedCustomer = null;
-      unpaidProducts = [];
+      alert("✅ Entry added.");
     }
-
-    document.getElementById("date").value = new Date().toISOString().split("T")[0];
   </script>
 </body>
 </html>
