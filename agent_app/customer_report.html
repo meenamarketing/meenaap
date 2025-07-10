@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>Reports</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- jsPDF & AutoTable -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   <style>
@@ -130,35 +129,21 @@
       return "₹" + (Number(amount) || 0).toLocaleString("en-IN");
     }
 
-    function calculatePaid(datesPaid) {
-      if (!Array.isArray(datesPaid)) return 0;
-      let total = 0;
-      for (let entry of datesPaid) {
-        if (typeof entry === 'object' && entry.amount) {
-          total += Number(entry.amount);
-        } else if (typeof entry === 'number') {
-          total += entry;
-        } else {
-          total += 0;
-        }
-      }
-      return total;
+    function getPaidAmount(payments) {
+      if (!Array.isArray(payments)) return 0;
+      return payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
     }
 
-    function renderPayments(datesPaid) {
-      if (!Array.isArray(datesPaid) || datesPaid.length === 0) {
+    function renderPayments(payments) {
+      if (!Array.isArray(payments) || payments.length === 0) {
         return `<div class="payment-entry">No payment records.</div>`;
       }
-
-      return datesPaid.map(p => {
-        if (typeof p === 'object' && p.date && p.amount != null) {
-          return `<div class="payment-entry"><span>• ${p.date}</span><span>${format(p.amount)}</span></div>`;
-        } else if (typeof p === 'string') {
-          return `<div class="payment-entry"><span>• ${p}</span><span>✓ Paid</span></div>`;
-        } else {
-          return '';
-        }
-      }).join('');
+      return payments.map(p => `
+        <div class="payment-entry">
+          <span>${p.date} (Due ${p.dueNumber || "-"})</span>
+          <span>${format(p.amount)}</span>
+        </div>
+      `).join('');
     }
 
     function searchCustomer(value) {
@@ -196,7 +181,7 @@
 
       cust.products.forEach((p, i) => {
         const total = Number(p.total || 0);
-        const paid = calculatePaid(p.datesPaid);
+        const paid = getPaidAmount(p.payments);
         const balance = total - paid;
         totalBalance += balance;
 
@@ -208,7 +193,7 @@
             <div class="row"><span class="label">Balance</span><span class="value">${format(balance)}</span></div>
             <div class="details">
               <p><strong>Payment History:</strong></p>
-              ${renderPayments(p.datesPaid)}
+              ${renderPayments(p.payments)}
             </div>
           </div>
         `;
@@ -232,7 +217,6 @@
       doc.setFontSize(10);
       doc.text("Powered by Goorac", 14, 20);
 
-      // Customer Info Table
       doc.autoTable({
         startY: 25,
         head: [["Field", "Value"]],
@@ -251,7 +235,7 @@
       for (let i = 0; i < customer.products.length; i++) {
         const p = customer.products[i];
         const total = Number(p.total || 0);
-        const paid = calculatePaid(p.datesPaid);
+        const paid = getPaidAmount(p.payments);
         const balance = total - paid;
 
         doc.setFontSize(12);
@@ -268,21 +252,14 @@
           styles: { fontSize: 10 }
         });
 
-        let payments = [["Date", "Amount"]];
-        if (Array.isArray(p.datesPaid)) {
-          p.datesPaid.forEach(entry => {
-            if (typeof entry === 'object' && entry.date && entry.amount != null) {
-              payments.push([entry.date, `₹${Number(entry.amount).toLocaleString("en-IN")}`]);
-            } else if (typeof entry === 'string') {
-              payments.push([entry, "✓ Paid"]);
-            }
-          });
-        }
+        const paymentRows = (p.payments || []).map(pay => [
+          pay.date || "-", `Due ${pay.dueNumber || "-"}`, `₹${Number(pay.amount || 0).toLocaleString("en-IN")}`
+        ]);
 
         doc.autoTable({
           startY: doc.lastAutoTable.finalY + 2,
-          head: [["Date", "Amount"]],
-          body: payments,
+          head: [["Date", "Due#", "Amount"]],
+          body: paymentRows.length > 0 ? paymentRows : [["-", "-", "-"]],
           styles: { fontSize: 9 }
         });
 
