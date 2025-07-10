@@ -15,14 +15,14 @@
     nav {
       background: #1f1f1f;
       display: flex;
-      flex-wrap: wrap;
       padding: 10px;
       gap: 10px;
+      flex-wrap: wrap;
     }
     nav a {
       color: white;
       background: #333;
-      padding: 10px 15px;
+      padding: 8px 15px;
       border-radius: 5px;
       text-decoration: none;
     }
@@ -33,12 +33,9 @@
     main {
       padding: 20px;
     }
-    h1 {
-      color: #00bcd4;
-    }
     input, select, button {
       padding: 10px;
-      margin: 10px 0;
+      margin: 8px 0;
       border-radius: 5px;
       background: #1e1e1e;
       color: white;
@@ -54,11 +51,15 @@
     button:hover {
       background: #26c6da;
     }
-    .product-box {
-      background: #1f1f1f;
+    .box {
+      border: 1px solid #333;
       padding: 15px;
-      border-radius: 8px;
-      margin-top: 10px;
+      border-radius: 10px;
+      margin-top: 15px;
+      background: #1c1c1c;
+    }
+    h2 {
+      color: #00bcd4;
     }
   </style>
 </head>
@@ -71,83 +72,80 @@
   </nav>
 
   <main>
-    <h1>Add Collection Entry</h1>
-    <input type="file" accept=".json" onchange="loadJSON(event)" />
-    <input type="text" id="searchInput" placeholder="Search by ID or Name" oninput="searchCustomer()" />
-    <div id="customerBox"></div>
+    <h2>Upload Customer JSON</h2>
+    <input type="file" accept=".json" onchange="loadCustomers(event)">
+    
+    <h2>Search Customer</h2>
+    <input type="text" id="searchBox" placeholder="Search by ID, Name or Phone" oninput="searchCustomer()">
+
+    <div id="resultArea"></div>
   </main>
 
   <script>
     let customers = [];
+    let entries = JSON.parse(localStorage.getItem("agent_entries") || "[]");
 
-    function loadJSON(event) {
+    function loadCustomers(event) {
       const file = event.target.files[0];
-      if (!file) return;
       const reader = new FileReader();
       reader.onload = e => {
         customers = JSON.parse(e.target.result);
-        alert("✅ Customer file loaded!");
+        localStorage.setItem("agent_customers", JSON.stringify(customers));
+        alert("✅ Customers loaded into memory.");
       };
       reader.readAsText(file);
     }
 
     function searchCustomer() {
-      const query = document.getElementById("searchInput").value.toLowerCase();
-      const customer = customers.find(c =>
-        c.id.toLowerCase().includes(query) || c.name.toLowerCase().includes(query)
+      const query = document.getElementById("searchBox").value.toLowerCase();
+      const found = customers.find(c =>
+        c.id.toLowerCase().includes(query) ||
+        c.name.toLowerCase().includes(query) ||
+        c.phone.includes(query)
       );
 
-      const box = document.getElementById("customerBox");
-      box.innerHTML = "";
+      const resultDiv = document.getElementById("resultArea");
+      resultDiv.innerHTML = "";
 
-      if (!customer) {
-        box.innerHTML = "<p>No customer found.</p>";
+      if (!found) {
+        resultDiv.innerHTML = "<p>❌ Customer not found.</p>";
         return;
       }
 
       const div = document.createElement("div");
-      div.innerHTML = `<h3>${customer.name} (${customer.id})</h3><p>Phone: ${customer.phone}</p><p>Place: ${customer.place}</p>`;
+      div.className = "box";
+      div.innerHTML = `<strong>ID:</strong> ${found.id}<br>
+        <strong>Name:</strong> ${found.name}<br>
+        <strong>Phone:</strong> ${found.phone}<br>
+        <strong>Place:</strong> ${found.place}<br><br>`;
 
-      customer.products.forEach((p, i) => {
+      found.products.forEach((p, i) => {
         if (!Array.isArray(p.payments)) p.payments = [];
-
-        // Convert from old format
-        if (p.datesPaid && p.paid && p.payments.length === 0) {
-          const avg = p.paid / p.datesPaid.length;
-          p.datesPaid.forEach((date, idx) => {
-            p.payments.push({
-              date,
-              amount: Math.round(avg * 100) / 100,
-              dueNumber: (customer.paidDues || 0) + 1 + idx
-            });
-          });
-          delete p.paid;
-          delete p.datesPaid;
-        }
 
         const paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
         const balance = p.total - paid;
-        const nextDue = (customer.paidDues || 0) + 1 + p.payments.length;
+        const nextDue = (found.paidDues || 0) + 1 + p.payments.length;
 
-        const pDiv = document.createElement("div");
-        pDiv.className = "product-box";
-        pDiv.innerHTML = `
-          <strong>${p.name}</strong><br>
-          Total: ₹${p.total}, Paid: ₹${paid.toFixed(2)}, Balance: ₹${balance.toFixed(2)}<br>
-          <strong>Next Due:</strong> #${nextDue}<br>
-          <input type="number" id="amt_${customer.id}_${i}" placeholder="Amount">
-          <input type="date" id="date_${customer.id}_${i}" value="${new Date().toISOString().split("T")[0]}">
-          <button onclick="addPayment('${customer.id}', ${i}, ${nextDue})">Add Payment</button>
+        div.innerHTML += `
+          <div class="box">
+            <strong>Product:</strong> ${p.name}<br>
+            <strong>Total:</strong> ₹${p.total}<br>
+            <strong>Paid:</strong> ₹${paid}<br>
+            <strong>Balance:</strong> ₹${balance}<br>
+            <strong>Next Due:</strong> #${nextDue}<br><br>
+            <input type="number" id="amt_${found.id}_${i}" placeholder="Enter amount">
+            <input type="date" id="date_${found.id}_${i}" value="${new Date().toISOString().split('T')[0]}">
+            <button onclick="addPayment('${found.id}', ${i})">Save Entry</button>
+          </div>
         `;
-        div.appendChild(pDiv);
       });
 
-      box.appendChild(div);
+      resultDiv.appendChild(div);
     }
 
-    function addPayment(custId, prodIndex, dueNo) {
-      const cust = customers.find(c => c.id === custId);
-      const prod = cust.products[prodIndex];
+    function addPayment(custId, prodIndex) {
+      const customer = customers.find(c => c.id === custId);
+      const product = customer.products[prodIndex];
       const amtInput = document.getElementById(`amt_${custId}_${prodIndex}`);
       const dateInput = document.getElementById(`date_${custId}_${prodIndex}`);
       const amount = parseFloat(amtInput.value);
@@ -158,16 +156,30 @@
         return;
       }
 
-      prod.payments.push({
+      if (!Array.isArray(product.payments)) product.payments = [];
+
+      const nextDue = (customer.paidDues || 0) + 1 + product.payments.length;
+
+      product.payments.push({
         date,
         amount,
-        dueNumber: dueNo
+        dueNumber: nextDue
       });
 
-      alert(`✅ Payment added. Due number: ${dueNo}`);
+      entries.push({
+        id: customer.id,
+        name: customer.name,
+        phone: customer.phone,
+        product: product.name,
+        amount,
+        date,
+        dueNumber: nextDue
+      });
+
+      localStorage.setItem("agent_entries", JSON.stringify(entries));
+      alert(`✅ Entry saved with Due #${nextDue}`);
       amtInput.value = "";
-      searchCustomer();
     }
   </script>
 </body>
-</html>
+  </html>
