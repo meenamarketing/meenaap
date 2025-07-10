@@ -129,7 +129,7 @@
     <table>
       <thead>
         <tr>
-          <th>ID</th><th>Name</th><th>Phone</th><th>Place</th><th>Products</th>
+          <th>ID</th><th>Name</th><th>Phone</th><th>Place</th><th>Products</th><th>Action</th>
         </tr>
       </thead>
       <tbody id="customerTable"></tbody>
@@ -155,7 +155,7 @@
       const table = document.getElementById("customerTable");
       table.innerHTML = "";
 
-      customers.forEach(c => {
+      customers.forEach((c, index) => {
         const row = document.createElement("tr");
         let productList = "";
         c.products.forEach(p => {
@@ -168,11 +168,15 @@
           : "";
 
         row.innerHTML = `
-          <td>${c.id}</td>
-          <td>${c.name}</td>
-          <td>${c.phone}</td>
-          <td>${c.place}</td>
+          <td><input value="${c.id}" disabled /></td>
+          <td><input value="${c.name}" onchange="customers[${index}].name=this.value" /></td>
+          <td><input value="${c.phone}" onchange="customers[${index}].phone=this.value" /></td>
+          <td><input value="${c.place}" onchange="customers[${index}].place=this.value" /></td>
           <td>${productList}${dueInfo}</td>
+          <td>
+            <input type="number" value="${c.totalDues || ''}" placeholder="Total Dues" onchange="customers[${index}].totalDues=parseInt(this.value)" />
+            <input type="number" value="${c.paidDues || 0}" placeholder="Paid Dues" onchange="customers[${index}].paidDues=parseInt(this.value)" />
+          </td>
         `;
         table.appendChild(row);
       });
@@ -194,7 +198,7 @@
         return;
       }
 
-      if (!name || !product || isNaN(total) || isNaN(paid) || isNaN(totalDues) || isNaN(paidDues) || totalDues <= 0 || paidDues < 0 || paidDues > totalDues) {
+      if (!name || !product || isNaN(total) || isNaN(paid) || isNaN(totalDues) || isNaN(paidDues)) {
         alert("Please fill all fields correctly.");
         return;
       }
@@ -216,17 +220,6 @@
 
       renderTable();
       alert("Customer added successfully!");
-
-      // Clear fields
-      document.getElementById("newId").value = "";
-      document.getElementById("newName").value = "";
-      document.getElementById("newPhone").value = "";
-      document.getElementById("newPlace").value = "";
-      document.getElementById("newProduct").value = "";
-      document.getElementById("newTotal").value = "";
-      document.getElementById("newPaid").value = "";
-      document.getElementById("newTotalDues").value = "";
-      document.getElementById("newPaidDues").value = "";
     }
 
     function addProduct() {
