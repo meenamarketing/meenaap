@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Review Agent Collections - Main App</title>
+  <title>Review Agent Collections</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
@@ -31,14 +31,8 @@
     main {
       padding: 20px;
     }
-    input[type="file"], input[type="text"] {
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 5px;
-      background: #1e1e1e;
-      color: white;
-      border: 1px solid #555;
-      width: 100%;
+    h1 {
+      color: #00bcd4;
     }
     table {
       width: 100%;
@@ -60,7 +54,7 @@
       background: #00bcd4;
       color: black;
       padding: 10px 15px;
-      margin-top: 10px;
+      margin: 10px 5px 0 0;
       font-weight: bold;
       border: none;
       border-radius: 5px;
@@ -69,149 +63,105 @@
     button:hover {
       background: #26c6da;
     }
-    #summary {
-      margin: 10px 0;
-    }
   </style>
 </head>
 <body>
   <nav>
     <a href="index.html">Dashboard</a>
-    <a href="customers.html">Add Customer</a>
-    <a href="entry.html">Add Payment</a>
+    <a href="entries.html">Add Collection</a>
+    <a href="view.html">Today's Entries</a>
+    <a href="review.html">Review & Merge</a>
     <a href="report.html">Reports</a>
-    <a href="review.html">Review Agent</a>
   </nav>
 
   <main>
     <h1>Review Agent Collections</h1>
-    <input type="file" accept=".json" onchange="loadMainData(event)" />
-    <input type="file" accept=".json" onchange="loadAgentData(event)" />
-    <input type="text" id="searchId" placeholder="🔍 Search by Customer ID" oninput="filterTable()" />
-    <div id="summary"></div>
+    <p>All today's collections are shown below. Click Merge & Export to combine into main customer file.</p>
 
-    <table id="agentTable" style="display:none;">
+    <div id="summary"></div>
+    <table id="collectionTable">
       <thead>
         <tr>
           <th>ID</th><th>Name</th><th>Phone</th><th>Product</th>
-          <th>Amount</th><th>Due</th><th>Date</th>
+          <th>Amount</th><th>Due Number</th><th>Date</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
 
-    <button id="approveBtn" onclick="approveData()" style="display:none;">✅ Approve & Merge</button>
-    <button onclick="exportMainJSON()" style="display:none;" id="exportBtn">📤 Export Updated Main JSON</button>
+    <button onclick="mergeAndExport()">✅ Merge & Export Final JSON</button>
   </main>
 
   <script>
-    let agentEntries = [];
-    let mainCustomers = [];
+    const agentEntries = JSON.parse(localStorage.getItem("agent_entries") || "[]");
+    const customers = JSON.parse(localStorage.getItem("main_customers") || "[]");
+    const table = document.querySelector("#collectionTable tbody");
 
-    function loadMainData(event) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        mainCustomers = JSON.parse(e.target.result);
-        alert("✅ Main database loaded");
-      };
-      reader.readAsText(event.target.files[0]);
-    }
-
-    function loadAgentData(event) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        agentEntries = JSON.parse(e.target.result);
-        showAgentData(agentEntries);
-      };
-      reader.readAsText(event.target.files[0]);
-    }
-
-    function showAgentData(data) {
-      const tbody = document.querySelector("#agentTable tbody");
-      tbody.innerHTML = "";
+    // Display today's entries
+    function displayTable() {
+      table.innerHTML = "";
       let total = 0;
-
-      data.forEach(entry => {
-        total += Number(entry.amount);
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${entry.id}</td>
-          <td>${entry.name}</td>
-          <td>${entry.phone}</td>
-          <td>${entry.product || '-'}</td>
-          <td>₹${Number(entry.amount).toFixed(2)}</td>
-          <td>${entry.dueNumber || '-'}</td>
-          <td>${entry.date}</td>`;
-        tbody.appendChild(row);
+      agentEntries.forEach(e => {
+        total += e.amount;
+        table.innerHTML += `
+          <tr>
+            <td>${e.id}</td>
+            <td>${e.name}</td>
+            <td>${e.phone}</td>
+            <td>${e.product}</td>
+            <td>₹${e.amount.toFixed(2)}</td>
+            <td>${e.dueNumber}</td>
+            <td>${e.date}</td>
+          </tr>`;
       });
-
-      document.getElementById("agentTable").style.display = "table";
-      document.getElementById("approveBtn").style.display = "inline-block";
-      document.getElementById("exportBtn").style.display = "inline-block";
-      document.getElementById("summary").innerHTML = `<strong>Total Collected:</strong> ₹${total.toFixed(2)}`;
+      document.getElementById("summary").innerText = `Total Collected: ₹${total.toFixed(2)}`;
     }
 
-    function filterTable() {
-      const value = document.getElementById("searchId").value.toLowerCase();
-      document.querySelectorAll("#agentTable tbody tr").forEach(row => {
-        const id = row.children[0].innerText.toLowerCase();
-        row.style.display = id.includes(value) ? "" : "none";
-      });
-    }
+    displayTable();
 
-    function approveData() {
-      let updated = 0;
+    function mergeAndExport() {
+      let merged = 0;
 
       agentEntries.forEach(entry => {
-        const cust = mainCustomers.find(c => c.id === entry.id);
-        if (!cust) return;
+        const customer = customers.find(c => c.id === entry.id);
+        if (!customer) return;
 
-        const prod = cust.products.find(p => p.name === entry.product);
-        if (!prod) return;
+        const product = customer.products.find(p => p.name === entry.product);
+        if (!product) return;
 
-        if (!prod.payments) prod.payments = [];
-        if (!Array.isArray(prod.datesPaid)) prod.datesPaid = [];
+        // Convert old format if necessary
+        if (!Array.isArray(product.payments)) product.payments = [];
+        if (!Array.isArray(product.datesPaid)) product.datesPaid = [];
 
-        prod.payments.push({
+        // Add this entry to payments
+        product.payments.push({
           date: entry.date,
-          amount: Number(entry.amount),
-          dueNumber: Number(entry.dueNumber)
+          amount: entry.amount,
+          dueNumber: entry.dueNumber
         });
 
-        prod.datesPaid.push(entry.date);
-        prod.paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
+        product.datesPaid.push(entry.date);
+        product.paid = product.payments.reduce((sum, p) => sum + p.amount, 0);
 
-        const maxDue = Math.max(...prod.payments.map(p => p.dueNumber || 0));
-        cust.paidDues = maxDue;
+        // Update paidDues if this is the latest
+        if (!customer.paidDues || entry.dueNumber > customer.paidDues) {
+          customer.paidDues = entry.dueNumber;
+        }
 
-        updated++;
+        merged++;
       });
 
-      alert(`✅ Approved and merged ${updated} entries`);
-    }
+      alert(`✅ Merged ${merged} entries into main customer file`);
 
-    function exportMainJSON() {
-      const exported = mainCustomers.map(c => ({
-        id: c.id,
-        name: c.name,
-        phone: c.phone,
-        place: c.place || "",
-        totalDues: c.totalDues || 0,
-        paidDues: c.paidDues || 0,
-        products: (c.products || []).map(p => ({
-          name: p.name,
-          total: p.total || 0,
-          paid: p.paid || 0,
-          datesPaid: p.datesPaid || [],
-          payments: p.payments || []
-        }))
-      }));
+      // Save to localStorage again (optional)
+      localStorage.setItem("main_customers", JSON.stringify(customers));
 
-      const blob = new Blob([JSON.stringify(exported, null, 2)], { type: "application/json" });
+      // Export final JSON
+      const blob = new Blob([JSON.stringify(customers, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "updated_main_customers.json";
+      a.download = "final_merged_customers.json";
       a.click();
     }
   </script>
