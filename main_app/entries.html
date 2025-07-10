@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Entries - EMI Manager</title>
@@ -69,20 +68,15 @@
     <a href="entries.html">Entries</a>
     <a href="review.html">Agent Review</a>
     <a href="report.html">Reports</a>
-  </nav>
+  </nav>  <main>
+    <h1>Daily Payment Entry</h1><input type="file" accept=".json" onchange="loadJSON(event)">
+<br>
+<input id="searchId" placeholder="Search by Customer ID or Name" oninput="searchCustomer()">
+<div id="resultArea"></div>
 
-  <main>
-    <h1>Daily Payment Entry</h1>
+<button onclick="exportUpdated()">Export Updated JSON</button>
 
-    <input type="file" accept=".json" onchange="loadJSON(event)">
-    <br>
-    <input id="searchId" placeholder="Search by Customer ID or Name" oninput="searchCustomer()">
-    <div id="resultArea"></div>
-
-    <button onclick="exportUpdated()">Export Updated JSON</button>
-  </main>
-
-  <script>
+  </main>  <script>
     let customers = [];
 
     function loadJSON(event) {
@@ -179,17 +173,17 @@
       delete product.paid;
       delete product.datesPaid;
 
-      // Assign next due number based on existing payments
-      const nextDue = product.payments.length + 1;
+      const basePaidDues = customer.paidDues || 0;
+      const dueNumber = basePaidDues + product.payments.length + 1;
 
       product.payments.push({
         date,
         amount,
-        dueNumber: nextDue
+        dueNumber
       });
 
       amtInput.value = "";
-      alert(`Payment added. Due number: ${nextDue}`);
+      alert(`Payment added. Due number: ${dueNumber}`);
       searchCustomer(); // refresh view
     }
 
@@ -201,6 +195,5 @@
       a.download = "updated_customers.json";
       a.click();
     }
-  </script>
-</body>
+  </script></body>
 </html>
