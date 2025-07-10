@@ -111,9 +111,9 @@
           <td>${e.name}</td>
           <td>${e.phone}</td>
           <td>${e.product || '-'}</td>
-          <td>₹${e.amount.toFixed(2)}</td>
+          <td>₹${parseFloat(e.amount).toFixed(2)}</td>
           <td>${e.date}</td>
-          <td>#${e.dueNumber || '-'}</td>
+          <td>${e.dueNumber || '-'}</td>
           <td><button onclick="removeEntry(${i})">Delete</button></td>
         `;
         tbody.appendChild(row);
