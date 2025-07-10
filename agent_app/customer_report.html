@@ -138,9 +138,11 @@
       if (!Array.isArray(payments) || payments.length === 0) {
         return `<div class="payment-entry">No payment records.</div>`;
       }
-      return payments.map(p => `
+
+      let balance = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      return payments.map((p, i) => `
         <div class="payment-entry">
-          <span>${p.date} (Due ${p.dueNumber || "-"})</span>
+          <span>${p.date || '-'} (Due ${p.dueNumber || '-'})</span>
           <span>${format(p.amount)}</span>
         </div>
       `).join('');
@@ -212,13 +214,18 @@
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
-      doc.setFontSize(16);
-      doc.text("Customer Report - Meena Groups", 14, 14);
-      doc.setFontSize(10);
-      doc.text("Powered by Goorac", 14, 20);
+      // Branding header
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text("Meena Groups", 105, 14, { align: "center" });
 
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("Powered by Goorac", 105, 20, { align: "center" });
+
+      doc.setFontSize(12);
       doc.autoTable({
-        startY: 25,
+        startY: 26,
         head: [["Field", "Value"]],
         body: [
           ["ID", customer.id || "-"],
@@ -236,10 +243,12 @@
         const p = customer.products[i];
         const total = Number(p.total || 0);
         const paid = getPaidAmount(p.payments);
-        const balance = total - paid;
+        let balance = total;
 
-        doc.setFontSize(12);
+        doc.setFontSize(13);
+        doc.setTextColor(0, 188, 212);
         doc.text(`Product ${i + 1}: ${p.name}`, 14, startY);
+        doc.setTextColor(0, 0, 0);
 
         doc.autoTable({
           startY: startY + 4,
@@ -247,23 +256,31 @@
           body: [[
             `₹${total.toLocaleString("en-IN")}`,
             `₹${paid.toLocaleString("en-IN")}`,
-            `₹${balance.toLocaleString("en-IN")}`
+            `₹${(total - paid).toLocaleString("en-IN")}`
           ]],
           styles: { fontSize: 10 }
         });
 
-        const paymentRows = (p.payments || []).map(pay => [
-          pay.date || "-", `Due ${pay.dueNumber || "-"}`, `₹${Number(pay.amount || 0).toLocaleString("en-IN")}`
-        ]);
+        let rows = [];
+        (p.payments || []).forEach(entry => {
+          const amt = Number(entry.amount || 0);
+          balance -= amt;
+          rows.push([
+            entry.date || "-",
+            `Due ${entry.dueNumber || "-"}`,
+            `₹${amt.toLocaleString("en-IN")}`,
+            `₹${balance.toLocaleString("en-IN")}`
+          ]);
+        });
 
         doc.autoTable({
-          startY: doc.lastAutoTable.finalY + 2,
-          head: [["Date", "Due#", "Amount"]],
-          body: paymentRows.length > 0 ? paymentRows : [["-", "-", "-"]],
+          startY: doc.lastAutoTable.finalY + 4,
+          head: [["Date", "Due No.", "Paid Amount", "Balance After"]],
+          body: rows.length ? rows : [["-", "-", "-", "-"]],
           styles: { fontSize: 9 }
         });
 
-        startY = doc.lastAutoTable.finalY + 10;
+        startY = doc.lastAutoTable.finalY + 12;
       }
 
       doc.save(`${customer.name}_Report.pdf`);
