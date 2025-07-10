@@ -6,38 +6,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
-      background: #121212; color: #eee;
-      font-family: sans-serif; margin: 0;
+      background: #121212;
+      color: #eee;
+      font-family: sans-serif;
+      margin: 0;
     }
     nav {
-      background: #1f1f1f; display: flex; gap: 10px; padding: 10px;
+      background: #1f1f1f;
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      flex-wrap: wrap;
     }
     nav a {
-      color: white; background: #333;
-      padding: 10px 15px; border-radius: 5px; text-decoration: none;
+      color: white;
+      background: #333;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
     }
     nav a:hover {
-      background: #00bcd4; color: black;
+      background: #00bcd4;
+      color: black;
     }
     main { padding: 20px; }
     table {
-      width: 100%; border-collapse: collapse; margin-top: 20px;
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
     }
     th, td {
-      padding: 10px; border: 1px solid #444; text-align: center;
+      padding: 10px;
+      border: 1px solid #444;
+      text-align: center;
     }
     thead { background: #2c2c2c; }
     tr:nth-child(even) { background: #1f1f1f; }
     input[type="file"], input[type="text"] {
-      background: #1e1e1e; color: white;
-      border: 1px solid #444; padding: 10px;
-      border-radius: 5px; width: 100%; margin: 10px 0;
+      background: #1e1e1e;
+      color: white;
+      border: 1px solid #444;
+      padding: 10px;
+      border-radius: 5px;
+      width: 100%;
+      margin: 10px 0;
     }
     button {
-      background: #00bcd4; color: black;
-      font-weight: bold; padding: 10px 15px;
-      border: none; border-radius: 5px;
-      margin-top: 10px; cursor: pointer;
+      background: #00bcd4;
+      color: black;
+      font-weight: bold;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      margin-top: 10px;
+      cursor: pointer;
     }
     button:hover { background: #26c6da; }
   </style>
@@ -121,6 +143,8 @@
     }
 
     function mergeData() {
+      if (!confirm("✅ Confirm to merge agent collections into main customer data?")) return;
+
       let updated = 0;
 
       agentEntries.forEach(entry => {
@@ -130,40 +154,46 @@
         const product = customer.products.find(p => p.name === entry.product);
         if (!product) return;
 
-        // Convert to new format if needed
+        // Ensure structure
         if (!Array.isArray(product.payments)) product.payments = [];
         if (!Array.isArray(product.datesPaid)) product.datesPaid = [];
 
-        // Determine correct dueNumber
-        const lastDue = Math.max(
-          customer.paidDues || 0,
-          ...product.payments.map(p => p.dueNumber || 0)
-        );
+        // Determine next due number: consider paidDues as completed, so next is +1
+        const lastDue = Math.max(customer.paidDues || 0, ...product.payments.map(p => p.dueNumber || 0));
         const nextDue = lastDue + 1;
 
-        // Add payment
         product.payments.push({
           date: entry.date,
           amount: Number(entry.amount),
           dueNumber: nextDue
         });
 
-        product.datesPaid.push(entry.date);
-        product.paid = product.payments.reduce((sum, p) => sum + p.amount, 0);
-        customer.paidDues = nextDue;
+        if (!product.datesPaid.includes(entry.date)) {
+          product.datesPaid.push(entry.date);
+        }
+
+        product.paid = product.payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+        // Update customer's paidDues only if this is the latest
+        customer.paidDues = Math.max(customer.paidDues || 0, nextDue);
 
         updated++;
       });
 
-      alert(`✅ Merged ${updated} entries.`);
+      if (updated === 0) {
+        alert("⚠️ No matching entries found to merge.");
+      } else {
+        alert(`✅ Merged ${updated} entries successfully.`);
+      }
     }
 
     function exportMerged() {
+      const today = new Date().toISOString().split("T")[0];
       const blob = new Blob([JSON.stringify(mainCustomers, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "merged_main_customers.json";
+      a.download = `merged_main_customers_${today}.json`;
       a.click();
     }
   </script>
