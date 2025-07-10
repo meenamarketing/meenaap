@@ -5,43 +5,78 @@
   <title>Add Collections - Agent App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; }
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: sans-serif;
+      margin: 0;
+    }
     nav {
-      background: #1f1f1f; display: flex; flex-wrap: wrap; padding: 10px; gap: 10px;
+      background: #1f1f1f;
+      display: flex;
+      flex-wrap: wrap;
+      padding: 10px;
+      gap: 10px;
     }
     nav a {
-      color: white; background: #333; padding: 10px 15px; border-radius: 5px;
+      color: white;
+      background: #333;
+      padding: 10px 15px;
+      border-radius: 5px;
       text-decoration: none;
     }
     nav a:hover {
-      background: #00bcd4; color: black;
+      background: #00bcd4;
+      color: black;
     }
     main {
       padding: 20px;
     }
-    h1 { color: #00bcd4; }
+    h1 {
+      color: #00bcd4;
+    }
     input, button, select {
-      padding: 10px; margin: 10px 0; border-radius: 5px;
-      background: #1e1e1e; color: white; border: 1px solid #444; width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      background: #1e1e1e;
+      color: white;
+      border: 1px solid #444;
+      width: 100%;
     }
     button {
-      background: #00bcd4; color: black; font-weight: bold;
+      background: #00bcd4;
+      color: black;
+      font-weight: bold;
     }
     .customer-box {
-      margin-top: 10px; padding: 10px; background: #1d1d1d;
-      border: 1px solid #333; border-radius: 8px;
+      margin-top: 10px;
+      padding: 10px;
+      background: #1d1d1d;
+      border: 1px solid #333;
+      border-radius: 8px;
     }
     #suggestions {
-      background: #222; border: 1px solid #333; border-radius: 5px;
-      display: none; position: absolute; z-index: 999; max-height: 200px; overflow-y: auto;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 5px;
+      display: none;
+      position: absolute;
+      z-index: 999;
+      max-height: 200px;
+      overflow-y: auto;
     }
     #suggestions div {
-      padding: 10px; cursor: pointer;
+      padding: 10px;
+      cursor: pointer;
     }
     #suggestions div:hover {
-      background: #00bcd4; color: black;
+      background: #00bcd4;
+      color: black;
     }
-    #productInfo { margin-top: 10px; }
+    #productInfo {
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -69,6 +104,7 @@
       </div>
 
       <input type="number" id="amount" placeholder="Enter Amount Collected">
+      <input type="number" id="dueNumber" placeholder="Enter Due Number (e.g. 12)">
       <input type="date" id="date" value="">
       <button onclick="saveEntry()">Save Entry</button>
     </div>
@@ -83,7 +119,8 @@
     function showSuggestions(input) {
       const box = document.getElementById("suggestions");
       if (!input || input.length < 1) {
-        box.style.display = "none"; return;
+        box.style.display = "none";
+        return;
       }
 
       const results = customers.filter(c =>
@@ -121,28 +158,19 @@
 
       dropdown.innerHTML = "";
       selectedCustomer.products.forEach((p, index) => {
-        // Convert old format
-        if (!p.payments && p.datesPaid?.length > 0 && typeof p.paid === "number") {
-          const avgAmt = p.paid / p.datesPaid.length;
-          p.payments = p.datesPaid.map((d, i) => ({
-            date: d,
-            amount: Math.round(avgAmt * 100) / 100,
-            dueNumber: i + 1
-          }));
-          delete p.paid;
-          delete p.datesPaid;
+        let paid = 0;
+        if (Array.isArray(p.payments)) {
+          paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
+        } else {
+          paid = p.paid || 0;
         }
 
-        if (!Array.isArray(p.payments)) p.payments = [];
-
-        const paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
         const balance = p.total - paid;
+        const currentDue = p.payments?.length ? p.payments[p.payments.length - 1].dueNumber : 0;
+
         if (balance > 0) {
           unpaidProducts.push({ ...p, index, paid, balance });
-          const nextDue = p.payments.length > 0
-            ? Math.max(...p.payments.map(pmt => pmt.dueNumber || 0)) + 1
-            : 1;
-          dropdown.innerHTML += `<option value="${index}">${p.name} - ₹${balance.toFixed(2)} due (Next #${nextDue})</option>`;
+          dropdown.innerHTML += `<option value="${index}">${p.name} - ₹${balance.toFixed(2)} due (Last Due: #${currentDue})</option>`;
         }
       });
 
@@ -150,10 +178,12 @@
         dropdown.innerHTML = "<option>No unpaid products</option>";
         productInfo.innerHTML = `<p>✅ All products fully paid.</p>`;
         document.getElementById("amount").disabled = true;
+        document.getElementById("dueNumber").disabled = true;
         document.getElementById("date").disabled = true;
       } else {
         updateProductInfo();
         document.getElementById("amount").disabled = false;
+        document.getElementById("dueNumber").disabled = false;
         document.getElementById("date").disabled = false;
       }
 
@@ -165,41 +195,40 @@
       const prod = unpaidProducts.find(p => p.index == selectedIdx);
       if (!prod) return;
 
-      const nextDue = prod.payments.length > 0
-        ? Math.max(...prod.payments.map(pmt => pmt.dueNumber || 0)) + 1
-        : 1;
+      const currentDue = prod.payments?.length ? prod.payments[prod.payments.length - 1].dueNumber : 0;
 
       document.getElementById("productInfo").innerHTML = `
         <p><strong>Product:</strong> ${prod.name}</p>
         <p><strong>Total:</strong> ₹${prod.total}</p>
         <p><strong>Paid:</strong> ₹${prod.paid}</p>
         <p><strong>Balance:</strong> ₹${prod.balance}</p>
-        <p><strong>Next Due #:</strong> ${nextDue}</p>
+        <p><strong>Last Due Number:</strong> #${currentDue}</p>
       `;
     }
 
     function saveEntry() {
       const amt = parseFloat(document.getElementById("amount").value);
+      const dueNumber = parseInt(document.getElementById("dueNumber").value);
       const date = document.getElementById("date").value;
       const prodIndex = parseInt(document.getElementById("productDropdown").value);
       const prod = selectedCustomer.products[prodIndex];
 
-      if (!selectedCustomer || isNaN(amt) || !date || !prod) {
-        alert("Please fill all fields");
+      if (!selectedCustomer || isNaN(amt) || !date || !prod || isNaN(dueNumber) || dueNumber <= 0) {
+        alert("Please fill all fields correctly.");
         return;
       }
 
-      if (!Array.isArray(prod.payments)) prod.payments = [];
+      if (!Array.isArray(prod.payments)) {
+        prod.payments = [];
+      }
 
-      const nextDue = prod.payments.length > 0
-        ? Math.max(...prod.payments.map(p => p.dueNumber || 0)) + 1
-        : 1;
+      const alreadyExists = prod.payments.some(p => p.dueNumber === dueNumber);
+      if (alreadyExists) {
+        alert(`⚠️ Due #${dueNumber} already exists. Please use the correct next number.`);
+        return;
+      }
 
-      prod.payments.push({
-        date,
-        amount: amt,
-        dueNumber: nextDue
-      });
+      prod.payments.push({ amount: amt, date, dueNumber });
 
       entries.push({
         id: selectedCustomer.id,
@@ -208,16 +237,18 @@
         product: prod.name,
         amount: amt,
         date,
-        dueNumber: nextDue
+        dueNumber
       });
 
       localStorage.setItem("agent_entries", JSON.stringify(entries));
       localStorage.setItem("agent_customers", JSON.stringify(customers));
 
-      alert(`✅ Entry saved with Due #${nextDue}`);
+      alert(`✅ Entry saved with Due #${dueNumber}`);
 
+      // Reset
       document.getElementById("customerInfo").style.display = "none";
       document.getElementById("amount").value = "";
+      document.getElementById("dueNumber").value = "";
       document.getElementById("searchBox").value = "";
       selectedCustomer = null;
       unpaidProducts = [];
