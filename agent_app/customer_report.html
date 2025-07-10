@@ -162,6 +162,26 @@
   <script>
     const customers = JSON.parse(localStorage.getItem("main_customers") || "[]");
 
+    function formatINR(amount) {
+      return '₹' + (Number(amount) || 0).toLocaleString('en-IN');
+    }
+
+    function calculatePaid(datesPaid) {
+      if (!Array.isArray(datesPaid)) return 0;
+
+      let paid = 0;
+      for (let entry of datesPaid) {
+        if (typeof entry === 'object' && entry.amount) {
+          paid += Number(entry.amount);
+        } else if (typeof entry === 'number') {
+          paid += entry;
+        } else {
+          paid += 0; // treat string date-only entries as no amount
+        }
+      }
+      return paid;
+    }
+
     function searchCustomer(value) {
       const container = document.getElementById("reportContainer");
       container.innerHTML = "";
@@ -190,16 +210,18 @@
 
       cust.products.forEach((p, i) => {
         const total = Number(p.total || 0);
-        const paid = Number(p.paid || 0);
+        const paid = calculatePaid(p.datesPaid);
         const balance = total - paid;
         totalBalance += balance;
 
         const payments = Array.isArray(p.datesPaid)
           ? p.datesPaid.map((entry, idx) => {
               if (typeof entry === "object" && entry.date && entry.amount) {
-                return `<div class="payment-entry"><span>• ${entry.date}</span><span>₹${entry.amount}</span></div>`;
+                return `<div class="payment-entry"><span>• ${entry.date}</span><span>${formatINR(entry.amount)}</span></div>`;
+              } else if (typeof entry === "string") {
+                return `<div class="payment-entry"><span>• ${entry}</span><span>✓ Paid</span></div>`;
               } else {
-                return `<div class="payment-entry"><span>• ${entry}</span><span>Paid</span></div>`;
+                return `<div class="payment-entry"><span>• Entry ${idx + 1}</span><span>✓</span></div>`;
               }
             }).join("")
           : `<div class="payment-entry">No payment records</div>`;
@@ -207,9 +229,9 @@
         html += `
           <div class="product-block" onclick="this.classList.toggle('open')">
             <div class="product-title">Product ${i + 1}: ${p.name}</div>
-            <div class="row"><span class="label">Total</span><span class="value">₹${total}</span></div>
-            <div class="row"><span class="label">Paid</span><span class="value">₹${paid}</span></div>
-            <div class="row"><span class="label">Balance</span><span class="value">₹${balance}</span></div>
+            <div class="row"><span class="label">Total</span><span class="value">${formatINR(total)}</span></div>
+            <div class="row"><span class="label">Paid</span><span class="value">${formatINR(paid)}</span></div>
+            <div class="row"><span class="label">Balance</span><span class="value">${formatINR(balance)}</span></div>
             <div class="toggle-details">
               <p style="margin:10px 0 5px;"><strong>Payment History:</strong></p>
               ${payments}
@@ -218,7 +240,7 @@
       });
 
       html += `<div class="report-card">
-        <div class="row"><span class="label">Total Balance (All Products)</span><span class="value">₹${totalBalance}</span></div>
+        <div class="row"><span class="label">Total Balance (All Products)</span><span class="value">${formatINR(totalBalance)}</span></div>
       </div>`;
 
       container.innerHTML = html;
