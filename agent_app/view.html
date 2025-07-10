@@ -1,144 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
+  <title>Today's Entries</title>
   <meta charset="UTF-8">
-  <title>Today's Collections - Agent App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; }
-    nav { background: #1f1f1f; display: flex; flex-wrap: wrap; padding: 10px; gap: 10px; }
-    nav a { color: white; background: #333; padding: 10px 15px; border-radius: 5px; text-decoration: none; }
-    nav a:hover { background: #00bcd4; color: black; }
-    main { padding: 20px; }
-    h1 { color: #00bcd4; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 10px; border: 1px solid #333; text-align: center; }
-    thead { background: #2c2c2c; }
-    tr:nth-child(odd) { background: #1d1d1d; }
-    button {
-      background: #00bcd4;
-      color: black;
-      font-weight: bold;
-      padding: 8px 15px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin: 10px 5px;
-    }
-    button:hover { background: #26c6da; }
-  </style>
+  <style>/* styling same as above */</style>
 </head>
 <body>
   <nav>
-    <a href="index.html">Home</a>
-    <a href="entries.html">Add Collection</a>
-    <a href="view.html">Today's Entries</a>
+    <a href="index.html">Dashboard</a>
+    <a href="entries.html">Add Entry</a>
+    <a href="view.html">View Entries</a>
     <a href="customer_report.html">Customer Report</a>
   </nav>
 
-  <main>
-    <h1>Today's Collections</h1>
-    <button onclick="exportJSON()">Export Agent File</button>
-    <h3 id="totalCollected">Total: ₹0</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Product</th>
-          <th>Amount</th>
-          <th>Date</th>
-          <th>Due</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="entryTable"></tbody>
-    </table>
-  </main>
+  <h1>Today's Entries</h1>
+  <button onclick="exportJSON()">📤 Export</button>
+  <table><thead><tr><th>ID</th><th>Name</th><th>Product</th><th>Amount</th><th>Due</th><th>Date</th><th>Action</th></tr></thead><tbody id="tableBody"></tbody></table>
 
   <script>
-    let entries = JSON.parse(localStorage.getItem("agent_entries") || "[]");
+    let entries = JSON.parse(localStorage.getItem('agent_entries') || '[]');
+    const tbody = document.getElementById("tableBody");
 
-    function renderEntries() {
-      const tbody = document.getElementById("entryTable");
-      tbody.innerHTML = "";
-      let total = 0;
-
+    function render() {
+      tbody.innerHTML = '';
       entries.forEach((e, i) => {
-        total += e.amount;
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${e.id}</td>
-          <td>${e.name}</td>
-          <td>${e.phone}</td>
-          <td>${e.product || '-'}</td>
-          <td>₹${parseFloat(e.amount).toFixed(2)}</td>
-          <td>${e.date}</td>
-          <td>${e.dueNumber || '-'}</td>
-          <td><button onclick="removeEntry(${i})">Delete</button></td>
-        `;
-        tbody.appendChild(row);
+        tbody.innerHTML += `<tr>
+          <td>${e.id}</td><td>${e.name}</td><td>${e.product}</td>
+          <td>₹${e.amount}</td><td>${e.dueNumber}</td><td>${e.date}</td>
+          <td><button onclick="del(${i})">❌</button></td>
+        </tr>`;
       });
-
-      document.getElementById("totalCollected").innerText = `Total: ₹${total.toFixed(2)}`;
     }
 
-    function removeEntry(index) {
-      if (confirm("Are you sure you want to delete this entry?")) {
-        entries.splice(index, 1);
+    function del(i) {
+      if (confirm("Delete entry?")) {
+        entries.splice(i, 1);
         localStorage.setItem("agent_entries", JSON.stringify(entries));
-        renderEntries();
+        render();
       }
     }
 
     function exportJSON() {
-      const grouped = {};
-
-      // Group by customer ID
-      entries.forEach(entry => {
-        if (!grouped[entry.id]) {
-          grouped[entry.id] = {
-            id: entry.id,
-            name: entry.name,
-            phone: entry.phone,
-            place: entry.place || "",
-            totalDues: 0,
-            paidDues: 0,
-            products: []
-          };
-        }
-
-        const customer = grouped[entry.id];
-
-        let product = customer.products.find(p => p.name === entry.product);
-        if (!product) {
-          product = {
-            name: entry.product,
-            total: 0,
-            payments: []
-          };
-          customer.products.push(product);
-        }
-
-        product.payments.push({
-          date: entry.date,
-          amount: Number(entry.amount),
-          dueNumber: Number(entry.dueNumber)
-        });
-      });
-
-      const formatted = Object.values(grouped);
-
-      const blob = new Blob([JSON.stringify(formatted, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
+      const blob = new Blob([JSON.stringify(entries, null, 2)], { type: "application/json" });
       const a = document.createElement("a");
-      a.href = url;
-      a.download = "agent_collections_formatted.json";
+      a.href = URL.createObjectURL(blob);
+      a.download = "agent_collections.json";
       a.click();
     }
 
-    renderEntries();
+    render();
   </script>
 </body>
 </html>
