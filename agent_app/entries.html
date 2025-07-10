@@ -1,175 +1,202 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Add Collections - Agent App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <title>Add Collection - Agent App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      background: #121212;
-      color: #eee;
-      font-family: sans-serif;
-      margin: 0;
+    body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; }
+    nav { background: #1f1f1f; display: flex; padding: 10px; gap: 10px; flex-wrap: wrap; }
+    nav a { color: white; background: #333; padding: 10px 15px; border-radius: 5px; text-decoration: none; }
+    nav a:hover { background: #00bcd4; color: black; }
+    main { padding: 20px; }
+    h1 { color: #00bcd4; }
+    input, button, select {
+      padding: 10px; margin: 10px 0; border-radius: 5px;
+      background: #1e1e1e; color: white; border: 1px solid #444; width: 100%;
     }
-    nav {
-      background: #1f1f1f;
-      display: flex;
-      padding: 10px;
-      gap: 15px;
-      flex-wrap: wrap;
+    button { background: #00bcd4; color: black; font-weight: bold; }
+    .customer-box {
+      margin-top: 10px; padding: 10px;
+      background: #1d1d1d; border: 1px solid #333; border-radius: 8px;
     }
-    nav a {
-      color: white;
-      background: #333;
-      padding: 8px 15px;
-      border-radius: 5px;
-      text-decoration: none;
+    #suggestions {
+      background: #222; border: 1px solid #333;
+      border-radius: 5px; display: none; position: absolute;
+      z-index: 999; max-height: 200px; overflow-y: auto;
     }
-    nav a:hover {
-      background: #00bcd4;
-      color: black;
-    }
-    main {
-      padding: 20px;
-    }
-    h1 {
-      color: #00bcd4;
-    }
-    input, select, button {
-      padding: 10px;
-      margin: 5px 0 15px 0;
-      border-radius: 5px;
-      border: 1px solid #444;
-      background: #1e1e1e;
-      color: white;
-      width: 100%;
-    }
-    button {
-      background: #00bcd4;
-      color: black;
-      font-weight: bold;
-      cursor: pointer;
-      width: auto;
-    }
-    .product-block {
-      background: #1e1e1e;
-      padding: 15px;
-      border-radius: 8px;
-      margin: 15px 0;
-      border: 1px solid #333;
-    }
+    #suggestions div { padding: 10px; cursor: pointer; }
+    #suggestions div:hover { background: #00bcd4; color: black; }
+    #productInfo { margin-top: 10px; }
   </style>
 </head>
 <body>
   <nav>
-    <a href="index.html">Dashboard</a>
+    <a href="index.html">Home</a>
     <a href="entries.html">Add Collection</a>
     <a href="view.html">Today's Entries</a>
     <a href="customer_report.html">Customer Report</a>
   </nav>
 
   <main>
-    <h1>Add Collection</h1>
-    <input type="text" id="searchBox" placeholder="Search by ID or Name" oninput="searchCustomer()" />
-    <div id="resultArea"></div>
+    <h1>Add Collection Entry</h1>
+    <input type="text" id="searchBox" placeholder="Search by ID, Name or Phone" oninput="showSuggestions(this.value)">
+    <div id="suggestions"></div>
+
+    <div class="customer-box" id="customerInfo" style="display:none;">
+      <p><strong>ID:</strong> <span id="custId"></span></p>
+      <p><strong>Name:</strong> <span id="custName"></span></p>
+      <p><strong>Phone:</strong> <span id="custPhone"></span></p>
+      <p><strong>Place:</strong> <span id="custPlace"></span></p>
+
+      <div id="productSection">
+        <label>Select Product:</label>
+        <select id="productDropdown"></select>
+        <div id="productInfo"></div>
+      </div>
+
+      <input type="number" id="amount" placeholder="Enter Amount Collected">
+      <input type="date" id="date" value="">
+      <button onclick="saveEntry()">Save Entry</button>
+    </div>
   </main>
 
   <script>
-    let customers = JSON.parse(localStorage.getItem("agent_customers") || "[]");
-    let entries = JSON.parse(localStorage.getItem("agent_entries") || "[]");
+    let customers = JSON.parse(localStorage.getItem('main_customers') || '[]');
+    let entries = JSON.parse(localStorage.getItem('agent_entries') || '[]');
+    let selectedCustomer = null;
+    let unpaidProducts = [];
 
-    function searchCustomer() {
-      const key = document.getElementById("searchBox").value.toLowerCase();
-      const match = customers.find(c =>
-        c.id.toLowerCase().includes(key) || c.name.toLowerCase().includes(key)
-      );
+    function showSuggestions(input) {
+      const box = document.getElementById("suggestions");
+      if (!input || input.length < 1) return box.style.display = "none";
+      const results = customers.filter(c =>
+        c.id.toLowerCase().includes(input.toLowerCase()) ||
+        c.name.toLowerCase().includes(input.toLowerCase()) ||
+        c.phone.includes(input)
+      ).slice(0, 10);
+      box.innerHTML = results.map(c =>
+        `<div onclick="selectCustomer('${c.id}')">${c.id} - ${c.name} (${c.phone})</div>`
+      ).join("");
+      box.style.display = results.length ? "block" : "none";
 
-      const div = document.getElementById("resultArea");
-      div.innerHTML = "";
-
-      if (!match) {
-        div.innerHTML = "<p>No customer found.</p>";
-        return;
-      }
-
-      const container = document.createElement("div");
-      container.innerHTML = `<h3>${match.name} (${match.id})</h3><p>Phone: ${match.phone} | Place: ${match.place}</p>`;
-
-      match.products.forEach((p, i) => {
-        if (!Array.isArray(p.payments) && Array.isArray(p.datesPaid)) {
-          const avg = (p.paid || 0) / p.datesPaid.length;
-          p.payments = p.datesPaid.map((date, idx) => ({
-            date,
-            amount: avg,
-            dueNumber: (match.paidDues || 0) + idx + 1
-          }));
-        }
-
-        p.payments = p.payments || [];
-
-        const paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
-        const balance = (p.total || 0) - paid;
-        const baseDue = (match.paidDues || 0);
-        const dueNumber = baseDue + p.payments.length + 1;
-
-        const prodDiv = document.createElement("div");
-        prodDiv.className = "product-block";
-        prodDiv.innerHTML = `
-          <strong>${p.name}</strong><br>
-          Total: ₹${p.total || 0}, Paid: ₹${paid.toFixed(2)}, Balance: ₹${balance.toFixed(2)}<br>
-          <strong>Next Due Number:</strong> ${dueNumber}<br>
-          <input type="number" id="amount_${match.id}_${i}" placeholder="Amount" />
-          <input type="date" id="date_${match.id}_${i}" value="${new Date().toISOString().split('T')[0]}" />
-          <button onclick="addPayment('${match.id}', ${i})">Add Payment</button>
-        `;
-        container.appendChild(prodDiv);
-      });
-
-      div.appendChild(container);
+      const rect = document.getElementById("searchBox").getBoundingClientRect();
+      box.style.left = rect.left + "px";
+      box.style.top = rect.bottom + window.scrollY + "px";
+      box.style.width = rect.width + "px";
     }
 
-    function addPayment(custId, productIndex) {
-      const customer = customers.find(c => c.id === custId);
-      const product = customer.products[productIndex];
-      const amtInput = document.getElementById(`amount_${custId}_${productIndex}`);
-      const dateInput = document.getElementById(`date_${custId}_${productIndex}`);
-      const amount = parseFloat(amtInput.value);
-      const date = dateInput.value;
+    function selectCustomer(id) {
+      selectedCustomer = customers.find(c => c.id === id);
+      document.getElementById("custId").innerText = selectedCustomer.id;
+      document.getElementById("custName").innerText = selectedCustomer.name;
+      document.getElementById("custPhone").innerText = selectedCustomer.phone;
+      document.getElementById("custPlace").innerText = selectedCustomer.place;
+      document.getElementById("customerInfo").style.display = "block";
+      document.getElementById("suggestions").style.display = "none";
+      document.getElementById("searchBox").value = selectedCustomer.name;
+      loadUnpaidProducts();
+    }
 
-      if (!amount || !date || isNaN(amount)) {
-        alert("Please enter a valid amount and date.");
+    function convertOldToPayments(product, paidDues) {
+      if (!product.payments && product.paid && Array.isArray(product.datesPaid)) {
+        product.payments = product.datesPaid.map((date, index) => ({
+          date,
+          amount: product.paid,
+          dueNumber: (paidDues || 0) + 1 + index
+        }));
+        delete product.paid;
+        delete product.datesPaid;
+      }
+    }
+
+    function loadUnpaidProducts() {
+      const dropdown = document.getElementById("productDropdown");
+      const productInfo = document.getElementById("productInfo");
+      unpaidProducts = [];
+      dropdown.innerHTML = "";
+
+      selectedCustomer.products.forEach((p, index) => {
+        convertOldToPayments(p, selectedCustomer.paidDues);
+        const payments = Array.isArray(p.payments) ? p.payments : [];
+        const paid = payments.reduce((sum, pay) => sum + pay.amount, 0);
+        const balance = p.total - paid;
+
+        const nextDue = (selectedCustomer.paidDues || 0) + payments.length + 1;
+
+        if (balance > 0) {
+          unpaidProducts.push({ ...p, index, paid, balance, nextDue });
+          dropdown.innerHTML += `<option value="${index}">${p.name} - ₹${balance.toFixed(2)} due (Next Due: #${nextDue})</option>`;
+        }
+      });
+
+      if (unpaidProducts.length === 0) {
+        dropdown.innerHTML = "<option>No unpaid products</option>";
+        productInfo.innerHTML = `<p>✅ All products fully paid.</p>`;
+        document.getElementById("amount").disabled = true;
+        document.getElementById("date").disabled = true;
+      } else {
+        updateProductInfo();
+        document.getElementById("amount").disabled = false;
+        document.getElementById("date").disabled = false;
+      }
+
+      dropdown.onchange = updateProductInfo;
+    }
+
+    function updateProductInfo() {
+      const selectedIdx = document.getElementById("productDropdown").value;
+      const prod = unpaidProducts.find(p => p.index == selectedIdx);
+      if (!prod) return;
+
+      document.getElementById("productInfo").innerHTML = `
+        <p><strong>Product:</strong> ${prod.name}</p>
+        <p><strong>Total:</strong> ₹${prod.total}</p>
+        <p><strong>Paid:</strong> ₹${prod.paid}</p>
+        <p><strong>Balance:</strong> ₹${prod.balance}</p>
+        <p><strong>Next Due:</strong> #${prod.nextDue}</p>
+      `;
+    }
+
+    function saveEntry() {
+      const amt = parseFloat(document.getElementById("amount").value);
+      const date = document.getElementById("date").value;
+      const prodIndex = parseInt(document.getElementById("productDropdown").value);
+      const prod = selectedCustomer.products[prodIndex];
+
+      if (!selectedCustomer || isNaN(amt) || !date || !prod) {
+        alert("Please fill all fields");
         return;
       }
 
-      product.payments = product.payments || [];
-      product.datesPaid = product.datesPaid || [];
+      if (!Array.isArray(prod.payments)) prod.payments = [];
 
-      const baseDue = customer.paidDues || 0;
-      const dueNumber = baseDue + product.payments.length + 1;
+      const dueNumber = (selectedCustomer.paidDues || 0) + prod.payments.length + 1;
 
-      product.payments.push({ date, amount, dueNumber });
-      product.datesPaid.push(date);
-      product.paid = product.payments.reduce((sum, p) => sum + p.amount, 0);
-      customer.paidDues = dueNumber;
+      prod.payments.push({ date, amount: amt, dueNumber });
 
-      // Save this entry separately in agent_entries
       entries.push({
-        id: customer.id,
-        name: customer.name,
-        phone: customer.phone,
-        product: product.name,
-        amount,
+        id: selectedCustomer.id,
+        name: selectedCustomer.name,
+        phone: selectedCustomer.phone,
+        product: prod.name,
+        amount: amt,
         date,
         dueNumber
       });
 
-      // Update localStorage
-      localStorage.setItem("agent_customers", JSON.stringify(customers));
       localStorage.setItem("agent_entries", JSON.stringify(entries));
+      localStorage.setItem("main_customers", JSON.stringify(customers));
 
-      alert(`✅ ₹${amount} added for ${product.name}. Due #${dueNumber} marked.`);
-      searchCustomer(); // refresh UI
+      alert(`✅ Entry saved with Due #${dueNumber}`);
+      document.getElementById("customerInfo").style.display = "none";
+      document.getElementById("amount").value = "";
+      document.getElementById("searchBox").value = "";
+      selectedCustomer = null;
+      unpaidProducts = [];
     }
+
+    document.getElementById("date").value = new Date().toISOString().split("T")[0];
   </script>
 </body>
 </html>
