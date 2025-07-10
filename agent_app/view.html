@@ -70,14 +70,15 @@
   <nav>
     <a href="index.html">Dashboard</a>
     <a href="entries.html">Add Entry</a>
-    <a href="view.html">Today's Entries</a>
+    <a href="view.html">View Entries</a>
     <a href="customer_report.html">Customer Report</a>
     <a href="review.html">Agent Review</a>
   </nav>
 
   <main>
     <h1>📄 Today's Payment Entries</h1>
-    <button onclick="exportJSON()">Export Entries</button>
+    <button onclick="exportAsJSON()">📤 Export as JSON</button>
+    <button onclick="exportAsPDF()">🧾 Export as PDF</button>
     <h3 id="totalCollected">Total: ₹0</h3>
 
     <table>
@@ -91,8 +92,13 @@
     </table>
   </main>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
     let entries = [];
+
+    function getToday() {
+      return new Date().toISOString().split("T")[0];
+    }
 
     function loadEntries() {
       try {
@@ -100,10 +106,6 @@
       } catch {
         entries = [];
       }
-    }
-
-    function getToday() {
-      return new Date().toISOString().split("T")[0];
     }
 
     function renderEntries() {
@@ -115,6 +117,7 @@
       entries.forEach((e, i) => {
         const amount = parseFloat(e.amount || 0);
         total += amount;
+
         const row = document.createElement("tr");
         row.innerHTML = `
           <td>${e.id}</td>
@@ -140,67 +143,45 @@
       }
     }
 
-    function exportJSON() {
+    function exportAsJSON() {
       const today = getToday();
+      const data = entries.filter(e => e.date === today);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `collection_${today}.json`;
+      a.click();
+    }
 
-      // Step 1: Export today's collection
-      const collectionBlob = new Blob([JSON.stringify(entries, null, 2)], { type: "application/json" });
-      const collectionUrl = URL.createObjectURL(collectionBlob);
-      const collectionLink = document.createElement("a");
-      collectionLink.href = collectionUrl;
-      collectionLink.download = `collection_${today}.json`;
-      collectionLink.click();
+    async function exportAsPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      let y = 15;
 
-      // Step 2: Merge into main_customers
-      let mainCustomers = [];
-      try {
-        mainCustomers = JSON.parse(localStorage.getItem("main_customers")) || [];
-      } catch {
-        alert("⚠️ Main customers not found in memory.");
-        return;
-      }
+      doc.setFontSize(20);
+      doc.text("Today's Collections", 15, y);
+      y += 10;
 
-      let updatedCount = 0;
+      doc.setFontSize(14);
       entries.forEach(entry => {
-        const cust = mainCustomers.find(c => c.id === entry.id);
-        if (cust) {
-          const prod = cust.products.find(p => p.name === entry.product);
-          if (!prod) return;
-
-          if (!prod.payments) prod.payments = [];
-
-          const baseDue = (cust.paidDues || 0);
-          const dueNum = Math.max(baseDue + prod.payments.length + 1, entry.dueNumber || 1);
-
-          prod.payments.push({
-            date: entry.date,
-            amount: parseFloat(entry.amount),
-            dueNumber: dueNum
-          });
-
-          prod.paid = prod.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-
-          if (!prod.datesPaid) prod.datesPaid = [];
-          prod.datesPaid.push(entry.date);
-
-          // Ensure the `paidDues` is updated correctly
-          cust.paidDues = Math.max(cust.paidDues || 0, dueNum);
-
-          updatedCount++;
+        if (entry.date === getToday()) {
+          doc.text(`ID: ${entry.id}`, 15, y += 12);
+          doc.text(`Name: ${entry.name}`, 15, y += 8);
+          doc.text(`Phone: ${entry.phone}`, 15, y += 8);
+          doc.text(`Product: ${entry.product}`, 15, y += 8);
+          doc.text(`Amount: ₹${entry.amount}`, 15, y += 8);
+          doc.text(`Due #: ${entry.dueNumber}`, 15, y += 8);
+          doc.text(`Date: ${entry.date}`, 15, y += 8);
+          y += 6;
+        }
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
         }
       });
 
-      // Step 3: Save merged result and export main customer file
-      localStorage.setItem("main_customers", JSON.stringify(mainCustomers));
-
-      const mergedBlob = new Blob([JSON.stringify(mainCustomers, null, 2)], { type: "application/json" });
-      const mergedUrl = URL.createObjectURL(mergedBlob);
-      const mergedLink = document.createElement("a");
-      mergedLink.href = mergedUrl;
-      mergedLink.download = `main_customers_updated_${today}.json`;
-      mergedLink.click();
-
-      alert(`✅ Exported ${entries.length} entries.\n✅ Merged ${updatedCount} new payments`);
+      doc.save(`collection_${getToday()}.pdf`);
     }
 
     renderEntries();
