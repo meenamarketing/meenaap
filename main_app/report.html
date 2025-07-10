@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Reports - EMI Manager</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -17,7 +17,6 @@
       display: flex;
       padding: 10px;
       gap: 15px;
-      flex-wrap: wrap;
     }
     nav a {
       color: white;
@@ -36,9 +35,9 @@
     h1 {
       color: #00bcd4;
     }
-    input, button, select {
+    input, button {
       padding: 10px;
-      margin: 5px 10px 15px 0;
+      margin: 10px 10px 10px 0;
       border-radius: 5px;
       background: #1e1e1e;
       color: white;
@@ -53,10 +52,10 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 10px;
+      margin-top: 20px;
     }
     th, td {
-      padding: 8px;
+      padding: 10px;
       border: 1px solid #333;
     }
     thead {
@@ -65,9 +64,27 @@
     tr:nth-child(odd) {
       background: #1d1d1d;
     }
+    #suggestions {
+      position: absolute;
+      background: #222;
+      border: 1px solid #444;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+      z-index: 999;
+    }
+    #suggestions div {
+      padding: 10px;
+      cursor: pointer;
+    }
+    #suggestions div:hover {
+      background: #00bcd4;
+      color: black;
+    }
   </style>
 </head>
 <body>
+
   <nav>
     <a href="index.html">Dashboard</a>
     <a href="customers.html">Customers</a>
@@ -77,26 +94,32 @@
   </nav>
 
   <main>
-    <h1>📊 Reports & Summary</h1>
+    <h1>📊 EMI Reports</h1>
 
-    <input type="file" accept=".json" onchange="loadData(event)">
-    <input id="searchInput" placeholder="Search ID/Name/Phone" oninput="renderTable()" />
-    <input id="placeFilter" placeholder="Filter by Place" oninput="renderTable()">
-    <input id="productFilter" placeholder="Filter by Product" oninput="renderTable()">
+    <input type="file" accept=".json" onchange="loadJSON(event)">
+    <br><br>
+
+    <div style="position: relative;">
+      <input id="searchBox" placeholder="Search by ID / Name / Phone" oninput="renderTable(); showSuggestions(this.value)">
+      <div id="suggestions"></div>
+    </div>
+
+    <input id="filterPlace" placeholder="Filter by Place" oninput="renderTable()">
+    <input id="filterProduct" placeholder="Filter by Product" oninput="renderTable()">
     <label>From: <input type="date" id="fromDate" onchange="renderTable()"></label>
     <label>To: <input type="date" id="toDate" onchange="renderTable()"></label>
-    <button onclick="exportCSV()">Export CSV</button>
+    <button onclick="downloadCSV()">Export CSV</button>
 
     <h3 id="totalPaid">Total Paid: ₹0</h3>
     <h3 id="totalBalance">Total Balance: ₹0</h3>
 
     <canvas id="summaryChart" height="150"></canvas>
 
-    <h2>Detailed Report</h2>
     <table>
       <thead>
         <tr>
-          <th>ID</th><th>Name</th><th>Phone</th><th>Place</th><th>Product</th><th>Paid</th><th>Total</th><th>Balance</th>
+          <th>ID</th><th>Name</th><th>Phone</th><th>Place</th><th>Product</th>
+          <th>Paid</th><th>Total</th><th>Balance</th>
         </tr>
       </thead>
       <tbody id="reportTable"></tbody>
@@ -105,76 +128,76 @@
 
   <script>
     let customers = [];
+    let allSuggestions = [];
 
-    function loadData(event) {
+    function loadJSON(event) {
+      const file = event.target.files[0];
       const reader = new FileReader();
       reader.onload = function(e) {
         customers = JSON.parse(e.target.result);
+        allSuggestions = customers.flatMap(c => [c.id, c.name, c.phone]);
         renderTable();
       };
-      reader.readAsText(event.target.files[0]);
+      reader.readAsText(file);
     }
 
     function renderTable() {
-      const search = document.getElementById("searchInput").value.toLowerCase();
-      const placeFilter = document.getElementById("placeFilter").value.toLowerCase();
-      const productFilter = document.getElementById("productFilter").value.toLowerCase();
+      const search = document.getElementById("searchBox").value.toLowerCase();
+      const place = document.getElementById("filterPlace").value.toLowerCase();
+      const productFilter = document.getElementById("filterProduct").value.toLowerCase();
       const fromDate = document.getElementById("fromDate").value;
       const toDate = document.getElementById("toDate").value;
-
       const tbody = document.getElementById("reportTable");
       tbody.innerHTML = "";
 
-      let paidSum = 0, balanceSum = 0;
+      let totalPaid = 0;
+      let totalBalance = 0;
 
       customers.forEach(c => {
-        const { id, name, phone, place, products } = c;
-        if (!products || products.length === 0) return;
+        if (!c.products || c.products.length === 0) return;
 
-        products.forEach(p => {
+        c.products.forEach(p => {
           const paid = p.paid || 0;
           const total = p.total || 0;
           const balance = Math.max(0, total - paid);
           const date = p.datesPaid?.[0] || "";
 
-          if (balance <= 0) return; // skip completed
+          if (balance <= 0 || paid === 0) return;
 
-          if (
-            (!search || id.toLowerCase().includes(search) || name.toLowerCase().includes(search) || phone.includes(search)) &&
-            (!placeFilter || place.toLowerCase().includes(placeFilter)) &&
-            (!productFilter || p.name.toLowerCase().includes(productFilter)) &&
-            (!fromDate || date >= fromDate) &&
-            (!toDate || date <= toDate)
-          ) {
-            paidSum += paid;
-            balanceSum += balance;
+          const matchSearch = !search || c.id.toLowerCase().includes(search) || c.name.toLowerCase().includes(search) || c.phone.includes(search);
+          const matchPlace = !place || c.place.toLowerCase().includes(place);
+          const matchProduct = !productFilter || p.name.toLowerCase().includes(productFilter);
+          const matchDate = (!fromDate || date >= fromDate) && (!toDate || date <= toDate);
 
+          if (matchSearch && matchPlace && matchProduct && matchDate) {
             const row = document.createElement("tr");
             row.innerHTML = `
-              <td>${id}</td>
-              <td>${name}</td>
-              <td>${phone}</td>
-              <td>${place}</td>
+              <td>${c.id}</td>
+              <td>${c.name}</td>
+              <td>${c.phone}</td>
+              <td>${c.place}</td>
               <td>${p.name}</td>
               <td>₹${paid.toFixed(2)}</td>
               <td>₹${total.toFixed(2)}</td>
               <td>₹${balance.toFixed(2)}</td>
             `;
             tbody.appendChild(row);
+            totalPaid += paid;
+            totalBalance += balance;
           }
         });
       });
 
-      document.getElementById("totalPaid").innerText = `Total Paid: ₹${paidSum.toFixed(2)}`;
-      document.getElementById("totalBalance").innerText = `Total Balance: ₹${balanceSum.toFixed(2)}`;
-      drawChart(paidSum, balanceSum);
+      document.getElementById("totalPaid").innerText = `Total Paid: ₹${totalPaid.toFixed(2)}`;
+      document.getElementById("totalBalance").innerText = `Total Balance: ₹${totalBalance.toFixed(2)}`;
+      drawChart(totalPaid, totalBalance);
     }
 
     function drawChart(paid, balance) {
       const ctx = document.getElementById("summaryChart").getContext("2d");
       if (window.pieChart) window.pieChart.destroy();
       window.pieChart = new Chart(ctx, {
-        type: 'pie',
+        type: "pie",
         data: {
           labels: ["Paid", "Balance"],
           datasets: [{
@@ -184,27 +207,54 @@
         },
         options: {
           responsive: true,
-          plugins: {
-            legend: { position: "bottom" }
-          }
+          plugins: { legend: { position: "bottom" } }
         }
       });
     }
 
-    function exportCSV() {
+    function downloadCSV() {
       let csv = "ID,Name,Phone,Place,Product,Paid,Total,Balance\n";
-      document.querySelectorAll("#reportTable tr").forEach(tr => {
-        const cells = Array.from(tr.children).map(td => td.innerText);
+      document.querySelectorAll("#reportTable tr").forEach(row => {
+        const cells = Array.from(row.children).map(td => td.innerText);
         csv += cells.join(",") + "\n";
       });
-
       const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = "filtered_report.csv";
+      a.href = URL.createObjectURL(blob);
+      a.download = "report.csv";
       a.click();
     }
+
+    function showSuggestions(text) {
+      const box = document.getElementById("suggestions");
+      if (!text || text.length < 1) {
+        box.style.display = "none";
+        return;
+      }
+      const results = allSuggestions.filter(s => s.toLowerCase().includes(text.toLowerCase())).slice(0, 10);
+      if (results.length === 0) {
+        box.style.display = "none";
+        return;
+      }
+      box.innerHTML = results.map(s => `<div onclick="selectSuggestion('${s}')">${s}</div>`).join("");
+      box.style.display = "block";
+      const rect = document.getElementById("searchBox").getBoundingClientRect();
+      box.style.left = rect.left + "px";
+      box.style.top = rect.bottom + window.scrollY + "px";
+      box.style.width = rect.width + "px";
+    }
+
+    function selectSuggestion(val) {
+      document.getElementById("searchBox").value = val;
+      document.getElementById("suggestions").style.display = "none";
+      renderTable();
+    }
+
+    document.addEventListener("click", e => {
+      if (!e.target.closest("#suggestions") && e.target.id !== "searchBox") {
+        document.getElementById("suggestions").style.display = "none";
+      }
+    });
   </script>
 </body>
 </html>
