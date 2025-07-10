@@ -72,13 +72,12 @@
     <a href="entries.html">Add Entry</a>
     <a href="view.html">View Entries</a>
     <a href="customer_report.html">Customer Report</a>
-    <a href="review.html">Agent Review</a>
   </nav>
 
   <main>
     <h1>📄 Today's Payment Entries</h1>
-    <button onclick="exportAsJSON()">📤 Export as JSON</button>
-    <button onclick="exportAsPDF()">🧾 Export as PDF</button>
+    <button onclick="exportTodayJSON()">📤 Export JSON</button>
+    <button onclick="exportUpdatedMain()">📤 Export Updated Main</button>
     <h3 id="totalCollected">Total: ₹0</h3>
 
     <table>
@@ -92,24 +91,21 @@
     </table>
   </main>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
     let entries = [];
+    let customers = [];
 
-    function getToday() {
+    function loadData() {
+      entries = JSON.parse(localStorage.getItem("agent_entries") || "[]");
+      customers = JSON.parse(localStorage.getItem("main_customers") || "[]");
+    }
+
+    function getTodayDateStr() {
       return new Date().toISOString().split("T")[0];
     }
 
-    function loadEntries() {
-      try {
-        entries = JSON.parse(localStorage.getItem("agent_entries")) || [];
-      } catch {
-        entries = [];
-      }
-    }
-
     function renderEntries() {
-      loadEntries();
+      loadData();
       const tbody = document.getElementById("entryTable");
       tbody.innerHTML = "";
       let total = 0;
@@ -143,10 +139,10 @@
       }
     }
 
-    function exportAsJSON() {
-      const today = getToday();
-      const data = entries.filter(e => e.date === today);
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    function exportTodayJSON() {
+      const today = getTodayDateStr();
+      const data = JSON.stringify(entries, null, 2);
+      const blob = new Blob([data], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -154,34 +150,15 @@
       a.click();
     }
 
-    async function exportAsPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      let y = 15;
-
-      doc.setFontSize(20);
-      doc.text("Today's Collections", 15, y);
-      y += 10;
-
-      doc.setFontSize(14);
-      entries.forEach(entry => {
-        if (entry.date === getToday()) {
-          doc.text(`ID: ${entry.id}`, 15, y += 12);
-          doc.text(`Name: ${entry.name}`, 15, y += 8);
-          doc.text(`Phone: ${entry.phone}`, 15, y += 8);
-          doc.text(`Product: ${entry.product}`, 15, y += 8);
-          doc.text(`Amount: ₹${entry.amount}`, 15, y += 8);
-          doc.text(`Due #: ${entry.dueNumber}`, 15, y += 8);
-          doc.text(`Date: ${entry.date}`, 15, y += 8);
-          y += 6;
-        }
-        if (y > 270) {
-          doc.addPage();
-          y = 20;
-        }
-      });
-
-      doc.save(`collection_${getToday()}.pdf`);
+    function exportUpdatedMain() {
+      const today = getTodayDateStr();
+      const data = JSON.stringify(customers, null, 2);
+      const blob = new Blob([data], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `main_customers_updated_${today}.json`;
+      a.click();
     }
 
     renderEntries();
