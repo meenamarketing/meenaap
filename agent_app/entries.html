@@ -1,130 +1,211 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Add Payments - Agent App</title>
+  <title>Entries - EMI Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; }
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+    }
     nav {
       background: #1f1f1f;
-      display: flex; flex-wrap: wrap;
-      padding: 10px; gap: 10px;
+      display: flex;
+      padding: 10px;
+      gap: 15px;
+      flex-wrap: wrap;
     }
     nav a {
-      color: white; background: #333;
-      padding: 10px 15px; border-radius: 5px;
+      color: white;
+      background: #333;
+      padding: 8px 15px;
+      border-radius: 5px;
       text-decoration: none;
     }
-    nav a:hover { background: #00bcd4; color: black; }
-    main { padding: 20px; }
-    h1 { color: #00bcd4; }
+    nav a:hover {
+      background: #00bcd4;
+      color: black;
+    }
+    main {
+      padding: 20px;
+    }
+    h1 {
+      color: #00bcd4;
+    }
     input, select, button {
-      padding: 10px; margin: 8px 0;
-      border-radius: 5px; border: 1px solid #444;
-      background: #1e1e1e; color: white; width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #444;
+      background: #1e1e1e;
+      color: white;
     }
     button {
-      background: #00bcd4; color: black;
-      font-weight: bold; cursor: pointer;
+      background: #00bcd4;
+      color: black;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
     }
-    .block {
+    button:hover {
+      background: #26c6da;
+    }
+    .product-block {
       background: #1e1e1e;
-      padding: 15px; border-radius: 8px;
-      margin-bottom: 15px;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
     }
   </style>
 </head>
 <body>
   <nav>
     <a href="index.html">Dashboard</a>
-    <a href="entries.html">Add Entry</a>
-    <a href="view.html">View Entries</a>
-    <a href="customer_report.html">Customer Report</a>
+    <a href="customers.html">Customers</a>
+    <a href="entries.html">Entries</a>
     <a href="review.html">Agent Review</a>
+    <a href="report.html">Reports</a>
   </nav>
 
   <main>
-    <h1>➕ Add Customer Payment</h1>
-    <input type="text" id="searchBox" placeholder="Search by ID or Name" oninput="searchCustomer()">
-    <div id="customerArea"></div>
+    <h1>Daily Payment Entry</h1>
+    <input type="file" accept=".json" onchange="loadJSON(event)">
+    <br>
+    <input id="searchId" placeholder="Search by Customer ID or Name" oninput="searchCustomer()">
+    <div id="resultArea"></div>
+    <button onclick="exportUpdated()">Export Updated JSON</button>
   </main>
 
   <script>
-    const mainData = JSON.parse(localStorage.getItem("main_customers") || "[]");
-    let agentEntries = JSON.parse(localStorage.getItem("agent_entries") || "[]");
-    let selectedCustomer = null;
+    let customers = [];
 
-    function searchCustomer() {
-      const query = document.getElementById("searchBox").value.toLowerCase();
-      const match = mainData.find(c =>
-        c.id.toLowerCase().includes(query) || c.name.toLowerCase().includes(query)
-      );
-      const area = document.getElementById("customerArea");
-      area.innerHTML = "";
-      if (!match) {
-        area.innerHTML = "<p>No customer found.</p>";
-        return;
-      }
-
-      selectedCustomer = match;
-      const block = document.createElement("div");
-      block.className = "block";
-      block.innerHTML = `
-        <h3>${match.name} (${match.id})</h3>
-        <p>Phone: ${match.phone}</p>
-        <p>Place: ${match.place}</p>
-        <label>Product:</label>
-        <select id="productSelect"></select>
-        <label>Amount:</label>
-        <input type="number" id="amountInput" placeholder="Amount">
-        <label>Date:</label>
-        <input type="date" id="dateInput" value="${new Date().toISOString().split('T')[0]}">
-        <button onclick="saveEntry()">Save Entry</button>
-      `;
-      area.appendChild(block);
-
-      const select = document.getElementById("productSelect");
-      match.products.forEach(p => {
-        const paid = (Array.isArray(p.payments) ? p.payments.reduce((sum, x) => sum + x.amount, 0) : (p.paid || 0));
-        const balance = p.total - paid;
-        const label = `${p.name} - ₹${balance} due`;
-        const opt = document.createElement("option");
-        opt.value = p.name;
-        opt.textContent = label;
-        select.appendChild(opt);
-      });
+    function loadJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        customers = JSON.parse(e.target.result);
+        alert("✅ Data loaded. Search customer to proceed.");
+      };
+      reader.readAsText(file);
     }
 
-    function saveEntry() {
-      const amount = parseFloat(document.getElementById("amountInput").value);
-      const date = document.getElementById("dateInput").value;
-      const productName = document.getElementById("productSelect").value;
-      if (!selectedCustomer || isNaN(amount) || !date || !productName) {
-        alert("Fill all fields.");
+    function searchCustomer() {
+      const key = document.getElementById("searchId").value.toLowerCase();
+      const match = customers.find(c =>
+        c.id.toLowerCase().includes(key) || c.name.toLowerCase().includes(key)
+      );
+      const div = document.getElementById("resultArea");
+      div.innerHTML = "";
+
+      if (!match) {
+        div.innerHTML = "<p>No customer found.</p>";
         return;
       }
 
-      const prod = selectedCustomer.products.find(p => p.name === productName);
-      if (!prod.payments) prod.payments = [];
+      const details = `
+        <h3>${match.name} (${match.id})</h3>
+        <p><strong>Phone:</strong> ${match.phone} | <strong>Place:</strong> ${match.place}</p>
+      `;
 
-      const dueNumber = (prod.payments.length ? Math.max(...prod.payments.map(p => p.dueNumber || 0)) : 0) + 1;
+      const productSelector = document.createElement("select");
+      productSelector.innerHTML = match.products.map((p, i) => `<option value="${i}">${p.name}</option>`).join("");
+      productSelector.onchange = () => showProduct(match, parseInt(productSelector.value));
 
-      prod.payments.push({ date, amount, dueNumber });
+      const container = document.createElement("div");
+      container.innerHTML = details;
+      container.appendChild(productSelector);
 
-      agentEntries.push({
-        id: selectedCustomer.id,
-        name: selectedCustomer.name,
-        phone: selectedCustomer.phone,
-        product: prod.name,
-        amount,
-        date,
-        dueNumber
-      });
+      const productArea = document.createElement("div");
+      productArea.id = "productArea";
+      container.appendChild(productArea);
 
-      localStorage.setItem("agent_entries", JSON.stringify(agentEntries));
-      alert("✅ Entry saved!");
-      document.getElementById("customerArea").innerHTML = "";
-      document.getElementById("searchBox").value = "";
+      div.appendChild(container);
+
+      // Show first product by default
+      showProduct(match, 0);
+    }
+
+    function getPaidTotal(product) {
+      if (Array.isArray(product.payments)) {
+        return product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      } else if (typeof product.paid === "number") {
+        return product.paid;
+      }
+      return 0;
+    }
+
+    function showProduct(customer, productIndex) {
+      const p = customer.products[productIndex];
+
+      // Convert old format if needed
+      if (!p.payments && Array.isArray(p.datesPaid)) {
+        const avg = (p.paid || 0) / p.datesPaid.length;
+        p.payments = p.datesPaid.map((date, index) => ({
+          date,
+          amount: Math.round(avg * 100) / 100,
+          dueNumber: index + 1
+        }));
+      }
+
+      p.payments = p.payments || [];
+
+      const paid = getPaidTotal(p);
+      const balance = Math.max(0, p.total - paid);
+      const baseDue = (customer.paidDues || 0) + 1;
+      const nextDue = baseDue + p.payments.length;
+
+      const prodHTML = `
+        <div class="product-block">
+          <p><strong>Product:</strong> ${p.name}</p>
+          <p><strong>Total:</strong> ₹${p.total} | <strong>Paid:</strong> ₹${paid} | <strong>Balance:</strong> ₹${balance}</p>
+          <p><strong>Next Due Number:</strong> #${nextDue}</p>
+          <input type="number" id="amountInput" placeholder="Enter amount">
+          <input type="date" id="dateInput" value="${new Date().toISOString().split('T')[0]}">
+          <button onclick="addPayment('${customer.id}', ${productIndex})">Add Payment</button>
+        </div>
+      `;
+      document.getElementById("productArea").innerHTML = prodHTML;
+    }
+
+    function addPayment(custId, productIndex) {
+      const amount = parseFloat(document.getElementById("amountInput").value);
+      const date = document.getElementById("dateInput").value;
+
+      if (isNaN(amount) || amount <= 0 || !date) {
+        alert("⚠ Please enter a valid amount and date.");
+        return;
+      }
+
+      const customer = customers.find(c => c.id === custId);
+      const product = customer.products[productIndex];
+
+      product.payments = product.payments || [];
+
+      delete product.paid;
+      delete product.datesPaid;
+
+      const baseDue = (customer.paidDues || 0) + 1;
+      const dueNumber = baseDue + product.payments.length;
+
+      product.payments.push({ date, amount, dueNumber });
+      customer.paidDues = dueNumber;
+
+      alert(`✅ ₹${amount.toFixed(2)} added for "${product.name}". Due #${dueNumber}`);
+      searchCustomer(); // Refresh view
+    }
+
+    function exportUpdated() {
+      const blob = new Blob([JSON.stringify(customers, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "updated_customers.json";
+      a.click();
     }
   </script>
 </body>
