@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Review Agent Collections - Main App</title>
@@ -81,35 +80,30 @@
     <a href="entry.html">Add Payment</a>
     <a href="report.html">Reports</a>
     <a href="review.html">Review Agent</a>
-  </nav>
-
-  <main>
+  </nav>  <main>
     <h1>Review Agent Collections</h1>
     <input type="file" accept=".json" onchange="loadMainData(event)" />
     <input type="file" accept=".json" onchange="loadAgentData(event)" />
     <input type="text" id="searchId" placeholder="🔍 Search by Customer ID" oninput="filterTable()" />
-    <div id="summary"></div>
+    <div id="summary"></div><table id="agentTable" style="display:none;">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Phone</th>
+      <th>Product</th>
+      <th>Amount</th>
+      <th>Due</th>
+      <th>Date</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
-    <table id="agentTable" style="display:none;">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Product</th>
-          <th>Amount</th>
-          <th>Due</th>
-          <th>Date</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+<button id="approveBtn" onclick="approveData()" style="display:none;">✅ Approve & Merge</button>
+<button onclick="exportMainJSON()" style="display:none;" id="exportBtn">📤 Export Updated Main JSON</button>
 
-    <button id="approveBtn" onclick="approveData()" style="display:none;">✅ Approve & Merge</button>
-    <button onclick="exportMainJSON()" style="display:none;" id="exportBtn">📤 Export Updated Main JSON</button>
-  </main>
-
-  <script>
+  </main>  <script>
     let agentEntries = [];
     let mainCustomers = [];
 
@@ -175,29 +169,27 @@
       agentEntries.forEach(entry => {
         const cust = mainCustomers.find(c => c.id === entry.id);
         if (cust) {
-          const prod = cust.products.find(p => p.name === entry.product) || cust.products[0];
-          if (!prod.paid) prod.paid = 0;
-          if (!prod.datesPaid) prod.datesPaid = [];
+          const prod = cust.products.find(p => p.name === entry.product);
+          if (!prod) return;
+
           if (!prod.payments) prod.payments = [];
 
-          let lastDue = cust.paidDues || 0;
-          const maxProductDue = prod.payments.length > 0
-            ? Math.max(...prod.payments.map(p => p.dueNumber || 0))
-            : 0;
-          lastDue = Math.max(lastDue, maxProductDue);
-
-          const nextDue = lastDue + 1;
+          // Compute next due number correctly
+          const lastDue = Math.max(...prod.payments.map(p => p.dueNumber || 0), cust.paidDues || 0);
+          const nextDueNumber = lastDue + 1;
 
           prod.payments.push({
             date: entry.date,
             amount: parseFloat(entry.amount),
-            dueNumber: nextDue
+            dueNumber: nextDueNumber
           });
 
           prod.paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
+          cust.paidDues = nextDueNumber;
+
+          if (!prod.datesPaid) prod.datesPaid = [];
           prod.datesPaid.push(entry.date);
 
-          cust.paidDues = nextDue;
           updated++;
         }
       });
@@ -207,7 +199,7 @@
     }
 
     function exportMainJSON() {
-      const exportData = mainCustomers.map(c => ({
+      const exported = mainCustomers.map(c => ({
         id: c.id,
         name: c.name,
         phone: c.phone,
@@ -217,18 +209,18 @@
         products: c.products.map(p => ({
           name: p.name,
           total: p.total,
-          paid: p.paid,
-          datesPaid: (p.payments || []).map(pmt => pmt.date)
+          datesPaid: p.datesPaid || [],
+          paid: p.paid || 0,
+          payments: p.payments || []
         }))
       }));
 
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+      const blob = new Blob([JSON.stringify(exported, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = "updated_main_customers.json";
       a.click();
     }
-  </script>
-</body>
+  </script></body>
 </html>
