@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>Reports - EMI Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       background: #121212;
@@ -115,6 +116,24 @@
     <h3 id="reportTotal">Total Paid: ₹0</h3>
     <h3 id="reportBalance">Total Balance: ₹0</h3>
 
+    <hr>
+    <h2>📈 Graphs</h2>
+    <canvas id="paidBalanceChart" width="400" height="150"></canvas>
+    <canvas id="barChart" width="400" height="150"></canvas>
+
+    <h2>👥 Customer Summary</h2>
+    <table id="summaryTable">
+      <thead><tr><th>ID</th><th>Name</th><th>Total Paid</th><th>Total Balance</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>📆 Monthly Breakdown</h2>
+    <table id="monthlyTable">
+      <thead><tr><th>Month</th><th>Total Paid</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <hr>
+
     <table>
       <thead>
         <tr>
@@ -130,6 +149,7 @@
     let customers = [];
     let flatReport = [];
     let allSuggestions = new Set();
+    let pieChart, barChart;
 
     function loadData(event) {
       const file = event.target.files[0];
@@ -201,7 +221,10 @@
       const fromDate = document.getElementById("fromDate").value;
       const toDate = document.getElementById("toDate").value;
 
-      let filtered = flatReport.filter(r => {
+      const tbody = document.getElementById("reportTable");
+      tbody.innerHTML = "";
+
+      const filtered = flatReport.filter(r => {
         return (
           (!id || r.id.toLowerCase().includes(id) || r.name.toLowerCase().includes(id) || r.phone.includes(id)) &&
           (!place || r.place.toLowerCase().includes(place)) &&
@@ -211,52 +234,115 @@
         );
       });
 
-      const tbody = document.getElementById("reportTable");
-      tbody.innerHTML = "";
       let totalPaid = 0;
-
       filtered.forEach(r => {
         totalPaid += r.paid;
         const row = document.createElement("tr");
         row.innerHTML = `
-          <td>${r.id}</td>
-          <td>${r.name}</td>
-          <td>${r.place}</td>
-          <td>${r.phone}</td>
-          <td>${r.product}</td>
-          <td>₹${r.paid.toFixed(2)}</td>
-          <td>₹${r.balance.toFixed(2)}</td>
-          <td>${r.date}</td>
+          <td>${r.id}</td><td>${r.name}</td><td>${r.place}</td><td>${r.phone}</td>
+          <td>${r.product}</td><td>₹${r.paid.toFixed(2)}</td>
+          <td>₹${r.balance.toFixed(2)}</td><td>${r.date}</td>
         `;
         tbody.appendChild(row);
       });
 
       document.getElementById("reportTotal").innerText = `Total Paid: ₹${totalPaid.toFixed(2)}`;
 
-      // Total balance: only count once per product
-      let uniqueProductKeys = new Set();
       let totalBalance = 0;
-
       customers.forEach(c => {
         c.products.forEach(p => {
-          const key = `${c.id}-${p.name}`;
-          if (uniqueProductKeys.has(key)) return;
-          uniqueProductKeys.add(key);
-
-          const productTotal = p.total || 0;
+          const total = p.total || 0;
           let paid = 0;
-
-          if (Array.isArray(p.payments)) {
-            paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
-          } else if (Array.isArray(p.datesPaid)) {
-            paid = p.paid || 0;
+          if (p.payments) {
+            paid = p.payments.reduce((sum, pay) => sum + (pay.amount || 0), 0);
+          } else if (typeof p.paid === "number") {
+            paid = p.paid;
           }
-
-          totalBalance += Math.max(0, productTotal - paid);
+          totalBalance += Math.max(0, total - paid);
         });
       });
 
       document.getElementById("reportBalance").innerText = `Total Balance: ₹${totalBalance.toFixed(2)}`;
+
+      updateChartsAndSummaries(filtered);
+    }
+
+    function updateChartsAndSummaries(filtered) {
+      const summaryTable = document.querySelector("#summaryTable tbody");
+      const monthlyTable = document.querySelector("#monthlyTable tbody");
+      summaryTable.innerHTML = "";
+      monthlyTable.innerHTML = "";
+
+      const customerMap = new Map();
+      const monthlyMap = new Map();
+      let paidTotal = 0, balanceTotal = 0;
+
+      filtered.forEach(r => {
+        paidTotal += r.paid;
+        if (!customerMap.has(r.id)) {
+          customerMap.set(r.id, { name: r.name, paid: 0, balance: 0 });
+        }
+        const cust = customerMap.get(r.id);
+        cust.paid += r.paid;
+        cust.balance = r.balance;
+
+        const month = r.date?.slice(0, 7);
+        if (!monthlyMap.has(month)) monthlyMap.set(month, 0);
+        monthlyMap.set(month, monthlyMap.get(month) + r.paid);
+      });
+
+      for (let [id, data] of customerMap) {
+        const row = `<tr><td>${id}</td><td>${data.name}</td><td>₹${data.paid.toFixed(2)}</td><td>₹${data.balance.toFixed(2)}</td></tr>`;
+        summaryTable.innerHTML += row;
+        balanceTotal += data.balance;
+      }
+
+      for (let [month, amt] of monthlyMap) {
+        monthlyTable.innerHTML += `<tr><td>${month}</td><td>₹${amt.toFixed(2)}</td></tr>`;
+      }
+
+      drawPieChart(paidTotal, balanceTotal);
+      drawBarChart([...customerMap.entries()].map(([id, d]) => ({ name: d.name, paid: d.paid })));
+    }
+
+    function drawPieChart(paid, balance) {
+      const ctx = document.getElementById('paidBalanceChart').getContext('2d');
+      if (pieChart) pieChart.destroy();
+      pieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: ['Paid', 'Balance'],
+          datasets: [{
+            data: [paid, balance],
+            backgroundColor: ['#00e676', '#ff5252']
+          }]
+        }
+      });
+    }
+
+    function drawBarChart(data) {
+      const ctx = document.getElementById('barChart').getContext('2d');
+      if (barChart) barChart.destroy();
+      barChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.map(d => d.name),
+          datasets: [{
+            label: 'Total Paid',
+            data: data.map(d => d.paid),
+            backgroundColor: '#00bcd4'
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
     }
 
     function exportCSV() {
