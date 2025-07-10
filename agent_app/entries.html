@@ -1,65 +1,304 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Add Entry</title>
-  <meta charset="UTF-8">
-  <style>/* same styling as above */</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMI Manager - Entries</title>
+    <style>
+        body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; padding: 0; }
+        nav { background: #1f1f1f; display: flex; padding: 10px; gap: 15px; flex-wrap: wrap; }
+        nav a { color: white; background: #333; padding: 8px 15px; border-radius: 5px; text-decoration: none; }
+        nav a:hover { background: #00bcd4; color: black; }
+        main { padding: 20px; }
+        h1 { color: #00bcd4; }
+        input, select, button { padding: 10px; margin: 5px 10px 15px 0; border-radius: 5px; border: 1px solid #444; background: #1e1e1e; color: white; }
+        button { background: #00bcd4; color: #000; font-weight: bold; border: none; cursor: pointer; }
+        button:hover { background: #26c6da; }
+        .product-block { background: #1e1e1e; padding: 15px; border-radius: 6px; margin: 10px 0; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #ccc; }
+        #resultArea { margin-top: 20px; padding: 15px; border: 1px solid #333; border-radius: 8px; background-color: #1a1a1a; }
+    </style>
 </head>
 <body>
-  <nav>
-    <a href="index.html">Dashboard</a>
-    <a href="entries.html">Add Entry</a>
-    <a href="view.html">View Entries</a>
-    <a href="customer_report.html">Customer Report</a>
-  </nav>
+    <nav>
+        <a href="index.html">Dashboard</a>
+        <a href="entries.html">Entries</a>
+        <a href="view.html">Agent Review</a>
+        <a href="customer_report.html">Customer Reports</a>
+        </nav>
 
-  <h1>Add Customer Payment</h1>
-  <input id="searchBox" placeholder="Search ID/Name/Phone" oninput="searchCustomer()" />
-  <div id="customerView"></div>
+    <main>
+        <h1>Daily Payment Entry</h1>
 
-  <script>
-    let customers = JSON.parse(localStorage.getItem('main_customers') || '[]');
-    let entries = JSON.parse(localStorage.getItem('agent_entries') || '[]');
+        <div class="form-group">
+            <label for="searchId">Search Customer by ID or Name:</label>
+            <input type="text" id="searchId" placeholder="Enter Customer ID or Name">
+            <button onclick="searchCustomer()">Search Customer</button>
+        </div>
 
-    function searchCustomer() {
-      const val = document.getElementById("searchBox").value.toLowerCase();
-      const match = customers.find(c => c.id.includes(val) || c.name.toLowerCase().includes(val));
-      const div = document.getElementById("customerView");
-      div.innerHTML = '';
+        <div id="resultArea">
+            <p>Search for a customer to add payments.</p>
+        </div>
 
-      if (!match) return;
+        <h2>Add New Customer</h2>
+        <div class="form-group">
+            <label for="newCustomerId">Customer ID:</label>
+            <input type="text" id="newCustomerId" placeholder="Unique Customer ID">
+        </div>
+        <div class="form-group">
+            <label for="newCustomerName">Customer Name:</label>
+            <input type="text" id="newCustomerName" placeholder="Customer Full Name">
+        </div>
+        <div class="form-group">
+            <label for="newCustomerPhone">Phone Number:</label>
+            <input type="text" id="newCustomerPhone" placeholder="Phone Number">
+        </div>
+        <div class="form-group">
+            <label for="newCustomerPlace">Place:</label>
+            <input type="text" id="newCustomerPlace" placeholder="Customer's Place">
+        </div>
+        <button onclick="addNewCustomer()">Add New Customer</button>
+        <p>After adding a new customer, you can search for them to add products and payments.</p>
 
-      const html = [`<h3>${match.name} (${match.id})</h3><p>${match.phone} - ${match.place}</p>`];
-      match.products.forEach((p, i) => {
-        const paid = p.payments?.reduce((sum, a) => sum + a.amount, 0) || 0;
-        const balance = p.total - paid;
-        const due = (match.paidDues || 0) + (p.payments?.length || 0) + 1;
-        html.push(`
-          <div>
-            <strong>${p.name}</strong><br>
-            ₹${p.total} | Paid: ₹${paid} | Balance: ₹${balance}<br>
-            <input id="amt_${i}" placeholder="Amount">
-            <input id="date_${i}" type="date" value="${new Date().toISOString().split('T')[0]}">
-            <button onclick="saveEntry('${match.id}', '${p.name}', ${i})">Save</button>
-          </div>
-        `);
-      });
-      div.innerHTML = html.join('<br>');
-    }
+        <hr style="margin: 30px 0; border-color: #333;">
 
-    function saveEntry(id, product, i) {
-      const amt = parseFloat(document.getElementById(`amt_${i}`).value);
-      const date = document.getElementById(`date_${i}`).value;
-      if (!amt || !date) return alert("❌ Fill all fields");
+        <h2>Export Today's Collections</h2>
+        <p>This will export all payments added today from this session for agent submission.</p>
+        <button onclick="exportAgentCollection()">Export Today's Agent Collection</button>
+    </main>
 
-      const customer = customers.find(c => c.id === id);
-      const prod = customer.products.find(p => p.name === product);
-      const due = (customer.paidDues || 0) + (prod.payments?.length || 0) + 1;
+    <script>
+        // Local state for the agent's session, starting with a copy of main customers
+        let currentSessionCustomers = [];
+        let newPaymentsMadeToday = []; // To store payments made in this session for export
 
-      entries.push({ id, name: customer.name, phone: customer.phone, product, amount: amt, date, dueNumber: due });
-      localStorage.setItem("agent_entries", JSON.stringify(entries));
-      alert("✅ Entry added.");
-    }
-  </script>
+        // Helper function to get the current date in YYYY-MM-DD format
+        function getTodayDate() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        // Load customers from local storage (the main data) on page load
+        window.onload = function() {
+            const storedCustomers = localStorage.getItem('mainCustomers');
+            if (storedCustomers) {
+                currentSessionCustomers = JSON.parse(storedCustomers);
+                console.log("Customers loaded from local storage for entries:", currentSessionCustomers);
+            } else {
+                alert("No main customer data found. Please upload it on the Dashboard first.");
+            }
+        };
+
+        function getPaidTotal(product) {
+            if (Array.isArray(product.payments)) {
+                return product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+            } else if (typeof product.paid === "number") {
+                return product.paid;
+            }
+            return 0;
+        }
+
+        function searchCustomer() {
+            const key = document.getElementById("searchId").value.toLowerCase().trim();
+            if (!key) {
+                document.getElementById("resultArea").innerHTML = "<p>Please enter a search ID or Name.</p>";
+                return;
+            }
+
+            const match = currentSessionCustomers.find(c =>
+                c.id.toLowerCase().includes(key) || c.name.toLowerCase().includes(key)
+            );
+            const div = document.getElementById("resultArea");
+            div.innerHTML = "";
+
+            if (!match) {
+                div.innerHTML = "<p>No customer found.</p>";
+                return;
+            }
+
+            const container = document.createElement("div");
+            container.innerHTML = `
+                <h3>${match.name} (${match.id})</h3>
+                <p>Phone: ${match.phone} | Place: ${match.place}</p>
+                <h4>Products:</h4>
+            `;
+
+            if (!match.products || match.products.length === 0) {
+                container.innerHTML += "<p>No products for this customer. Add one:</p>";
+                container.innerHTML += `
+                    <div class="form-group">
+                        <label for="newProductName_${match.id}">Product Name:</label>
+                        <input type="text" id="newProductName_${match.id}" placeholder="Product Name">
+                    </div>
+                    <div class="form-group">
+                        <label for="newProductTotal_${match.id}">Total Amount:</label>
+                        <input type="number" id="newProductTotal_${match.id}" placeholder="Total Amount">
+                    </div>
+                    <button onclick="addNewProduct('${match.id}')">Add Product</button>
+                `;
+            }
+
+            match.products.forEach((p, i) => {
+                // Convert old format to new format if needed (for backwards compatibility)
+                if (!p.payments && Array.isArray(p.datesPaid)) {
+                    const avg = (p.paid || 0) / p.datesPaid.length;
+                    p.payments = p.datesPaid.map((date, index) => ({ date, amount: Math.round(avg * 100) / 100, dueNumber: index + 1 }));
+                }
+                p.payments = p.payments || []; // Ensure payments array exists
+
+                const paid = getPaidTotal(p);
+                const balance = Math.max(0, p.total - paid);
+                const prodDiv = document.createElement("div");
+                prodDiv.className = "product-block";
+                prodDiv.innerHTML = `
+                    <strong>${p.name}</strong><br>
+                    Total: ₹${p.total}, Paid: ₹${paid}, Balance: ₹${balance}<br>
+                    &lt;input type="number" placeholder="Enter amount to add" id="pay_${match.id}_${i}"&gt;
+                    &lt;input type="date" id="date_${match.id}_${i}" value="${getTodayDate()}"&gt;
+                    &lt;button onclick="addPayment('${match.id}', ${i})">Add Payment</button>
+                `;
+                container.appendChild(prodDiv);
+            });
+            div.appendChild(container);
+        }
+
+        function addPayment(custId, productIndex) {
+            const amtInput = document.getElementById(`pay_${custId}_${productIndex}`);
+            const dateInput = document.getElementById(`date_${custId}_${productIndex}`);
+            const amount = parseFloat(amtInput.value);
+            const date = dateInput.value;
+
+            if (isNaN(amount) || amount <= 0 || !date) {
+                alert("Enter a valid amount and date.");
+                return;
+            }
+
+            const customer = currentSessionCustomers.find(c => c.id === custId);
+            if (!customer) {
+                alert("Customer not found in current session data.");
+                return;
+            }
+
+            const product = customer.products[productIndex];
+
+            // Convert to new structure if old (should ideally be done once on load)
+            if (!Array.isArray(product.payments)) {
+                product.payments = [];
+            }
+
+            // Remove old keys if they exist, to ensure clean data
+            delete product.paid;
+            delete product.datesPaid;
+
+            // Determine the due number. This is a crucial part for tracking.
+            // For a new payment, it's the next sequential number based on existing payments.
+            const dueNumber = product.payments.length + 1;
+
+            const newPayment = { date, amount, dueNumber };
+            product.payments.push(newPayment);
+
+            // Add this payment to the today's collection array
+            newPaymentsMadeToday.push({
+                customerId: custId,
+                productIndex: productIndex,
+                payment: newPayment
+            });
+
+            amtInput.value = ""; // Clear the input
+            alert(`Payment added for ${customer.name}, product ${product.name}. Due number: ${newPayment.dueNumber}`);
+            searchCustomer(); // Refresh the view to show updated balance
+            console.log("Current Session Customers after payment:", currentSessionCustomers);
+            console.log("New Payments Made Today:", newPaymentsMadeToday);
+        }
+
+        function addNewCustomer() {
+            const id = document.getElementById("newCustomerId").value.trim();
+            const name = document.getElementById("newCustomerName").value.trim();
+            const phone = document.getElementById("newCustomerPhone").value.trim();
+            const place = document.getElementById("newCustomerPlace").value.trim();
+
+            if (!id || !name || !phone || !place) {
+                alert("Please fill in all new customer fields.");
+                return;
+            }
+
+            if (currentSessionCustomers.some(c => c.id === id)) {
+                alert("Customer with this ID already exists.");
+                return;
+            }
+
+            const newCustomer = {
+                id: id,
+                name: name,
+                phone: phone,
+                place: place,
+                products: [] // New customers start with no products
+            };
+
+            currentSessionCustomers.push(newCustomer);
+            alert(`New customer ${name} added! You can now search for them.`);
+
+            // Clear form fields
+            document.getElementById("newCustomerId").value = "";
+            document.getElementById("newCustomerName").value = "";
+            document.getElementById("newCustomerPhone").value = "";
+            document.getElementById("newCustomerPlace").value = "";
+
+            console.log("Current Session Customers after new customer:", currentSessionCustomers);
+        }
+
+        function addNewProduct(custId) {
+            const customer = currentSessionCustomers.find(c => c.id === custId);
+            if (!customer) {
+                alert("Customer not found.");
+                return;
+            }
+
+            const productName = document.getElementById(`newProductName_${custId}`).value.trim();
+            const productTotal = parseFloat(document.getElementById(`newProductTotal_${custId}`).value);
+
+            if (!productName || isNaN(productTotal) || productTotal <= 0) {
+                alert("Please enter a valid product name and total amount.");
+                return;
+            }
+
+            const newProduct = {
+                name: productName,
+                total: productTotal,
+                payments: []
+            };
+
+            customer.products.push(newProduct);
+            alert(`New product "${productName}" added for ${customer.name}.`);
+            searchCustomer(); // Refresh the view
+            console.log("Current Session Customers after new product:", currentSessionCustomers);
+        }
+
+
+        // Function to export the daily collection
+        function exportAgentCollection() {
+            if (newPaymentsMadeToday.length === 0) {
+                alert("No new payments made in this session to export.");
+                return;
+            }
+
+            // Create a simplified structure for the agent's collection file
+            // This file will contain only the updates made in this session.
+            const agentCollectionData = {
+                date: getTodayDate(),
+                payments: newPaymentsMadeToday
+            };
+
+            const blob = new Blob([JSON.stringify(agentCollectionData, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `agent_collection_${getTodayDate()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            alert("Today's agent collection exported successfully!");
+        }
+    </script>
 </body>
 </html>
