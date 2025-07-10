@@ -65,6 +65,12 @@
       cursor: pointer;
       margin-bottom: 20px;
     }
+    .infoBox {
+      background: #1d1d1d;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
@@ -78,6 +84,7 @@
   <main>
     <h1>Reports</h1>
     <input type="text" id="searchBox" placeholder="Search by Name, ID, or Phone" oninput="searchCustomer(this.value)">
+    <div id="customerInfo" class="infoBox" style="display:none;"></div>
     <div style="text-align:center">
       <button class="download" onclick="downloadPDF()">📄 Download PDF</button>
     </div>
@@ -88,13 +95,38 @@
     let selectedCustomer = null;
 
     function searchCustomer(value) {
+      const box = document.getElementById("customerInfo");
+      box.style.display = "none";
       if (!value || value.length < 2) return;
+
       selectedCustomer = customers.find(c =>
         c.name?.toLowerCase().includes(value.toLowerCase()) ||
         c.id?.toLowerCase().includes(value.toLowerCase()) ||
         c.phone?.includes(value)
       );
-      if (!selectedCustomer) alert("Customer not found");
+
+      if (!selectedCustomer) {
+        box.innerHTML = "<p>No customer found.</p>";
+        box.style.display = "block";
+        return;
+      }
+
+      let html = `
+        <p><strong>ID:</strong> ${selectedCustomer.id}</p>
+        <p><strong>Name:</strong> ${selectedCustomer.name}</p>
+        <p><strong>Phone:</strong> ${selectedCustomer.phone}</p>
+        <p><strong>Place:</strong> ${selectedCustomer.place}</p>
+        <p><strong>Total Dues:</strong> ${selectedCustomer.totalDues}</p>
+        <p><strong>Paid Dues:</strong> ${selectedCustomer.paidDues}</p>
+      `;
+
+      selectedCustomer.products.forEach(product => {
+        html += `<hr><p><strong>Product:</strong> ${product.name}</p>`;
+        html += `<p><strong>Cost:</strong> ₹${product.total}</p>`;
+      });
+
+      box.innerHTML = html;
+      box.style.display = "block";
     }
 
     function downloadPDF() {
@@ -109,7 +141,6 @@
         let balance = total;
         const payments = [...(product.payments || [])];
 
-        // Sort by dueNumber to ensure correct order
         payments.sort((a, b) => Number(a.dueNumber) - Number(b.dueNumber));
 
         payments.forEach(p => {
@@ -129,7 +160,7 @@
         });
       });
 
-      // Branding header
+      // Header branding
       doc.setFontSize(26);
       doc.setTextColor(0, 200, 255);
       doc.text("Meena Groups", 105, 20, { align: "center" });
