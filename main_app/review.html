@@ -180,28 +180,24 @@
           if (!prod.datesPaid) prod.datesPaid = [];
           if (!prod.payments) prod.payments = [];
 
-          // Get highest existing due number
-          let lastDueNumber = (cust.paidDues || 0);
-          if (prod.payments.length > 0) {
-            const maxDue = Math.max(...prod.payments.map(p => p.dueNumber || 0));
-            lastDueNumber = Math.max(lastDueNumber, maxDue);
-          }
+          let lastDue = cust.paidDues || 0;
+          const maxProductDue = prod.payments.length > 0
+            ? Math.max(...prod.payments.map(p => p.dueNumber || 0))
+            : 0;
+          lastDue = Math.max(lastDue, maxProductDue);
 
-          const nextDueNumber = lastDueNumber + 1;
+          const nextDue = lastDue + 1;
 
-          // Add new payment
           prod.payments.push({
             date: entry.date,
             amount: parseFloat(entry.amount),
-            dueNumber: nextDueNumber
+            dueNumber: nextDue
           });
 
-          // Update total paid
           prod.paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
-
-          // Maintain backward compatibility
           prod.datesPaid.push(entry.date);
 
+          cust.paidDues = nextDue;
           updated++;
         }
       });
@@ -211,7 +207,22 @@
     }
 
     function exportMainJSON() {
-      const blob = new Blob([JSON.stringify(mainCustomers, null, 2)], { type: "application/json" });
+      const exportData = mainCustomers.map(c => ({
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        place: c.place,
+        totalDues: c.totalDues,
+        paidDues: c.paidDues,
+        products: c.products.map(p => ({
+          name: p.name,
+          total: p.total,
+          paid: p.paid,
+          datesPaid: (p.payments || []).map(pmt => pmt.date)
+        }))
+      }));
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
