@@ -124,7 +124,12 @@
       if (!Array.isArray(payments) || payments.length === 0) {
         return `<div class="payment-entry">No payment records.</div>`;
       }
-      return payments.map(p => `
+
+      // Treat first payment as Due 21
+      const adjusted = [...payments];
+      if (adjusted.length > 0) adjusted[0].dueNumber = 21;
+
+      return adjusted.map(p => `
         <div class="payment-entry">
           <span>${p.date || '-'} (Due ${p.dueNumber || '-'})</span>
           <span>${format(p.amount)}</span>
@@ -213,39 +218,25 @@
 
       customer.products.forEach((p, i) => {
         const total = Number(p.total || 0);
-        const payments = p.payments || [];
+        const payments = [...(p.payments || [])];
 
-        const grouped = {};
-        let totalPaid = 0;
-        const dueSet = new Set();
-
-        payments.forEach(pay => {
-          const due = Number(pay.dueNumber);
-          dueSet.add(due);
-          if (!grouped[due]) grouped[due] = [];
-          grouped[due].push(pay);
-          totalPaid += Number(pay.amount || 0);
-        });
-
-        const allDues = [...dueSet].sort((a, b) => a - b);
-        const minDue = allDues[0];
-        const maxDue = allDues[allDues.length - 1];
-
-        let rows = [];
-        let runningBalance = total;
-
-        for (let d = minDue; d <= maxDue; d++) {
-          const duePays = grouped[d] || [];
-          const totalForDue = duePays.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-          const lastDate = duePays.length > 0 ? duePays[duePays.length - 1].date : "-";
-          runningBalance -= totalForDue;
-          rows.push([
-            `Due ${d}`,
-            lastDate,
-            `₹${totalForDue.toLocaleString("en-IN")}`,
-            `₹${runningBalance.toLocaleString("en-IN")}`
-          ]);
+        if (payments.length > 0) {
+          payments[0].dueNumber = 21; // Force 1st payment as Due 21
         }
+
+        const sortedPayments = payments.sort((a, b) => a.dueNumber - b.dueNumber);
+
+        let runningBalance = total;
+        let rows = sortedPayments.map(pay => {
+          const amount = Number(pay.amount || 0);
+          runningBalance -= amount;
+          return [
+            `Due ${pay.dueNumber}`,
+            pay.date || "-",
+            `₹${amount.toLocaleString("en-IN")}`,
+            `₹${runningBalance.toLocaleString("en-IN")}`
+          ];
+        });
 
         doc.setFontSize(13);
         doc.setTextColor(0, 188, 212);
@@ -257,8 +248,8 @@
           head: [["Total", "Paid", "Balance"]],
           body: [[
             `₹${total.toLocaleString("en-IN")}`,
-            `₹${totalPaid.toLocaleString("en-IN")}`,
-            `₹${(total - totalPaid).toLocaleString("en-IN")}`
+            `₹${getPaidAmount(payments).toLocaleString("en-IN")}`,
+            `₹${(total - getPaidAmount(payments)).toLocaleString("en-IN")}`
           ]],
           styles: { fontSize: 10 }
         });
