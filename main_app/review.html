@@ -5,24 +5,21 @@
   <title>Review Agent Collections - EMI Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; }
+    body {
+      background: #121212; color: #eee;
+      font-family: sans-serif; margin: 0;
+    }
     nav {
-      background: #1f1f1f; display: flex; flex-wrap: wrap;
-      gap: 10px; padding: 10px;
+      background: #1f1f1f; display: flex; gap: 10px; padding: 10px;
     }
     nav a {
       color: white; background: #333;
-      padding: 10px 15px; border-radius: 5px;
-      text-decoration: none;
+      padding: 10px 15px; border-radius: 5px; text-decoration: none;
     }
-    nav a:hover { background: #00bcd4; color: black; }
+    nav a:hover {
+      background: #00bcd4; color: black;
+    }
     main { padding: 20px; }
-    h1 { color: #00bcd4; }
-    input[type="file"], input[type="text"] {
-      background: #1e1e1e; color: white;
-      border: 1px solid #444; padding: 10px;
-      border-radius: 5px; width: 100%; margin: 10px 0;
-    }
     table {
       width: 100%; border-collapse: collapse; margin-top: 20px;
     }
@@ -31,14 +28,18 @@
     }
     thead { background: #2c2c2c; }
     tr:nth-child(even) { background: #1f1f1f; }
+    input[type="file"], input[type="text"] {
+      background: #1e1e1e; color: white;
+      border: 1px solid #444; padding: 10px;
+      border-radius: 5px; width: 100%; margin: 10px 0;
+    }
     button {
       background: #00bcd4; color: black;
       font-weight: bold; padding: 10px 15px;
       border: none; border-radius: 5px;
-      margin: 5px; cursor: pointer;
+      margin-top: 10px; cursor: pointer;
     }
     button:hover { background: #26c6da; }
-    .hidden { display: none; }
   </style>
 </head>
 <body>
@@ -56,25 +57,25 @@
     <input type="file" accept=".json" onchange="loadMainJSON(event)">
     <label>📂 Upload Agent Collection JSON:</label>
     <input type="file" accept=".json" onchange="loadAgentJSON(event)">
-    <input type="text" id="searchBox" placeholder="🔍 Search by ID or Name" oninput="filterTable()">
-    
+    <input type="text" id="searchInput" placeholder="🔍 Search ID or Name" oninput="filterTable()">
+
     <div id="summary"></div>
-    <table id="agentTable" class="hidden">
+    <table id="agentTable" style="display:none;">
       <thead>
         <tr>
-          <th>ID</th><th>Name</th><th>Phone</th><th>Product</th>
-          <th>Amount</th><th>Due</th><th>Date</th><th>Action</th>
+          <th>ID</th><th>Name</th><th>Phone</th>
+          <th>Product</th><th>Amount</th><th>Due</th><th>Date</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
-
-    <button onclick="mergeData()" id="approveBtn" class="hidden">✅ Approve & Merge</button>
-    <button onclick="exportMerged()" id="exportBtn" class="hidden">📤 Export Merged JSON</button>
+    <button onclick="mergeData()" id="approveBtn" style="display:none;">✅ Approve & Merge</button>
+    <button onclick="exportMerged()" id="exportBtn" style="display:none;">📤 Export Merged JSON</button>
   </main>
 
   <script>
-    let mainCustomers = [], agentEntries = [];
+    let mainCustomers = [];
+    let agentEntries = [];
 
     function loadMainJSON(event) {
       const reader = new FileReader();
@@ -89,93 +90,68 @@
       const reader = new FileReader();
       reader.onload = e => {
         agentEntries = JSON.parse(e.target.result);
-        renderTable();
+        showAgentTable();
       };
       reader.readAsText(event.target.files[0]);
     }
 
-    function renderTable() {
+    function showAgentTable() {
       const tbody = document.querySelector("#agentTable tbody");
       tbody.innerHTML = "";
       let total = 0;
 
-      agentEntries.forEach((e, i) => {
+      agentEntries.forEach(e => {
         total += Number(e.amount || 0);
         const row = document.createElement("tr");
         row.innerHTML = `
           <td>${e.id}</td>
           <td>${e.name}</td>
           <td>${e.phone}</td>
-          <td>${e.product}</td>
-          <td contenteditable onblur="editEntry(${i}, 'amount', this.innerText)">${e.amount}</td>
-          <td contenteditable onblur="editEntry(${i}, 'dueNumber', this.innerText)">${e.dueNumber || '-'}</td>
-          <td contenteditable onblur="editEntry(${i}, 'date', this.innerText)">${e.date}</td>
-          <td><button onclick="deleteEntry(${i})">❌</button></td>
+          <td>${e.product || "-"}</td>
+          <td>₹${parseFloat(e.amount).toFixed(2)}</td>
+          <td>${e.dueNumber || "-"}</td>
+          <td>${e.date}</td>
         `;
         tbody.appendChild(row);
       });
 
       document.getElementById("summary").innerHTML = `<strong>Total Collected:</strong> ₹${total.toFixed(2)}`;
-      document.getElementById("agentTable").classList.remove("hidden");
-      document.getElementById("approveBtn").classList.remove("hidden");
-      document.getElementById("exportBtn").classList.remove("hidden");
-    }
-
-    function deleteEntry(index) {
-      if (confirm("Delete this entry?")) {
-        agentEntries.splice(index, 1);
-        renderTable();
-      }
-    }
-
-    function editEntry(index, field, value) {
-      if (field === "amount" || field === "dueNumber") {
-        value = Number(value);
-        if (isNaN(value)) return alert("Enter a valid number.");
-      }
-      agentEntries[index][field] = value;
-    }
-
-    function filterTable() {
-      const keyword = document.getElementById("searchBox").value.toLowerCase();
-      const rows = document.querySelectorAll("#agentTable tbody tr");
-      rows.forEach(row => {
-        const id = row.cells[0].innerText.toLowerCase();
-        const name = row.cells[1].innerText.toLowerCase();
-        row.style.display = id.includes(keyword) || name.includes(keyword) ? "" : "none";
-      });
+      document.getElementById("agentTable").style.display = "table";
+      document.getElementById("approveBtn").style.display = "inline-block";
+      document.getElementById("exportBtn").style.display = "inline-block";
     }
 
     function mergeData() {
-      let merged = 0;
+      let updated = 0;
+
       agentEntries.forEach(entry => {
-        const cust = mainCustomers.find(c => c.id === entry.id);
-        if (!cust) return;
+        const customer = mainCustomers.find(c => c.id === entry.id);
+        if (!customer) return;
 
-        const prod = cust.products.find(p => p.name === entry.product);
-        if (!prod) return;
+        const product = customer.products.find(p => p.name === entry.product);
+        if (!product) return;
 
-        if (!Array.isArray(prod.payments)) prod.payments = [];
-        if (!Array.isArray(prod.datesPaid)) prod.datesPaid = [];
+        if (!Array.isArray(product.payments)) product.payments = [];
+        if (!Array.isArray(product.datesPaid)) product.datesPaid = [];
 
-        // Ensure no duplicate dueNumber
-        const existingDue = prod.payments.find(p => p.dueNumber === entry.dueNumber);
-        if (!existingDue) {
-          prod.payments.push({
+        // Use dueNumber from agent entry directly
+        const alreadyExists = product.payments.some(p =>
+          p.date === entry.date && p.amount === entry.amount && p.dueNumber === entry.dueNumber
+        );
+        if (!alreadyExists) {
+          product.payments.push({
             date: entry.date,
             amount: Number(entry.amount),
             dueNumber: entry.dueNumber
           });
 
-          prod.datesPaid.push(entry.date);
-          prod.paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
-
-          cust.paidDues = Math.max(cust.paidDues || 0, entry.dueNumber);
-          merged++;
+          product.datesPaid.push(entry.date);
+          product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+          updated++;
         }
       });
 
-      alert(`✅ Merged ${merged} entries into main file.`);
+      alert(`✅ Merged ${updated} entries into main customers.`);
     }
 
     function exportMerged() {
@@ -185,6 +161,16 @@
       a.href = url;
       a.download = "merged_main_customers.json";
       a.click();
+    }
+
+    function filterTable() {
+      const keyword = document.getElementById("searchInput").value.toLowerCase();
+      const rows = document.querySelectorAll("#agentTable tbody tr");
+      rows.forEach(row => {
+        const id = row.children[0].innerText.toLowerCase();
+        const name = row.children[1].innerText.toLowerCase();
+        row.style.display = (id.includes(keyword) || name.includes(keyword)) ? "" : "none";
+      });
     }
   </script>
 </body>
