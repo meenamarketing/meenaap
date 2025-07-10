@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>EMI Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       background: #121212;
@@ -60,6 +61,7 @@
       color: white;
       padding: 10px;
       border: 1px solid #555;
+      border-radius: 6px;
     }
   </style>
 </head>
@@ -78,43 +80,39 @@
     <input type="file" accept=".json" onchange="loadJSON(event)" />
 
     <div class="summary">
-      <div class="card">
-        <h3>Total Customers</h3>
-        <p id="totalCustomers">-</p>
-      </div>
-      <div class="card">
-        <h3>Total Products</h3>
-        <p id="totalProducts">-</p>
-      </div>
-      <div class="card">
-        <h3>Total Paid</h3>
-        <p id="totalPaid">-</p>
-      </div>
-      <div class="card">
-        <h3>Total Balance</h3>
-        <p id="totalBalance">-</p>
-      </div>
+      <div class="card"><h3>Total Customers</h3><p id="totalCustomers">-</p></div>
+      <div class="card"><h3>Total Products</h3><p id="totalProducts">-</p></div>
+      <div class="card"><h3>Total Paid</h3><p id="totalPaid">-</p></div>
+      <div class="card"><h3>Total Balance</h3><p id="totalBalance">-</p></div>
     </div>
 
-    <canvas id="barChart" width="400" height="200"></canvas>
-    <canvas id="pieChart" width="400" height="200"></canvas>
+    <canvas id="barChart" height="150"></canvas>
+    <canvas id="pieChart" height="150"></canvas>
+    <canvas id="lineChart" height="150"></canvas>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     let customersData = [];
 
     function loadJSON(event) {
       const file = event.target.files[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = function (e) {
         customersData = JSON.parse(e.target.result);
+        localStorage.setItem("main_customers", JSON.stringify(customersData));
         updateDashboard();
       };
       reader.readAsText(file);
     }
+
+    window.onload = function () {
+      const stored = localStorage.getItem("main_customers");
+      if (stored) {
+        customersData = JSON.parse(stored);
+        updateDashboard();
+      }
+    };
 
     function updateDashboard() {
       const totalCustomers = customersData.length;
@@ -122,11 +120,32 @@
       let totalPaid = 0;
       let totalBalance = 0;
 
+      const dailyStats = {};
+
       customersData.forEach(customer => {
         customer.products.forEach(product => {
           totalProducts++;
-          totalPaid += product.paid;
-          totalBalance += (product.total - product.paid);
+
+          let payments = [];
+
+          if (Array.isArray(product.payments)) {
+            payments = product.payments;
+          } else if (product.paid && Array.isArray(product.datesPaid)) {
+            const avg = product.paid / product.datesPaid.length;
+            payments = product.datesPaid.map((d, i) => ({ date: d, amount: avg }));
+          }
+
+          const paidAmount = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+          const balanceAmount = (product.total || 0) - paidAmount;
+
+          totalPaid += paidAmount;
+          totalBalance += balanceAmount;
+
+          payments.forEach(p => {
+            const day = p.date;
+            if (!dailyStats[day]) dailyStats[day] = 0;
+            dailyStats[day] += p.amount;
+          });
         });
       });
 
@@ -135,12 +154,13 @@
       document.getElementById("totalPaid").textContent = "₹" + totalPaid.toFixed(2);
       document.getElementById("totalBalance").textContent = "₹" + totalBalance.toFixed(2);
 
-      drawCharts(totalPaid, totalBalance);
+      drawCharts(totalPaid, totalBalance, dailyStats);
     }
 
-    function drawCharts(paid, balance) {
+    function drawCharts(paid, balance, dailyStats) {
       const barCtx = document.getElementById("barChart").getContext("2d");
       const pieCtx = document.getElementById("pieChart").getContext("2d");
+      const lineCtx = document.getElementById("lineChart").getContext("2d");
 
       new Chart(barCtx, {
         type: 'bar',
@@ -151,6 +171,9 @@
             data: [paid, balance],
             backgroundColor: ['#4caf50', '#f44336']
           }]
+        },
+        options: {
+          scales: { y: { beginAtZero: true } }
         }
       });
 
@@ -162,6 +185,37 @@
             data: [paid, balance],
             backgroundColor: ['#4caf50', '#f44336']
           }]
+        }
+      });
+
+      const sortedDates = Object.keys(dailyStats).sort();
+      const lineLabels = sortedDates;
+      const lineData = sortedDates.map(date => dailyStats[date]);
+
+      new Chart(lineCtx, {
+        type: 'line',
+        data: {
+          labels: lineLabels,
+          datasets: [{
+            label: "Daily Collections",
+            data: lineData,
+            borderColor: "#00bcd4",
+            backgroundColor: "rgba(0,188,212,0.1)",
+            fill: true,
+            tension: 0.2,
+            pointRadius: 3,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: true }
+          },
+          scales: {
+            x: { ticks: { color: "#ccc" } },
+            y: { beginAtZero: true, ticks: { color: "#ccc" } }
+          }
         }
       });
     }
