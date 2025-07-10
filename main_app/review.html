@@ -5,33 +5,73 @@
   <title>Review Agent Collections - Main App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; }
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: sans-serif;
+      margin: 0;
+    }
     nav {
-      background: #1f1f1f; display: flex; gap: 10px; padding: 10px;
+      background: #1f1f1f;
+      display: flex;
+      gap: 10px;
+      padding: 10px;
     }
     nav a {
-      color: white; background: #333; padding: 10px 15px; border-radius: 5px; text-decoration: none;
+      color: white;
+      background: #333;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
     }
-    nav a:hover { background: #00bcd4; color: black; }
-    main { padding: 20px; }
+    nav a:hover {
+      background: #00bcd4;
+      color: black;
+    }
+    main {
+      padding: 20px;
+    }
     input[type="file"], input[type="text"] {
-      padding: 10px; margin: 10px 0; border-radius: 5px;
-      background: #1e1e1e; color: white; border: 1px solid #555; width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      background: #1e1e1e;
+      color: white;
+      border: 1px solid #555;
+      width: 100%;
     }
     table {
-      width: 100%; border-collapse: collapse; margin-top: 20px;
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
     }
     th, td {
-      padding: 10px; border: 1px solid #333; text-align: center;
+      padding: 10px;
+      border: 1px solid #333;
+      text-align: center;
     }
-    thead { background: #2c2c2c; }
-    tr:nth-child(even) { background: #1f1f1f; }
+    thead {
+      background: #2c2c2c;
+    }
+    tr:nth-child(even) {
+      background: #1f1f1f;
+    }
     button {
-      background: #00bcd4; color: black; padding: 10px 15px; margin-top: 10px;
-      font-weight: bold; border: none; border-radius: 5px; cursor: pointer;
+      background: #00bcd4;
+      color: black;
+      padding: 10px 15px;
+      margin-top: 10px;
+      font-weight: bold;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
     }
-    button:hover { background: #26c6da; }
-    #summary { margin: 10px 0; }
+    button:hover {
+      background: #26c6da;
+    }
+    #summary {
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -76,8 +116,9 @@
     function loadMainData(event) {
       const file = event.target.files[0];
       const reader = new FileReader();
-      reader.onload = function (e) {
+      reader.onload = function(e) {
         mainCustomers = JSON.parse(e.target.result);
+        localStorage.setItem("main_customers", JSON.stringify(mainCustomers));
         alert("✅ Main database loaded");
       };
       reader.readAsText(file);
@@ -86,7 +127,7 @@
     function loadAgentData(event) {
       const file = event.target.files[0];
       const reader = new FileReader();
-      reader.onload = function (e) {
+      reader.onload = function(e) {
         agentEntries = JSON.parse(e.target.result);
         showAgentData(agentEntries);
       };
@@ -99,16 +140,18 @@
       let total = 0;
 
       data.forEach(entry => {
-        total += parseFloat(entry.amount);
+        const amount = parseFloat(entry.amount) || 0;
+        total += amount;
+
         const row = document.createElement("tr");
         row.innerHTML = `
-          <td>${entry.id}</td>
-          <td>${entry.name}</td>
-          <td>${entry.phone}</td>
+          <td>${entry.id || ''}</td>
+          <td>${entry.name || ''}</td>
+          <td>${entry.phone || ''}</td>
           <td>${entry.product || '-'}</td>
-          <td>₹${parseFloat(entry.amount).toFixed(2)}</td>
+          <td>₹${amount.toFixed(2)}</td>
           <td>${entry.dueNumber || '-'}</td>
-          <td>${entry.date}</td>
+          <td>${entry.date || '-'}</td>
         `;
         tbody.appendChild(row);
       });
@@ -133,40 +176,34 @@
 
       agentEntries.forEach(entry => {
         const cust = mainCustomers.find(c => c.id === entry.id);
-        if (!cust) return;
+        if (cust) {
+          const prod = cust.products.find(p => p.name === entry.product);
+          if (!prod) return;
 
-        const prod = cust.products.find(p => p.name === entry.product);
-        if (!prod) return;
+          if (!prod.payments) prod.payments = [];
 
-        if (!prod.payments) prod.payments = [];
-        if (!prod.datesPaid) prod.datesPaid = [];
+          const lastDue = Math.max(...prod.payments.map(p => p.dueNumber || 0), cust.paidDues || 0);
+          const nextDueNumber = lastDue + 1;
 
-        // Get last due number
-        const lastDue = Math.max(
-          ...prod.payments.map(p => p.dueNumber || 0),
-          cust.paidDues || 0
-        );
+          const amount = parseFloat(entry.amount) || 0;
 
-        const nextDue = lastDue + 1;
+          prod.payments.push({
+            date: entry.date,
+            amount,
+            dueNumber: nextDueNumber
+          });
 
-        // Add payment
-        prod.payments.push({
-          date: entry.date,
-          amount: parseFloat(entry.amount),
-          dueNumber: nextDue
-        });
+          prod.paid = prod.payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+          cust.paidDues = nextDueNumber;
 
-        prod.datesPaid.push(entry.date);
+          if (!prod.datesPaid) prod.datesPaid = [];
+          prod.datesPaid.push(entry.date);
 
-        // Recalculate total paid
-        prod.paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
-
-        // Update paid dues
-        cust.paidDues = nextDue;
-
-        updated++;
+          updated++;
+        }
       });
 
+      localStorage.setItem("main_customers", JSON.stringify(mainCustomers));
       alert(`✅ Approved and merged ${updated} entries`);
     }
 
@@ -178,7 +215,7 @@
         place: c.place || "",
         totalDues: c.totalDues || 0,
         paidDues: c.paidDues || 0,
-        products: (c.products || []).map(p => ({
+        products: c.products.map(p => ({
           name: p.name,
           total: p.total || 0,
           paid: p.paid || 0,
@@ -187,10 +224,7 @@
         }))
       }));
 
-      const blob = new Blob([JSON.stringify(exported, null, 2)], {
-        type: "application/json"
-      });
-
+      const blob = new Blob([JSON.stringify(exported, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
