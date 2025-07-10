@@ -5,52 +5,16 @@
   <title>Today's Collections - Agent App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      background: #121212;
-      color: #eee;
-      font-family: sans-serif;
-      margin: 0;
-    }
-    nav {
-      background: #1f1f1f;
-      display: flex;
-      flex-wrap: wrap;
-      padding: 10px;
-      gap: 10px;
-    }
-    nav a {
-      color: white;
-      background: #333;
-      padding: 10px 15px;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-    nav a:hover {
-      background: #00bcd4;
-      color: black;
-    }
-    main {
-      padding: 20px;
-    }
-    h1 {
-      color: #00bcd4;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #333;
-      text-align: center;
-    }
-    thead {
-      background: #2c2c2c;
-    }
-    tr:nth-child(odd) {
-      background: #1d1d1d;
-    }
+    body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; }
+    nav { background: #1f1f1f; display: flex; flex-wrap: wrap; padding: 10px; gap: 10px; }
+    nav a { color: white; background: #333; padding: 10px 15px; border-radius: 5px; text-decoration: none; }
+    nav a:hover { background: #00bcd4; color: black; }
+    main { padding: 20px; }
+    h1 { color: #00bcd4; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; border: 1px solid #333; text-align: center; }
+    thead { background: #2c2c2c; }
+    tr:nth-child(odd) { background: #1d1d1d; }
     button {
       background: #00bcd4;
       color: black;
@@ -61,9 +25,7 @@
       cursor: pointer;
       margin: 10px 5px;
     }
-    button:hover {
-      background: #26c6da;
-    }
+    button:hover { background: #26c6da; }
   </style>
 </head>
 <body>
@@ -131,21 +93,48 @@
     }
 
     function exportJSON() {
-      const formatted = entries.map(e => ({
-        id: e.id,
-        name: e.name,
-        phone: e.phone,
-        product: e.product,
-        amount: Number(e.amount),
-        date: e.date,
-        dueNumber: Number(e.dueNumber) || null
-      }));
+      const grouped = {};
+
+      // Group by customer ID
+      entries.forEach(entry => {
+        if (!grouped[entry.id]) {
+          grouped[entry.id] = {
+            id: entry.id,
+            name: entry.name,
+            phone: entry.phone,
+            place: entry.place || "",
+            totalDues: 0,
+            paidDues: 0,
+            products: []
+          };
+        }
+
+        const customer = grouped[entry.id];
+
+        let product = customer.products.find(p => p.name === entry.product);
+        if (!product) {
+          product = {
+            name: entry.product,
+            total: 0,
+            payments: []
+          };
+          customer.products.push(product);
+        }
+
+        product.payments.push({
+          date: entry.date,
+          amount: Number(entry.amount),
+          dueNumber: Number(entry.dueNumber)
+        });
+      });
+
+      const formatted = Object.values(grouped);
 
       const blob = new Blob([JSON.stringify(formatted, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "agent_collections_with_due.json";
+      a.download = "agent_collections_formatted.json";
       a.click();
     }
 
