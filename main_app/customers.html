@@ -141,13 +141,14 @@
     function loadJSON(event) {
       const file = event.target.files[0];
       if (!file) return;
+
       const reader = new FileReader();
       reader.onload = function (e) {
         try {
           customers = JSON.parse(e.target.result);
           renderTable();
         } catch {
-          alert("Invalid JSON format!");
+          alert("Invalid JSON file");
         }
       };
       reader.readAsText(file);
@@ -156,18 +157,27 @@
     function renderTable() {
       const table = document.getElementById("customerTable");
       table.innerHTML = "";
+
       customers.forEach(c => {
         const row = document.createElement("tr");
-        const productList = c.products.map(p => {
-          const balance = p.total - p.paid;
-          return `<div>${p.name}: ₹${p.paid}/₹${p.total} (Balance: ₹${balance})</div>`;
-        }).join("");
+
+        const productsHTML = c.products.map(p => {
+          const balance = (p.total || 0) - (p.paid || 0);
+          return `
+            <div style="margin-bottom: 5px;">
+              <strong>${p.name}</strong><br>
+              Paid: ₹${p.paid} / ₹${p.total}<br>
+              Balance: ₹${balance}
+            </div>
+          `;
+        }).join("<hr style='border:0.5px dashed #444;'>");
+
         row.innerHTML = `
           <td>${c.id}</td>
           <td>${c.name}</td>
           <td>${c.phone}</td>
           <td>${c.place}</td>
-          <td>${productList}</td>
+          <td>${productsHTML}</td>
         `;
         table.appendChild(row);
       });
@@ -210,10 +220,10 @@
       const total = parseFloat(document.getElementById("addProductTotal").value);
       const paid = parseFloat(document.getElementById("addProductPaid").value);
 
-      if (!name || isNaN(total) || isNaN(paid)) return alert("Fill all fields properly");
+      if (!name || isNaN(total) || isNaN(paid)) return alert("Enter all valid fields");
 
       const duplicate = customer.products.find(p => p.name.toLowerCase() === name.toLowerCase());
-      if (duplicate) return alert("Product with same name already exists");
+      if (duplicate) return alert("This product already exists for this customer.");
 
       customer.products.push({
         name,
