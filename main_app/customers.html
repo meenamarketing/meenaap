@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Customers - EMI Manager</title>
@@ -97,73 +98,85 @@
     <a href="review.html">Agent Review</a>
     <a href="report.html">Reports</a>
   </nav>
+
   <main>
-    <h1>Customer Manager</h1><input type="file" accept=".json" onchange="loadJSON(event)">
-<button onclick="downloadJSON()">Export Updated JSON</button>
+    <h1>Customer Manager</h1>
 
-<h2>Add New Customer</h2>
-<input id="newId" placeholder="Customer ID" />
-<input id="newName" placeholder="Name" />
-<input id="newPhone" placeholder="Phone" />
-<input id="newPlace" placeholder="Place" />
-<input id="newProduct" placeholder="Product Name" />
-<input id="newTotal" placeholder="Total Amount" type="number" />
-<input id="newPaid" placeholder="Amount Paid" type="number" />
-<input id="newTotalDues" placeholder="Total Dues" type="number" />
-<input id="newPaidDues" placeholder="Dues Already Paid" type="number" />
-<button onclick="addCustomer()">Add Customer</button>
+    <input type="file" accept=".json" onchange="loadJSON(event)">
+    <button onclick="downloadJSON()">Export Updated JSON</button>
 
-<h2>Add Product to Existing Customer</h2>
-<input id="existingId" placeholder="Customer ID" oninput="showSuggestions()">
-<div id="suggestions"></div>
-<input id="addProductName" placeholder="Product Name" />
-<input id="addProductTotal" placeholder="Total Amount" type="number" />
-<input id="addProductPaid" placeholder="Amount Paid" type="number" />
-<button onclick="addProduct()">Add Product</button>
+    <h2>Add New Customer</h2>
+    <input id="newId" placeholder="Customer ID" />
+    <input id="newName" placeholder="Name" />
+    <input id="newPhone" placeholder="Phone" />
+    <input id="newPlace" placeholder="Place" />
+    <input id="newProduct" placeholder="Product Name" />
+    <input id="newTotal" placeholder="Total Amount" type="number" />
+    <input id="newPaid" placeholder="Amount Paid" type="number" />
+    <input id="newTotalDues" placeholder="Total Dues" type="number" />
+    <input id="newPaidDues" placeholder="Dues Already Paid" type="number" />
+    <button onclick="addCustomer()">Add Customer</button>
 
-<h2>Customer List</h2>
-<table>
-  <thead>
-    <tr>
-      <th>ID</th><th>Name</th><th>Phone</th><th>Place</th><th>Products</th><th>Edit</th>
-    </tr>
-  </thead>
-  <tbody id="customerTable"></tbody>
-</table>
+    <h2>Add Product to Existing Customer</h2>
+    <input id="existingId" placeholder="Customer ID" oninput="showSuggestions()">
+    <div id="suggestions"></div>
+    <input id="addProductName" placeholder="Product Name" />
+    <input id="addProductTotal" placeholder="Total Amount" type="number" />
+    <input id="addProductPaid" placeholder="Amount Paid" type="number" />
+    <button onclick="addProduct()">Add Product</button>
 
-  </main>  <script>
+    <h2>Customer List</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Name</th><th>Phone</th><th>Place</th><th>Products</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="customerTable"></tbody>
+    </table>
+  </main>
+
+  <script>
     let customers = [];
 
     function loadJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
       const reader = new FileReader();
-      reader.onload = e => {
+      reader.onload = function (e) {
         customers = JSON.parse(e.target.result);
         renderTable();
       };
-      reader.readAsText(event.target.files[0]);
+      reader.readAsText(file);
     }
 
     function renderTable() {
       const table = document.getElementById("customerTable");
       table.innerHTML = "";
+
       customers.forEach((c, index) => {
         const row = document.createElement("tr");
-        const productList = c.products.map(p => {
+        let productList = "";
+        c.products.forEach(p => {
           const bal = p.total - p.paid;
-          return `${p.name} - ₹${p.paid}/₹${p.total} (Balance: ₹${bal})`;
-        }).join("<br>");
+          productList += `<div>${p.name} - ₹${p.paid}/₹${p.total} (Balance: ₹${bal})</div>`;
+        });
 
-        const dueInfo = (c.totalDues && c.paidDues != null)
+        let dueInfo = (c.totalDues && c.paidDues != null)
           ? `<div>Due ${c.paidDues + 1} of ${c.totalDues}</div>`
           : "";
 
         row.innerHTML = `
-          <td>${c.id}</td>
-          <td>${c.name}</td>
-          <td>${c.phone}</td>
-          <td>${c.place}</td>
+          <td><input value="${c.id}" disabled /></td>
+          <td><input value="${c.name}" onchange="customers[${index}].name=this.value" /></td>
+          <td><input value="${c.phone}" onchange="customers[${index}].phone=this.value" /></td>
+          <td><input value="${c.place}" onchange="customers[${index}].place=this.value" /></td>
           <td>${productList}${dueInfo}</td>
-          <td><button onclick="editCustomer(${index})">Edit</button></td>
+          <td>
+            <input type="number" value="${c.totalDues || ''}" placeholder="Total Dues" onchange="customers[${index}].totalDues=parseInt(this.value)" />
+            <input type="number" value="${c.paidDues || 0}" placeholder="Paid Dues" onchange="customers[${index}].paidDues=parseInt(this.value)" />
+          </td>
         `;
         table.appendChild(row);
       });
@@ -180,58 +193,106 @@
       const totalDues = parseInt(document.getElementById("newTotalDues").value);
       const paidDues = parseInt(document.getElementById("newPaidDues").value);
 
-      if (!id || customers.find(c => c.id === id)) return alert("Invalid or duplicate ID");
-      if (!name || !product || isNaN(total) || isNaN(paid) || isNaN(totalDues) || isNaN(paidDues)) return alert("Fill all fields correctly.");
+      if (!id || customers.find(c => c.id === id)) {
+        alert("Invalid or duplicate ID");
+        return;
+      }
 
-      customers.push({ id, name, phone, place, totalDues, paidDues, products: [{ name: product, total, paid, datesPaid: [new Date().toISOString().split("T")[0]] }] });
+      if (!name || !product || isNaN(total) || isNaN(paid) || isNaN(totalDues) || isNaN(paidDues)) {
+        alert("Please fill all fields correctly.");
+        return;
+      }
+
+      customers.push({
+        id,
+        name,
+        phone,
+        place,
+        totalDues,
+        paidDues,
+        products: [{
+          name: product,
+          total,
+          paid,
+          datesPaid: [new Date().toISOString().split("T")[0]]
+        }]
+      });
+
       renderTable();
-    }
-
-    function editCustomer(index) {
-      const c = customers[index];
-      const newName = prompt("Edit Name", c.name);
-      const newPhone = prompt("Edit Phone", c.phone);
-      const newPlace = prompt("Edit Place", c.place);
-      const newTotalDues = parseInt(prompt("Edit Total Dues", c.totalDues));
-      const newPaidDues = parseInt(prompt("Edit Paid Dues", c.paidDues));
-
-      if (newName) c.name = newName;
-      if (newPhone) c.phone = newPhone;
-      if (newPlace) c.place = newPlace;
-      if (!isNaN(newTotalDues)) c.totalDues = newTotalDues;
-      if (!isNaN(newPaidDues)) c.paidDues = newPaidDues;
-
-      renderTable();
+      alert("Customer added successfully!");
     }
 
     function addProduct() {
       const id = document.getElementById("existingId").value.trim();
-      const c = customers.find(c => c.id === id);
-      if (!c) return alert("Customer not found");
+      const customer = customers.find(c => c.id === id);
+      if (!customer) {
+        alert("Customer not found");
+        return;
+      }
 
       const name = document.getElementById("addProductName").value.trim();
       const total = parseFloat(document.getElementById("addProductTotal").value);
       const paid = parseFloat(document.getElementById("addProductPaid").value);
-      if (!name || isNaN(total) || isNaN(paid)) return alert("Enter valid product info");
 
-      if (c.products.find(p => p.name.toLowerCase() === name.toLowerCase())) return alert("Product already exists.");
-      c.products.push({ name, total, paid, datesPaid: [new Date().toISOString().split("T")[0]] });
+      if (!name || isNaN(total) || isNaN(paid)) {
+        alert("Please enter valid product details.");
+        return;
+      }
+
+      const duplicate = customer.products.find(p => p.name.toLowerCase() === name.toLowerCase());
+      if (duplicate) {
+        alert("Product with this name already exists for this customer.");
+        return;
+      }
+
+      customer.products.push({
+        name,
+        total,
+        paid,
+        datesPaid: [new Date().toISOString().split("T")[0]]
+      });
+
       renderTable();
+      alert("Product added successfully!");
     }
 
     function downloadJSON() {
       const blob = new Blob([JSON.stringify(customers, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
+      a.href = url;
       a.download = "customers.json";
       a.click();
     }
 
     function showSuggestions() {
-      const val = document.getElementById("existingId").value.toLowerCase();
-      const suggestions = customers.filter(c => c.id.toLowerCase().includes(val) || c.name.toLowerCase().includes(val));
-      const box = document.getElementById("suggestions");
-      box.innerHTML = suggestions.map(c => `<div onclick=\"document.getElementById('existingId').value='${c.id}';box.innerHTML=''\">${c.id} - ${c.name}</div>`).join("");
+      const input = document.getElementById("existingId");
+      const suggestionsBox = document.getElementById("suggestions");
+      const value = input.value.toLowerCase();
+      suggestionsBox.innerHTML = "";
+
+      if (!value) return;
+
+      const matches = customers.filter(c =>
+        c.id.toLowerCase().includes(value) || c.name.toLowerCase().includes(value)
+      );
+
+      matches.slice(0, 5).forEach(c => {
+        const div = document.createElement("div");
+        div.textContent = `${c.id} - ${c.name}`;
+        div.onclick = () => {
+          input.value = c.id;
+          suggestionsBox.innerHTML = "";
+        };
+        suggestionsBox.appendChild(div);
+      });
     }
-  </script></body>
+
+    document.addEventListener("click", function (e) {
+      if (!e.target.closest("#existingId") && !e.target.closest("#suggestions")) {
+        document.getElementById("suggestions").innerHTML = "";
+      }
+    });
+  </script>
+</body>
 </html>
