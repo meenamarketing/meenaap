@@ -17,7 +17,6 @@
       display: flex;
       padding: 10px;
       gap: 15px;
-      flex-wrap: wrap;
     }
     nav a {
       color: white;
@@ -49,9 +48,6 @@
       color: black;
       font-weight: bold;
       cursor: pointer;
-    }
-    button:hover {
-      background: #26c6da;
     }
     table {
       width: 100%;
@@ -103,10 +99,8 @@
     <input type="file" accept=".json" onchange="loadData(event)">
     <br>
 
-    <div style="position:relative;">
-      <input id="searchId" placeholder="Search by ID / Name / Phone" oninput="filterData(); showSuggestions(this.value)">
-      <div id="suggestions"></div>
-    </div>
+    <input id="searchId" placeholder="Search by ID / Name / Phone" oninput="filterData(); showSuggestions(this.value)">
+    <div id="suggestions"></div>
     <input id="searchPlace" placeholder="Place" oninput="filterData()">
     <input id="searchProduct" placeholder="Product Name" oninput="filterData()">
     <label>From: <input type="date" id="fromDate" onchange="filterData()"></label>
@@ -116,24 +110,22 @@
     <h3 id="reportTotal">Total Paid: ₹0</h3>
     <h3 id="reportBalance">Total Balance: ₹0</h3>
 
-    <hr>
-    <h2>📈 Graphs</h2>
-    <canvas id="paidBalanceChart" width="400" height="150"></canvas>
-    <canvas id="barChart" width="400" height="150"></canvas>
+    <canvas id="paidBalanceChart" height="150"></canvas>
+    <canvas id="barChart" height="150"></canvas>
 
-    <h2>👥 Customer Summary</h2>
+    <h2>Customer Summary</h2>
     <table id="summaryTable">
       <thead><tr><th>ID</th><th>Name</th><th>Total Paid</th><th>Total Balance</th></tr></thead>
       <tbody></tbody>
     </table>
 
-    <h2>📆 Monthly Breakdown</h2>
+    <h2>Monthly Breakdown</h2>
     <table id="monthlyTable">
       <thead><tr><th>Month</th><th>Total Paid</th></tr></thead>
       <tbody></tbody>
     </table>
-    <hr>
 
+    <h2>Detailed Payments</h2>
     <table>
       <thead>
         <tr>
@@ -175,11 +167,9 @@
           const total = p.total || 0;
           let paidSoFar = 0;
 
-          if (p.payments && Array.isArray(p.payments)) {
+          if (Array.isArray(p.payments)) {
             p.payments.forEach(payment => {
               paidSoFar += payment.amount;
-              const balance = Math.max(0, total - paidSoFar);
-
               flatReport.push({
                 id: c.id,
                 name: c.name,
@@ -187,17 +177,14 @@
                 phone: c.phone,
                 product: p.name,
                 paid: payment.amount,
-                balance: balance,
+                balance: Math.max(0, total - paidSoFar),
                 date: payment.date
               });
             });
-          } else if (p.datesPaid && Array.isArray(p.datesPaid)) {
-            const paid = p.paid || 0;
-            const avg = paid / p.datesPaid.length;
-            p.datesPaid.forEach(date => {
+          } else if (Array.isArray(p.datesPaid)) {
+            const avg = (p.paid || 0) / p.datesPaid.length;
+            p.datesPaid.forEach((date, idx) => {
               paidSoFar += avg;
-              const balance = Math.max(0, total - paidSoFar);
-
               flatReport.push({
                 id: c.id,
                 name: c.name,
@@ -205,7 +192,7 @@
                 phone: c.phone,
                 product: p.name,
                 paid: avg,
-                balance: balance,
+                balance: Math.max(0, total - paidSoFar),
                 date: date
               });
             });
@@ -221,9 +208,6 @@
       const fromDate = document.getElementById("fromDate").value;
       const toDate = document.getElementById("toDate").value;
 
-      const tbody = document.getElementById("reportTable");
-      tbody.innerHTML = "";
-
       const filtered = flatReport.filter(r => {
         return (
           (!id || r.id.toLowerCase().includes(id) || r.name.toLowerCase().includes(id) || r.phone.includes(id)) &&
@@ -234,7 +218,10 @@
         );
       });
 
+      const tbody = document.getElementById("reportTable");
+      tbody.innerHTML = "";
       let totalPaid = 0;
+
       filtered.forEach(r => {
         totalPaid += r.paid;
         const row = document.createElement("tr");
@@ -247,27 +234,10 @@
       });
 
       document.getElementById("reportTotal").innerText = `Total Paid: ₹${totalPaid.toFixed(2)}`;
-
-      let totalBalance = 0;
-      customers.forEach(c => {
-        c.products.forEach(p => {
-          const total = p.total || 0;
-          let paid = 0;
-          if (p.payments) {
-            paid = p.payments.reduce((sum, pay) => sum + (pay.amount || 0), 0);
-          } else if (typeof p.paid === "number") {
-            paid = p.paid;
-          }
-          totalBalance += Math.max(0, total - paid);
-        });
-      });
-
-      document.getElementById("reportBalance").innerText = `Total Balance: ₹${totalBalance.toFixed(2)}`;
-
-      updateChartsAndSummaries(filtered);
+      updateSummaries(filtered);
     }
 
-    function updateChartsAndSummaries(filtered) {
+    function updateSummaries(filtered) {
       const summaryTable = document.querySelector("#summaryTable tbody");
       const monthlyTable = document.querySelector("#monthlyTable tbody");
       summaryTable.innerHTML = "";
@@ -275,85 +245,71 @@
 
       const customerMap = new Map();
       const monthlyMap = new Map();
-      let paidTotal = 0, balanceTotal = 0;
+      let piePaid = 0, pieBalance = 0;
 
       filtered.forEach(r => {
-        paidTotal += r.paid;
         if (!customerMap.has(r.id)) {
           customerMap.set(r.id, { name: r.name, paid: 0, balance: 0 });
         }
-        const cust = customerMap.get(r.id);
-        cust.paid += r.paid;
-        cust.balance = r.balance;
+        customerMap.get(r.id).paid += r.paid;
+        customerMap.get(r.id).balance = r.balance;
 
         const month = r.date?.slice(0, 7);
-        if (!monthlyMap.has(month)) monthlyMap.set(month, 0);
-        monthlyMap.set(month, monthlyMap.get(month) + r.paid);
+        monthlyMap.set(month, (monthlyMap.get(month) || 0) + r.paid);
       });
 
-      for (let [id, data] of customerMap) {
-        const row = `<tr><td>${id}</td><td>${data.name}</td><td>₹${data.paid.toFixed(2)}</td><td>₹${data.balance.toFixed(2)}</td></tr>`;
-        summaryTable.innerHTML += row;
-        balanceTotal += data.balance;
-      }
+      customerMap.forEach((data, id) => {
+        summaryTable.innerHTML += `<tr><td>${id}</td><td>${data.name}</td><td>₹${data.paid.toFixed(2)}</td><td>₹${data.balance.toFixed(2)}</td></tr>`;
+        piePaid += data.paid;
+        pieBalance += data.balance;
+      });
 
-      for (let [month, amt] of monthlyMap) {
+      monthlyMap.forEach((amt, month) => {
         monthlyTable.innerHTML += `<tr><td>${month}</td><td>₹${amt.toFixed(2)}</td></tr>`;
-      }
+      });
 
-      drawPieChart(paidTotal, balanceTotal);
-      drawBarChart([...customerMap.entries()].map(([id, d]) => ({ name: d.name, paid: d.paid })));
+      document.getElementById("reportBalance").innerText = `Total Balance: ₹${pieBalance.toFixed(2)}`;
+      drawCharts(piePaid, pieBalance, customerMap);
     }
 
-    function drawPieChart(paid, balance) {
-      const ctx = document.getElementById('paidBalanceChart').getContext('2d');
+    function drawCharts(paid, balance, customerMap) {
+      const pieCtx = document.getElementById('paidBalanceChart').getContext('2d');
       if (pieChart) pieChart.destroy();
-      pieChart = new Chart(ctx, {
+      pieChart = new Chart(pieCtx, {
         type: 'pie',
         data: {
           labels: ['Paid', 'Balance'],
-          datasets: [{
-            data: [paid, balance],
-            backgroundColor: ['#00e676', '#ff5252']
-          }]
+          datasets: [{ data: [paid, balance], backgroundColor: ['#00e676', '#ff5252'] }]
         }
       });
-    }
 
-    function drawBarChart(data) {
-      const ctx = document.getElementById('barChart').getContext('2d');
+      const barCtx = document.getElementById('barChart').getContext('2d');
       if (barChart) barChart.destroy();
-      barChart = new Chart(ctx, {
+      const labels = [], data = [];
+      customerMap.forEach((v) => {
+        labels.push(v.name);
+        data.push(v.paid);
+      });
+      barChart = new Chart(barCtx, {
         type: 'bar',
         data: {
-          labels: data.map(d => d.name),
-          datasets: [{
-            label: 'Total Paid',
-            data: data.map(d => d.paid),
-            backgroundColor: '#00bcd4'
-          }]
+          labels,
+          datasets: [{ label: 'Paid Amount', data, backgroundColor: '#00bcd4' }]
         },
         options: {
           responsive: true,
-          plugins: {
-            legend: { display: false }
-          },
-          scales: {
-            y: { beginAtZero: true }
-          }
+          scales: { y: { beginAtZero: true } },
+          plugins: { legend: { display: false } }
         }
       });
     }
 
     function exportCSV() {
       let csv = "ID,Name,Place,Phone,Product,Paid,Balance,Date\n";
-      const rows = document.querySelectorAll("#reportTable tr");
-      rows.forEach(r => {
-        const cells = r.querySelectorAll("td");
-        const row = Array.from(cells).map(td => td.innerText).join(",");
+      document.querySelectorAll("#reportTable tr").forEach(r => {
+        const row = Array.from(r.querySelectorAll("td")).map(td => td.innerText).join(",");
         csv += row + "\n";
       });
-
       const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -364,19 +320,10 @@
 
     function showSuggestions(input) {
       const box = document.getElementById("suggestions");
-      if (!input || input.length < 1) {
-        box.style.display = "none";
-        return;
-      }
-
+      if (!input || input.length < 1) return box.style.display = "none";
       const results = [...allSuggestions].filter(s => s.toLowerCase().includes(input.toLowerCase())).slice(0, 10);
       box.innerHTML = results.map(r => `<div onclick="selectSuggestion('${r}')">${r}</div>`).join("");
       box.style.display = results.length ? "block" : "none";
-
-      const rect = document.getElementById("searchId").getBoundingClientRect();
-      box.style.left = rect.left + "px";
-      box.style.top = rect.bottom + window.scrollY + "px";
-      box.style.width = rect.width + "px";
     }
 
     function selectSuggestion(value) {
