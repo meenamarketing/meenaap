@@ -115,8 +115,6 @@
     let selectedCustomer = null;
     let unpaidProducts = [];
 
-    document.getElementById("date").value = new Date().toISOString().split("T")[0];
-
     function showSuggestions(input) {
       const box = document.getElementById("suggestions");
       if (!input || input.length < 1) {
@@ -148,7 +146,6 @@
       document.getElementById("customerInfo").style.display = "block";
       document.getElementById("suggestions").style.display = "none";
       document.getElementById("searchBox").value = selectedCustomer.name;
-
       loadUnpaidProducts();
     }
 
@@ -160,7 +157,7 @@
       dropdown.innerHTML = "";
       selectedCustomer.products.forEach((p, index) => {
         let paid = 0;
-        if (Array.isArray(p.payments)) {
+        if (p.payments && Array.isArray(p.payments)) {
           paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
         } else {
           paid = p.paid || 0;
@@ -204,21 +201,24 @@
       const amt = parseFloat(document.getElementById("amount").value);
       const date = document.getElementById("date").value;
       const prodIndex = parseInt(document.getElementById("productDropdown").value);
+      const product = selectedCustomer.products[prodIndex];
 
-      if (!selectedCustomer || isNaN(amt) || !date || isNaN(prodIndex)) {
+      if (!selectedCustomer || isNaN(amt) || !date || !product) {
         alert("Please fill all fields");
         return;
       }
 
-      const product = selectedCustomer.products[prodIndex];
-      const payments = product.payments || [];
-      const baseDues = selectedCustomer.paidDues || 0;
-      const dueNumber = baseDues + payments.length + 1;
+      if (amt > (product.total - (product.payments?.reduce((sum, p) => sum + p.amount, 0) || 0))) {
+        alert("Amount exceeds remaining balance!");
+        return;
+      }
+
+      if (!Array.isArray(product.payments)) product.payments = [];
+      const paidDuesFromCustomer = parseInt(selectedCustomer.paidDues) || 0;
+      const paidDuesFromPayments = product.payments.length;
+      const dueNumber = paidDuesFromCustomer + paidDuesFromPayments + 1;
 
       const payment = { amount: amt, date, dueNumber };
-      if (!Array.isArray(product.payments)) {
-        product.payments = [];
-      }
       product.payments.push(payment);
 
       entries.push({
@@ -227,20 +227,20 @@
         phone: selectedCustomer.phone,
         product: product.name,
         amount: amt,
-        date: date,
-        dueNumber: dueNumber
+        date,
+        dueNumber
       });
 
       localStorage.setItem("agent_entries", JSON.stringify(entries));
       localStorage.setItem("agent_customers", JSON.stringify(customers));
 
       alert(`✅ Entry saved with Due #${dueNumber}`);
-
-      // Refresh customer data and inputs
       selectCustomer(selectedCustomer.id);
       document.getElementById("amount").value = "";
       document.getElementById("amount").focus();
     }
+
+    document.getElementById("date").value = new Date().toISOString().split("T")[0];
   </script>
 </body>
 </html>
