@@ -128,7 +128,7 @@
 
         if (balance > 0) {
           unpaidProducts.push({ ...p, index, paid, balance, nextDue });
-          dropdown.innerHTML += `<option value="${index}">${p.name} - ₹${balance.toFixed(2)} due (Next Due: #${nextDue})</option>`;
+          dropdown.innerHTML += `<option value="${index}">${p.name} - ₹${balance.toFixed(2)} due (Next Due: ${nextDue})</option>`;
         }
       });
 
@@ -156,7 +156,7 @@
         <p><strong>Total:</strong> ₹${prod.total}</p>
         <p><strong>Paid:</strong> ₹${prod.paid}</p>
         <p><strong>Balance:</strong> ₹${prod.balance}</p>
-        <p><strong>Next Due:</strong> #${prod.nextDue}</p>
+        <p><strong>Next Due:</strong> ${prod.nextDue}</p>
       `;
     }
 
@@ -190,7 +190,7 @@
       localStorage.setItem("agent_entries", JSON.stringify(entries));
       localStorage.setItem("agent_customers", JSON.stringify(customers));
 
-      alert(`✅ Entry saved with Due #${dueNumber}`);
+      alert(`✅ Entry saved with Due ${dueNumber}`);
       document.getElementById("customerInfo").style.display = "none";
       document.getElementById("amount").value = "";
       document.getElementById("searchBox").value = "";
