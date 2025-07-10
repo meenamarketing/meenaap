@@ -5,36 +5,65 @@
   <title>View Entries - Agent App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; }
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: sans-serif;
+      margin: 0;
+    }
     nav {
-      background: #1f1f1f; display: flex; flex-wrap: wrap;
-      padding: 10px; gap: 10px;
+      background: #1f1f1f;
+      display: flex;
+      flex-wrap: wrap;
+      padding: 10px;
+      gap: 10px;
     }
     nav a {
-      color: white; background: #333;
-      padding: 10px 15px; border-radius: 5px;
+      color: white;
+      background: #333;
+      padding: 10px 15px;
+      border-radius: 5px;
       text-decoration: none;
     }
-    nav a:hover { background: #00bcd4; color: black; }
-    main { padding: 20px; }
-    h1 { color: #00bcd4; }
+    nav a:hover {
+      background: #00bcd4;
+      color: black;
+    }
+    main {
+      padding: 20px;
+    }
+    h1 {
+      color: #00bcd4;
+    }
     table {
-      width: 100%; border-collapse: collapse; margin-top: 15px;
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
     }
     th, td {
-      border: 1px solid #444; padding: 10px;
+      border: 1px solid #444;
+      padding: 10px;
       text-align: center;
     }
-    thead { background: #2c2c2c; }
-    tr:nth-child(odd) { background: #1d1d1d; }
+    thead {
+      background: #2c2c2c;
+    }
+    tr:nth-child(odd) {
+      background: #1d1d1d;
+    }
     button {
-      background: #00bcd4; color: black;
-      font-weight: bold; padding: 8px 12px;
-      border: none; border-radius: 5px;
+      background: #00bcd4;
+      color: black;
+      font-weight: bold;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 5px;
       cursor: pointer;
       margin: 10px 5px;
     }
-    button:hover { background: #26c6da; }
+    button:hover {
+      background: #26c6da;
+    }
   </style>
 </head>
 <body>
@@ -66,16 +95,19 @@
     let entries = [];
 
     function loadEntries() {
-      const stored = localStorage.getItem("agent_entries");
       try {
-        entries = JSON.parse(stored) || [];
-      } catch (e) {
+        entries = JSON.parse(localStorage.getItem("agent_entries")) || [];
+      } catch {
         entries = [];
       }
     }
 
+    function getToday() {
+      return new Date().toISOString().split("T")[0];
+    }
+
     function renderEntries() {
-      loadEntries(); // Reload fresh entries each time
+      loadEntries();
       const tbody = document.getElementById("entryTable");
       tbody.innerHTML = "";
       let total = 0;
@@ -109,16 +141,63 @@
     }
 
     function exportJSON() {
-      loadEntries(); // Ensure we export the most updated entries
-      const blob = new Blob([JSON.stringify(entries, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "agent_collections.json";
-      a.click();
+      const today = getToday();
+
+      // Export today's collection
+      const collectionBlob = new Blob([JSON.stringify(entries, null, 2)], { type: "application/json" });
+      const collectionUrl = URL.createObjectURL(collectionBlob);
+      const collectionLink = document.createElement("a");
+      collectionLink.href = collectionUrl;
+      collectionLink.download = `collection_${today}.json`;
+      collectionLink.click();
+
+      // Merge into main customers
+      let mainCustomers = [];
+      try {
+        mainCustomers = JSON.parse(localStorage.getItem("main_customers")) || [];
+      } catch {
+        alert("⚠️ Main customers not found in memory.");
+        return;
+      }
+
+      let updatedCount = 0;
+      entries.forEach(entry => {
+        const cust = mainCustomers.find(c => c.id === entry.id);
+        if (cust) {
+          const prod = cust.products.find(p => p.name === entry.product);
+          if (!prod) return;
+
+          if (!prod.payments) prod.payments = [];
+
+          const baseDue = (cust.paidDues || 0);
+          const dueNum = Math.max(baseDue + prod.payments.length + 1, entry.dueNumber || 1);
+
+          prod.payments.push({
+            date: entry.date,
+            amount: parseFloat(entry.amount),
+            dueNumber: dueNum
+          });
+
+          prod.paid = prod.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+          cust.paidDues = Math.max(cust.paidDues || 0, dueNum);
+
+          if (!prod.datesPaid) prod.datesPaid = [];
+          prod.datesPaid.push(entry.date);
+
+          updatedCount++;
+        }
+      });
+
+      const mergedBlob = new Blob([JSON.stringify(mainCustomers, null, 2)], { type: "application/json" });
+      const mergedUrl = URL.createObjectURL(mergedBlob);
+      const mergedLink = document.createElement("a");
+      mergedLink.href = mergedUrl;
+      mergedLink.download = `main_customers_updated_${today}.json`;
+      mergedLink.click();
+
+      alert(`✅ Exported ${entries.length} entries.\n✅ Updated ${updatedCount} customers.`);
     }
 
-    // Initial render
     renderEntries();
   </script>
 </body>
