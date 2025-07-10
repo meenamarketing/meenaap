@@ -176,8 +176,10 @@
         const paid = payments.reduce((sum, pay) => sum + pay.amount, 0);
         const balance = p.total - paid;
 
-        const startingDue = (selectedCustomer.paidDues || 0) + 1;
-        const nextDue = startingDue + payments.length;
+        // Due number logic: max of all payments or paidDues
+        const existingDueNumbers = payments.map(pay => pay.dueNumber || 0);
+        const lastDue = Math.max(...existingDueNumbers, selectedCustomer.paidDues || 0);
+        const nextDue = lastDue + 1;
 
         unpaidProducts.push({ ...p, index, paid, balance, nextDue });
 
@@ -214,12 +216,12 @@
 
       if (!Array.isArray(prod.payments)) prod.payments = [];
 
-      const baseDue = (selectedCustomer.paidDues || 0);
-      const dueNumber = baseDue + prod.payments.length + 1;
+      const existingDueNumbers = prod.payments.map(p => p.dueNumber || 0);
+      const lastDue = Math.max(...existingDueNumbers, selectedCustomer.paidDues || 0);
+      const dueNumber = lastDue + 1;
 
       prod.payments.push({ date, amount, dueNumber });
-
-      // Update paidDues
+      prod.paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
       selectedCustomer.paidDues = dueNumber;
 
       entries.push({
