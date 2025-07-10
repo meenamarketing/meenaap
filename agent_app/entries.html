@@ -158,7 +158,7 @@
       dropdown.innerHTML = "";
       selectedCustomer.products.forEach((p, index) => {
         let paid = 0;
-        if (Array.isArray(p.payments)) {
+        if (p.payments && Array.isArray(p.payments)) {
           paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
         } else {
           paid = p.paid || 0;
@@ -202,46 +202,49 @@
       const amt = parseFloat(document.getElementById("amount").value);
       const date = document.getElementById("date").value;
       const prodIndex = parseInt(document.getElementById("productDropdown").value);
-      const prod = selectedCustomer.products[prodIndex];
+      const prod = unpaidProducts.find(p => p.index == prodIndex);
 
       if (!selectedCustomer || isNaN(amt) || !date || !prod) {
         alert("Please fill all fields");
         return;
       }
 
-      if (amt > (prod.total - (prod.payments?.reduce((sum, p) => sum + p.amount, 0) || 0))) {
+      if (amt > prod.balance) {
         alert("Amount exceeds remaining balance!");
         return;
       }
 
-      // Ensure payments array exists
-      if (!Array.isArray(prod.payments)) {
-        prod.payments = [];
+      // Get highest dueNumber in existing payments
+      const existingPayments = selectedCustomer.products[prodIndex].payments || [];
+      let lastDue = 0;
+      if (existingPayments.length > 0) {
+        lastDue = Math.max(...existingPayments.map(p => p.dueNumber || 0));
+      } else if (selectedCustomer.paidDues) {
+        lastDue = selectedCustomer.paidDues;
       }
+      const dueNumber = lastDue + 1;
 
-      const dueNumber = prod.payments.length + 1;
+      const payment = { amount: amt, date, dueNumber };
 
-      prod.payments.push({
-        date,
-        amount: amt,
-        dueNumber
-      });
+      if (!Array.isArray(selectedCustomer.products[prodIndex].payments)) {
+        selectedCustomer.products[prodIndex].payments = [];
+      }
+      selectedCustomer.products[prodIndex].payments.push(payment);
 
-      // Save locally
-      entries.push({
+      const entry = {
         id: selectedCustomer.id,
         name: selectedCustomer.name,
         phone: selectedCustomer.phone,
         product: prod.name,
         amount: amt,
-        date,
-        dueNumber
-      });
+        date: date,
+        dueNumber: dueNumber
+      };
 
+      entries.push(entry);
       localStorage.setItem("agent_entries", JSON.stringify(entries));
       localStorage.setItem("agent_customers", JSON.stringify(customers));
-
-      alert(`Entry saved with Due #${dueNumber}`);
+      alert(`✅ Entry saved with Due #${dueNumber}`);
 
       // Reset
       document.getElementById("customerInfo").style.display = "none";
