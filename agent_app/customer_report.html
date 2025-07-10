@@ -5,21 +5,12 @@
   <title>Reports</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    :root {
-      --primary: #00bcd4;
-      --bg: #121212;
-      --box: #1e1e1e;
-      --text: #eee;
-      --accent: #2e2e2e;
-    }
-
     body {
       margin: 0;
-      background: var(--bg);
-      color: var(--text);
+      background: #121212;
+      color: #eee;
       font-family: 'Segoe UI', sans-serif;
     }
-
     nav {
       background: #1f1f1f;
       display: flex;
@@ -28,7 +19,6 @@
       gap: 10px;
       justify-content: center;
     }
-
     nav a {
       color: white;
       background: #2c2c2c;
@@ -37,85 +27,60 @@
       text-decoration: none;
       font-size: 14px;
     }
-
     nav a:hover {
-      background: var(--primary);
+      background: #00bcd4;
       color: black;
     }
-
     main {
       padding: 20px;
       max-width: 700px;
       margin: auto;
     }
-
     h1 {
       font-size: 22px;
-      color: var(--primary);
+      color: #00bcd4;
       text-align: center;
       margin-bottom: 20px;
     }
-
     input[type="text"] {
       width: 100%;
       padding: 12px;
       border-radius: 8px;
-      background: var(--box);
+      background: #1e1e1e;
       color: white;
       border: 1px solid #444;
       font-size: 16px;
       margin-bottom: 20px;
       outline: none;
     }
-
-    input[type="text"]:focus {
-      border-color: var(--primary);
-    }
-
     .report-card {
-      background: var(--box);
+      background: #1e1e1e;
       padding: 15px;
       border-radius: 10px;
       margin-bottom: 20px;
       border: 1px solid #2a2a2a;
     }
-
     .row {
       display: flex;
       justify-content: space-between;
       padding: 6px 0;
       border-bottom: 1px solid #2d2d2d;
     }
-
     .row:last-child {
       border-bottom: none;
     }
-
-    .label {
-      color: #aaa;
-      font-size: 14px;
-    }
-
-    .value {
-      font-size: 15px;
-    }
-
-    .product-title {
-      font-weight: bold;
-      font-size: 16px;
-      color: var(--primary);
-      margin: 12px 0 6px;
-      cursor: pointer;
-    }
-
+    .label { color: #aaa; font-size: 14px; }
+    .value { font-size: 15px; }
     .product-block {
       margin-top: 10px;
       border: 1px solid #333;
       border-radius: 10px;
       padding: 10px;
       background: #1a1a1a;
+      cursor: pointer;
     }
-
+    .product-block.open .details { display: block; }
+    .details { display: none; margin-top: 10px; }
     .payment-entry {
       font-size: 14px;
       padding: 4px 0;
@@ -123,20 +88,6 @@
       display: flex;
       justify-content: space-between;
     }
-
-    .payment-entry:last-child {
-      border-bottom: none;
-    }
-
-    .toggle-details {
-      display: none;
-      margin-top: 10px;
-    }
-
-    .product-block.open .toggle-details {
-      display: block;
-    }
-
     .not-found {
       text-align: center;
       margin-top: 20px;
@@ -152,7 +103,6 @@
     <a href="view.html">Today</a>
     <a href="customer_report.html">Reports</a>
   </nav>
-
   <main>
     <h1>Reports</h1>
     <input type="text" id="searchBox" placeholder="Search by Name, ID, or Phone" oninput="searchCustomer(this.value)">
@@ -162,24 +112,37 @@
   <script>
     const customers = JSON.parse(localStorage.getItem("main_customers") || "[]");
 
-    function formatINR(amount) {
-      return '₹' + (Number(amount) || 0).toLocaleString('en-IN');
+    function format(amount) {
+      return "₹" + (Number(amount) || 0).toLocaleString("en-IN");
     }
 
     function calculatePaid(datesPaid) {
       if (!Array.isArray(datesPaid)) return 0;
-
-      let paid = 0;
+      let total = 0;
       for (let entry of datesPaid) {
         if (typeof entry === 'object' && entry.amount) {
-          paid += Number(entry.amount);
-        } else if (typeof entry === 'number') {
-          paid += entry;
+          total += Number(entry.amount);
         } else {
-          paid += 0; // treat string date-only entries as no amount
+          total += 0; // string-only entries, no amount
         }
       }
-      return paid;
+      return total;
+    }
+
+    function renderPayments(datesPaid) {
+      if (!Array.isArray(datesPaid) || datesPaid.length === 0) {
+        return `<div class="payment-entry">No payment records.</div>`;
+      }
+
+      return datesPaid.map(p => {
+        if (typeof p === 'object' && p.date && p.amount != null) {
+          return `<div class="payment-entry"><span>• ${p.date}</span><span>${format(p.amount)}</span></div>`;
+        } else if (typeof p === 'string') {
+          return `<div class="payment-entry"><span>• ${p}</span><span>✓</span></div>`;
+        } else {
+          return '';
+        }
+      }).join('');
     }
 
     function searchCustomer(value) {
@@ -214,33 +177,21 @@
         const balance = total - paid;
         totalBalance += balance;
 
-        const payments = Array.isArray(p.datesPaid)
-          ? p.datesPaid.map((entry, idx) => {
-              if (typeof entry === "object" && entry.date && entry.amount) {
-                return `<div class="payment-entry"><span>• ${entry.date}</span><span>${formatINR(entry.amount)}</span></div>`;
-              } else if (typeof entry === "string") {
-                return `<div class="payment-entry"><span>• ${entry}</span><span>✓ Paid</span></div>`;
-              } else {
-                return `<div class="payment-entry"><span>• Entry ${idx + 1}</span><span>✓</span></div>`;
-              }
-            }).join("")
-          : `<div class="payment-entry">No payment records</div>`;
-
         html += `
           <div class="product-block" onclick="this.classList.toggle('open')">
-            <div class="product-title">Product ${i + 1}: ${p.name}</div>
-            <div class="row"><span class="label">Total</span><span class="value">${formatINR(total)}</span></div>
-            <div class="row"><span class="label">Paid</span><span class="value">${formatINR(paid)}</span></div>
-            <div class="row"><span class="label">Balance</span><span class="value">${formatINR(balance)}</span></div>
-            <div class="toggle-details">
-              <p style="margin:10px 0 5px;"><strong>Payment History:</strong></p>
-              ${payments}
+            <div class="row"><span class="label">Product ${i + 1}</span><span class="value">${p.name}</span></div>
+            <div class="row"><span class="label">Total</span><span class="value">${format(total)}</span></div>
+            <div class="row"><span class="label">Paid</span><span class="value">${format(paid)}</span></div>
+            <div class="row"><span class="label">Balance</span><span class="value">${format(balance)}</span></div>
+            <div class="details">
+              <p><strong>Payment History:</strong></p>
+              ${renderPayments(p.datesPaid)}
             </div>
           </div>`;
       });
 
       html += `<div class="report-card">
-        <div class="row"><span class="label">Total Balance (All Products)</span><span class="value">${formatINR(totalBalance)}</span></div>
+        <div class="row"><span class="label">Total Balance</span><span class="value">${format(totalBalance)}</span></div>
       </div>`;
 
       container.innerHTML = html;
