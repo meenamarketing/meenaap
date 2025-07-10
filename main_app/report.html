@@ -2,9 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Reports - EMI Manager</title>
+  <title>Review Agent Collections - Main App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       background: #121212;
@@ -15,14 +14,13 @@
     nav {
       background: #1f1f1f;
       display: flex;
+      gap: 10px;
       padding: 10px;
-      gap: 15px;
-      flex-wrap: wrap;
     }
     nav a {
       color: white;
       background: #333;
-      padding: 8px 15px;
+      padding: 10px 15px;
       border-radius: 5px;
       text-decoration: none;
     }
@@ -33,195 +31,191 @@
     main {
       padding: 20px;
     }
-    input, button, select {
+    input[type="file"], input[type="text"] {
       padding: 10px;
-      margin: 5px 10px 15px 0;
+      margin: 10px 0;
       border-radius: 5px;
       background: #1e1e1e;
       color: white;
-      border: 1px solid #444;
-    }
-    button {
-      background: #00bcd4;
-      color: black;
-      font-weight: bold;
-      cursor: pointer;
+      border: 1px solid #555;
+      width: 100%;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 10px;
+      margin-top: 20px;
     }
     th, td {
-      padding: 8px;
+      padding: 10px;
       border: 1px solid #333;
+      text-align: center;
     }
     thead {
       background: #2c2c2c;
     }
-    tr:nth-child(odd) {
-      background: #1d1d1d;
+    tr:nth-child(even) {
+      background: #1f1f1f;
     }
-    #suggestions {
-      position: absolute;
-      background: #222;
-      border: 1px solid #333;
-      border-radius: 5px;
-      z-index: 999;
-      display: none;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-    #suggestions div {
-      padding: 10px;
-      border-bottom: 1px solid #333;
-      cursor: pointer;
-    }
-    #suggestions div:hover {
+    button {
       background: #00bcd4;
       color: black;
+      padding: 10px 15px;
+      margin-top: 10px;
+      font-weight: bold;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #26c6da;
+    }
+    #summary {
+      margin: 10px 0;
     }
   </style>
 </head>
 <body>
   <nav>
     <a href="index.html">Dashboard</a>
-    <a href="customers.html">Customers</a>
-    <a href="entries.html">Entries</a>
-    <a href="review.html">Agent Review</a>
-    <a href="reports.html">Reports</a>
+    <a href="customers.html">Add Customer</a>
+    <a href="entry.html">Add Payment</a>
+    <a href="report.html">Reports</a>
+    <a href="review.html">Review Agent</a>
   </nav>
 
   <main>
-    <h1>📊 Reports & Filter</h1>
-    <input type="file" accept=".json" onchange="loadData(event)" /><br />
-    <input id="searchId" placeholder="Search by ID / Name / Phone" oninput="filterData()" />
-    <input id="searchPlace" placeholder="Place" oninput="filterData()" />
-    <input id="searchProduct" placeholder="Product Name" oninput="filterData()" />
-    <label>From: <input type="date" id="fromDate" onchange="filterData()" /></label>
-    <label>To: <input type="date" id="toDate" onchange="filterData()" /></label>
-    <button onclick="exportCSV()">Export CSV</button>
+    <h1>Review Agent Collections</h1>
+    <input type="file" accept=".json" onchange="loadMainData(event)" />
+    <input type="file" accept=".json" onchange="loadAgentData(event)" />
+    <input type="text" id="searchId" placeholder="🔍 Search by Customer ID" oninput="filterTable()" />
+    <div id="summary"></div>
 
-    <h3 id="reportTotal">Total Paid: ₹0</h3>
-    <h3 id="reportBalance">Total Balance: ₹0</h3>
-
-    <h2>Detailed Payments</h2>
-    <table>
+    <table id="agentTable" style="display:none;">
       <thead>
         <tr>
-          <th>ID</th><th>Name</th><th>Place</th><th>Phone</th><th>Product</th>
-          <th>Paid</th><th>Balance</th><th>Dues</th><th>Date</th>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Product</th>
+          <th>Amount</th>
+          <th>Due</th>
+          <th>Date</th>
         </tr>
       </thead>
-      <tbody id="reportTable"></tbody>
+      <tbody></tbody>
     </table>
+
+    <button id="approveBtn" onclick="approveData()" style="display:none;">✅ Approve & Merge</button>
+    <button onclick="exportMainJSON()" style="display:none;" id="exportBtn">📤 Export Updated Main JSON</button>
   </main>
 
   <script>
-    let customers = [];
-    let flatReport = [];
+    let agentEntries = [];
+    let mainCustomers = [];
 
-    function loadData(event) {
+    function loadMainData(event) {
       const file = event.target.files[0];
       const reader = new FileReader();
       reader.onload = function(e) {
-        customers = JSON.parse(e.target.result);
-        generateFlatReport();
-        filterData();
+        mainCustomers = JSON.parse(e.target.result);
+        localStorage.setItem("main_customers", JSON.stringify(mainCustomers));
+        alert("✅ Main database loaded");
       };
       reader.readAsText(file);
     }
 
-    function generateFlatReport() {
-      flatReport = [];
-      customers.forEach(c => {
-        const baseDue = (c.paidDues || 0) + 1;
+    function loadAgentData(event) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        agentEntries = JSON.parse(e.target.result);
+        showAgentData(agentEntries);
+      };
+      reader.readAsText(file);
+    }
 
-        c.products.forEach(p => {
-          let payments = [];
+    function showAgentData(data) {
+      const tbody = document.querySelector("#agentTable tbody");
+      tbody.innerHTML = "";
+      let total = 0;
 
-          if (Array.isArray(p.payments)) {
-            payments = p.payments;
-          } else if (Array.isArray(p.datesPaid)) {
-            const paidAmount = p.paid || 0;
-            const avg = paidAmount / p.datesPaid.length;
-            payments = p.datesPaid.map((date, i) => ({
-              date,
-              amount: Math.round(avg * 100) / 100
-            }));
+      data.forEach(entry => {
+        total += parseFloat(entry.amount);
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${entry.id}</td>
+          <td>${entry.name}</td>
+          <td>${entry.phone}</td>
+          <td>${entry.product || '-'}</td>
+          <td>₹${parseFloat(entry.amount).toFixed(2)}</td>
+          <td>#${entry.dueNumber || '-'}</td>
+          <td>${entry.date}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      document.getElementById("agentTable").style.display = "table";
+      document.getElementById("approveBtn").style.display = "inline-block";
+      document.getElementById("exportBtn").style.display = "inline-block";
+      document.getElementById("summary").innerHTML = `<strong>Total Collected:</strong> ₹${total.toFixed(2)}`;
+    }
+
+    function filterTable() {
+      const value = document.getElementById("searchId").value.toLowerCase();
+      const rows = document.querySelectorAll("#agentTable tbody tr");
+      rows.forEach(row => {
+        const id = row.children[0].innerText.toLowerCase();
+        row.style.display = id.includes(value) ? "" : "none";
+      });
+    }
+
+    function approveData() {
+      let updated = 0;
+
+      agentEntries.forEach(entry => {
+        const cust = mainCustomers.find(c => c.id === entry.id);
+        if (cust) {
+          const prod = cust.products.find(p => p.name === entry.product) || cust.products[0];
+          if (!prod.paid) prod.paid = 0;
+          if (!prod.datesPaid) prod.datesPaid = [];
+          if (!prod.payments) prod.payments = [];
+
+          // Get highest existing due number
+          let lastDueNumber = (cust.paidDues || 0);
+          if (prod.payments.length > 0) {
+            const maxDue = Math.max(...prod.payments.map(p => p.dueNumber || 0));
+            lastDueNumber = Math.max(lastDueNumber, maxDue);
           }
 
-          let paidTotal = 0;
-          payments.forEach((payment, index) => {
-            paidTotal += payment.amount;
-            flatReport.push({
-              id: c.id,
-              name: c.name,
-              phone: c.phone,
-              place: c.place,
-              product: p.name,
-              paid: payment.amount,
-              balance: Math.max(0, (p.total || 0) - paidTotal),
-              date: payment.date,
-              paidDues: baseDue + index,
-              totalDues: c.totalDues || "?"
-            });
+          const nextDueNumber = lastDueNumber + 1;
+
+          // Add new payment
+          prod.payments.push({
+            date: entry.date,
+            amount: parseFloat(entry.amount),
+            dueNumber: nextDueNumber
           });
-        });
+
+          // Update total paid
+          prod.paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
+
+          // Maintain backward compatibility
+          prod.datesPaid.push(entry.date);
+
+          updated++;
+        }
       });
+
+      localStorage.setItem("main_customers", JSON.stringify(mainCustomers));
+      alert(`✅ Approved and merged ${updated} entries`);
     }
 
-    function filterData() {
-      const idVal = document.getElementById("searchId").value.toLowerCase();
-      const placeVal = document.getElementById("searchPlace").value.toLowerCase();
-      const prodVal = document.getElementById("searchProduct").value.toLowerCase();
-      const from = document.getElementById("fromDate").value;
-      const to = document.getElementById("toDate").value;
-
-      const filtered = flatReport.filter(r =>
-        (!idVal || r.id.toLowerCase().includes(idVal) || r.name.toLowerCase().includes(idVal) || r.phone.includes(idVal)) &&
-        (!placeVal || r.place.toLowerCase().includes(placeVal)) &&
-        (!prodVal || r.product.toLowerCase().includes(prodVal)) &&
-        (!from || r.date >= from) &&
-        (!to || r.date <= to)
-      );
-
-      const tbody = document.getElementById("reportTable");
-      tbody.innerHTML = "";
-
-      let totalPaid = 0, totalBalance = 0;
-      filtered.forEach(r => {
-        totalPaid += r.paid;
-        totalBalance += r.balance;
-        tbody.innerHTML += `
-          <tr>
-            <td>${r.id}</td>
-            <td>${r.name}</td>
-            <td>${r.place}</td>
-            <td>${r.phone}</td>
-            <td>${r.product}</td>
-            <td>₹${r.paid.toFixed(2)}</td>
-            <td>₹${r.balance.toFixed(2)}</td>
-            <td>${r.paidDues}/${r.totalDues}</td>
-            <td>${r.date}</td>
-          </tr>
-        `;
-      });
-
-      document.getElementById("reportTotal").innerText = `Total Paid: ₹${totalPaid.toFixed(2)}`;
-      document.getElementById("reportBalance").innerText = `Total Balance: ₹${totalBalance.toFixed(2)}`;
-    }
-
-    function exportCSV() {
-      const rows = [["ID","Name","Place","Phone","Product","Paid","Balance","Dues","Date"]];
-      document.querySelectorAll("#reportTable tr").forEach(tr => {
-        rows.push(Array.from(tr.querySelectorAll("td")).map(td => td.innerText));
-      });
-      const csv = rows.map(r => r.join(",")).join("\n");
-      const blob = new Blob([csv], { type: "text/csv" });
+    function exportMainJSON() {
+      const blob = new Blob([JSON.stringify(mainCustomers, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "report.csv";
+      a.href = url;
+      a.download = "updated_main_customers.json";
       a.click();
     }
   </script>
