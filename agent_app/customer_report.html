@@ -105,6 +105,36 @@
       font-size: 16px;
       color: var(--primary);
       margin: 12px 0 6px;
+      cursor: pointer;
+    }
+
+    .product-block {
+      margin-top: 10px;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 10px;
+      background: #1a1a1a;
+    }
+
+    .payment-entry {
+      font-size: 14px;
+      padding: 4px 0;
+      border-bottom: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .payment-entry:last-child {
+      border-bottom: none;
+    }
+
+    .toggle-details {
+      display: none;
+      margin-top: 10px;
+    }
+
+    .product-block.open .toggle-details {
+      display: block;
     }
 
     .not-found {
@@ -159,22 +189,36 @@
       </div>`;
 
       cust.products.forEach((p, i) => {
-        const total = Number(p.total || p.paid);
+        const total = Number(p.total || 0);
         const paid = Number(p.paid || 0);
         const balance = total - paid;
         totalBalance += balance;
 
-        html += `<div class="report-card">
-          <div class="product-title">Product ${i + 1}: ${p.name}</div>
-          <div class="row"><span class="label">Total</span><span class="value">₹${total}</span></div>
-          <div class="row"><span class="label">Paid</span><span class="value">₹${paid}</span></div>
-          <div class="row"><span class="label">Balance</span><span class="value">₹${balance}</span></div>
-          <div class="row"><span class="label">Paid Dates</span><span class="value">${Array.isArray(p.datesPaid) ? p.datesPaid.join(", ") : "N/A"}</span></div>
-        </div>`;
+        const payments = Array.isArray(p.datesPaid)
+          ? p.datesPaid.map((entry, idx) => {
+              if (typeof entry === "object" && entry.date && entry.amount) {
+                return `<div class="payment-entry"><span>• ${entry.date}</span><span>₹${entry.amount}</span></div>`;
+              } else {
+                return `<div class="payment-entry"><span>• ${entry}</span><span>Paid</span></div>`;
+              }
+            }).join("")
+          : `<div class="payment-entry">No payment records</div>`;
+
+        html += `
+          <div class="product-block" onclick="this.classList.toggle('open')">
+            <div class="product-title">Product ${i + 1}: ${p.name}</div>
+            <div class="row"><span class="label">Total</span><span class="value">₹${total}</span></div>
+            <div class="row"><span class="label">Paid</span><span class="value">₹${paid}</span></div>
+            <div class="row"><span class="label">Balance</span><span class="value">₹${balance}</span></div>
+            <div class="toggle-details">
+              <p style="margin:10px 0 5px;"><strong>Payment History:</strong></p>
+              ${payments}
+            </div>
+          </div>`;
       });
 
       html += `<div class="report-card">
-        <div class="row"><span class="label">Total Balance Across All Products</span><span class="value">₹${totalBalance}</span></div>
+        <div class="row"><span class="label">Total Balance (All Products)</span><span class="value">₹${totalBalance}</span></div>
       </div>`;
 
       container.innerHTML = html;
