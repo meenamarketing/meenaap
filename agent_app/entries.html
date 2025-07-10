@@ -176,7 +176,6 @@
         const paid = payments.reduce((sum, pay) => sum + pay.amount, 0);
         const balance = p.total - paid;
 
-        // Due number logic: max of all payments or paidDues
         const existingDueNumbers = payments.map(pay => pay.dueNumber || 0);
         const lastDue = Math.max(...existingDueNumbers, selectedCustomer.paidDues || 0);
         const nextDue = lastDue + 1;
@@ -222,7 +221,6 @@
 
       prod.payments.push({ date, amount, dueNumber });
       prod.paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
-      selectedCustomer.paidDues = dueNumber;
 
       entries.push({
         id: selectedCustomer.id,
@@ -235,7 +233,7 @@
       });
 
       localStorage.setItem("agent_entries", JSON.stringify(entries));
-      localStorage.setItem("main_customers", JSON.stringify(customers));
+      localStorage.setItem("main_customers", JSON.stringify(customers)); // ✅ DOESN'T update paidDues anymore
 
       alert(`✅ Entry saved. Paid Due Number: ${dueNumber}`);
       document.getElementById("amount").value = "";
