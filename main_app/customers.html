@@ -96,11 +96,12 @@
     <a href="entries.html">Entries</a>
     <a href="review.html">Agent Review</a>
     <a href="report.html">Reports</a>
-  </nav>  <main>
+  </nav>
+  <main>
     <h1>Customer Manager</h1><input type="file" accept=".json" onchange="loadJSON(event)">
 <button onclick="downloadJSON()">Export Updated JSON</button>
 
-<h2 id="formTitle">Add New Customer</h2>
+<h2>Add New Customer</h2>
 <input id="newId" placeholder="Customer ID" />
 <input id="newName" placeholder="Name" />
 <input id="newPhone" placeholder="Phone" />
@@ -110,13 +111,21 @@
 <input id="newPaid" placeholder="Amount Paid" type="number" />
 <input id="newTotalDues" placeholder="Total Dues" type="number" />
 <input id="newPaidDues" placeholder="Dues Already Paid" type="number" />
-<button id="submitBtn" onclick="addCustomer()">Add Customer</button>
+<button onclick="addCustomer()">Add Customer</button>
+
+<h2>Add Product to Existing Customer</h2>
+<input id="existingId" placeholder="Customer ID" oninput="showSuggestions()">
+<div id="suggestions"></div>
+<input id="addProductName" placeholder="Product Name" />
+<input id="addProductTotal" placeholder="Total Amount" type="number" />
+<input id="addProductPaid" placeholder="Amount Paid" type="number" />
+<button onclick="addProduct()">Add Product</button>
 
 <h2>Customer List</h2>
 <table>
   <thead>
     <tr>
-      <th>ID</th><th>Name</th><th>Phone</th><th>Place</th><th>Products</th><th>Actions</th>
+      <th>ID</th><th>Name</th><th>Phone</th><th>Place</th><th>Products</th><th>Edit</th>
     </tr>
   </thead>
   <tbody id="customerTable"></tbody>
@@ -124,12 +133,10 @@
 
   </main>  <script>
     let customers = [];
-    let editMode = false;
-    let editIndex = -1;
 
     function loadJSON(event) {
       const reader = new FileReader();
-      reader.onload = function (e) {
+      reader.onload = e => {
         customers = JSON.parse(e.target.result);
         renderTable();
       };
@@ -139,29 +146,24 @@
     function renderTable() {
       const table = document.getElementById("customerTable");
       table.innerHTML = "";
-
       customers.forEach((c, index) => {
-        let productList = "";
-        c.products.forEach(p => {
+        const row = document.createElement("tr");
+        const productList = c.products.map(p => {
           const bal = p.total - p.paid;
-          productList += `<div>${p.name} - ₹${p.paid}/₹${p.total} (Balance: ₹${bal})</div>`;
-        });
+          return `${p.name} - ₹${p.paid}/₹${p.total} (Balance: ₹${bal})`;
+        }).join("<br>");
 
-        let dueInfo = (c.totalDues && c.paidDues != null)
+        const dueInfo = (c.totalDues && c.paidDues != null)
           ? `<div>Due ${c.paidDues + 1} of ${c.totalDues}</div>`
           : "";
 
-        const row = document.createElement("tr");
         row.innerHTML = `
           <td>${c.id}</td>
           <td>${c.name}</td>
           <td>${c.phone}</td>
           <td>${c.place}</td>
           <td>${productList}${dueInfo}</td>
-          <td>
-            <button onclick="editCustomer(${index})">Edit</button>
-            <button onclick="deleteCustomer(${index})">Delete</button>
-          </td>
+          <td><button onclick="editCustomer(${index})">Edit</button></td>
         `;
         table.appendChild(row);
       });
@@ -178,87 +180,58 @@
       const totalDues = parseInt(document.getElementById("newTotalDues").value);
       const paidDues = parseInt(document.getElementById("newPaidDues").value);
 
-      if (!name || !product || isNaN(total) || isNaN(paid) || isNaN(totalDues) || isNaN(paidDues)) {
-        alert("Please fill all fields correctly.");
-        return;
-      }
+      if (!id || customers.find(c => c.id === id)) return alert("Invalid or duplicate ID");
+      if (!name || !product || isNaN(total) || isNaN(paid) || isNaN(totalDues) || isNaN(paidDues)) return alert("Fill all fields correctly.");
 
-      const newCustomer = {
-        id,
-        name,
-        phone,
-        place,
-        totalDues,
-        paidDues,
-        products: [{ name: product, total, paid, datesPaid: [new Date().toISOString().split("T")[0]] }]
-      };
-
-      if (editMode && editIndex >= 0) {
-        customers[editIndex] = newCustomer;
-        editMode = false;
-        editIndex = -1;
-        document.getElementById("formTitle").innerText = "Add New Customer";
-        document.getElementById("submitBtn").innerText = "Add Customer";
-        document.getElementById("newId").disabled = false;
-      } else {
-        if (!id || customers.find(c => c.id === id)) {
-          alert("Invalid or duplicate ID");
-          return;
-        }
-        customers.push(newCustomer);
-      }
-
-      clearForm();
+      customers.push({ id, name, phone, place, totalDues, paidDues, products: [{ name: product, total, paid, datesPaid: [new Date().toISOString().split("T")[0]] }] });
       renderTable();
-    }
-
-    function clearForm() {
-      document.getElementById("newId").value = "";
-      document.getElementById("newName").value = "";
-      document.getElementById("newPhone").value = "";
-      document.getElementById("newPlace").value = "";
-      document.getElementById("newProduct").value = "";
-      document.getElementById("newTotal").value = "";
-      document.getElementById("newPaid").value = "";
-      document.getElementById("newTotalDues").value = "";
-      document.getElementById("newPaidDues").value = "";
     }
 
     function editCustomer(index) {
       const c = customers[index];
-      document.getElementById("newId").value = c.id;
-      document.getElementById("newId").disabled = true;
-      document.getElementById("newName").value = c.name;
-      document.getElementById("newPhone").value = c.phone;
-      document.getElementById("newPlace").value = c.place;
-      document.getElementById("newTotalDues").value = c.totalDues;
-      document.getElementById("newPaidDues").value = c.paidDues;
-      if (c.products.length) {
-        const p = c.products[0];
-        document.getElementById("newProduct").value = p.name;
-        document.getElementById("newTotal").value = p.total;
-        document.getElementById("newPaid").value = p.paid;
-      }
-      document.getElementById("formTitle").innerText = "Edit Customer";
-      document.getElementById("submitBtn").innerText = "Update Customer";
-      editMode = true;
-      editIndex = index;
+      const newName = prompt("Edit Name", c.name);
+      const newPhone = prompt("Edit Phone", c.phone);
+      const newPlace = prompt("Edit Place", c.place);
+      const newTotalDues = parseInt(prompt("Edit Total Dues", c.totalDues));
+      const newPaidDues = parseInt(prompt("Edit Paid Dues", c.paidDues));
+
+      if (newName) c.name = newName;
+      if (newPhone) c.phone = newPhone;
+      if (newPlace) c.place = newPlace;
+      if (!isNaN(newTotalDues)) c.totalDues = newTotalDues;
+      if (!isNaN(newPaidDues)) c.paidDues = newPaidDues;
+
+      renderTable();
     }
 
-    function deleteCustomer(index) {
-      if (confirm("Are you sure you want to delete this customer?")) {
-        customers.splice(index, 1);
-        renderTable();
-      }
+    function addProduct() {
+      const id = document.getElementById("existingId").value.trim();
+      const c = customers.find(c => c.id === id);
+      if (!c) return alert("Customer not found");
+
+      const name = document.getElementById("addProductName").value.trim();
+      const total = parseFloat(document.getElementById("addProductTotal").value);
+      const paid = parseFloat(document.getElementById("addProductPaid").value);
+      if (!name || isNaN(total) || isNaN(paid)) return alert("Enter valid product info");
+
+      if (c.products.find(p => p.name.toLowerCase() === name.toLowerCase())) return alert("Product already exists.");
+      c.products.push({ name, total, paid, datesPaid: [new Date().toISOString().split("T")[0]] });
+      renderTable();
     }
 
     function downloadJSON() {
       const blob = new Blob([JSON.stringify(customers, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
+      a.href = URL.createObjectURL(blob);
       a.download = "customers.json";
       a.click();
+    }
+
+    function showSuggestions() {
+      const val = document.getElementById("existingId").value.toLowerCase();
+      const suggestions = customers.filter(c => c.id.toLowerCase().includes(val) || c.name.toLowerCase().includes(val));
+      const box = document.getElementById("suggestions");
+      box.innerHTML = suggestions.map(c => `<div onclick=\"document.getElementById('existingId').value='${c.id}';box.innerHTML=''\">${c.id} - ${c.name}</div>`).join("");
     }
   </script></body>
 </html>
