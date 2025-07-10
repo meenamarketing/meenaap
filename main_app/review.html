@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Review Agent Collections - Main App</title>
@@ -80,30 +81,35 @@
     <a href="entry.html">Add Payment</a>
     <a href="report.html">Reports</a>
     <a href="review.html">Review Agent</a>
-  </nav>  <main>
+  </nav>
+
+  <main>
     <h1>Review Agent Collections</h1>
     <input type="file" accept=".json" onchange="loadMainData(event)" />
     <input type="file" accept=".json" onchange="loadAgentData(event)" />
-    <input type="text" id="searchId" placeholder="🔍 Search by Customer ID" oninput="filterTable()" /><div id="summary"></div>
-<table id="agentTable" style="display:none;">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Name</th>
-      <th>Phone</th>
-      <th>Product</th>
-      <th>Amount</th>
-      <th>Due</th>
-      <th>Date</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+    <input type="text" id="searchId" placeholder="🔍 Search by Customer ID" oninput="filterTable()" />
+    <div id="summary"></div>
 
-<button id="approveBtn" onclick="approveData()" style="display:none;">✅ Approve & Merge</button>
-<button onclick="exportMainJSON()" style="display:none;" id="exportBtn">📤 Export Updated Main JSON</button>
+    <table id="agentTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Product</th>
+          <th>Amount</th>
+          <th>Due</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
 
-  </main>  <script>
+    <button id="approveBtn" onclick="approveData()" style="display:none;">✅ Approve & Merge</button>
+    <button onclick="exportMainJSON()" style="display:none;" id="exportBtn">📤 Export Updated Main JSON</button>
+  </main>
+
+  <script>
     let agentEntries = [];
     let mainCustomers = [];
 
@@ -142,7 +148,7 @@
           <td>${entry.phone}</td>
           <td>${entry.product || '-'}</td>
           <td>₹${parseFloat(entry.amount).toFixed(2)}</td>
-          <td>${entry.dueNumber || '-'}</td>
+          <td>#${entry.dueNumber || '-'}</td>
           <td>${entry.date}</td>
         `;
         tbody.appendChild(row);
@@ -165,6 +171,7 @@
 
     function approveData() {
       let updated = 0;
+
       agentEntries.forEach(entry => {
         const cust = mainCustomers.find(c => c.id === entry.id);
         if (cust) {
@@ -173,17 +180,26 @@
           if (!prod.datesPaid) prod.datesPaid = [];
           if (!prod.payments) prod.payments = [];
 
-          // Add new payment record
+          // Get highest existing due number
+          let lastDueNumber = (cust.paidDues || 0);
+          if (prod.payments.length > 0) {
+            const maxDue = Math.max(...prod.payments.map(p => p.dueNumber || 0));
+            lastDueNumber = Math.max(lastDueNumber, maxDue);
+          }
+
+          const nextDueNumber = lastDueNumber + 1;
+
+          // Add new payment
           prod.payments.push({
             date: entry.date,
             amount: parseFloat(entry.amount),
-            dueNumber: entry.dueNumber || prod.payments.length + 1
+            dueNumber: nextDueNumber
           });
 
           // Update total paid
           prod.paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
 
-          // Maintain old compatibility
+          // Maintain backward compatibility
           prod.datesPaid.push(entry.date);
 
           updated++;
@@ -202,5 +218,6 @@
       a.download = "updated_main_customers.json";
       a.click();
     }
-  </script></body>
+  </script>
+</body>
 </html>
