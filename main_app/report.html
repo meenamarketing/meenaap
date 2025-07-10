@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Reports - EMI Manager</title>
@@ -89,47 +90,52 @@
     <a href="entries.html">Entries</a>
     <a href="review.html">Agent Review</a>
     <a href="reports.html">Reports</a>
-  </nav>  <main>
+  </nav>
+
+  <main>
     <h1>📊 Reports & Filter</h1>
-    <input type="file" accept=".json" onchange="loadData(event)"><br><label for="jumpSelect">Jump to Customer:</label>
-<select id="jumpSelect" onchange="jumpToCustomer(this.value)">
-  <option value="">-- Select --</option>
-</select>
+    <input type="file" accept=".json" onchange="loadData(event)"><br>
 
-<div style="position:relative;">
-  <input id="searchId" placeholder="Search by ID / Name / Phone" oninput="filterData(); showSuggestions(this.value)">
-  <div id="suggestions"></div>
-</div>
-<input id="searchPlace" placeholder="Place" oninput="filterData()">
-<input id="searchProduct" placeholder="Product Name" oninput="filterData()">
-<label>From: <input type="date" id="fromDate" onchange="filterData()"></label>
-<label>To: <input type="date" id="toDate" onchange="filterData()"></label>
-<button onclick="exportCSV()">Export CSV</button>
+    <label for="jumpSelect">Jump to Customer:</label>
+    <select id="jumpSelect" onchange="jumpToCustomer(this.value)">
+      <option value="">-- Select --</option>
+    </select>
 
-<h3 id="reportTotal">Total Paid: ₹0</h3>
-<h3 id="reportBalance">Total Balance: ₹0</h3>
+    <div style="position:relative;">
+      <input id="searchId" placeholder="Search by ID / Name / Phone" oninput="filterData(); showSuggestions(this.value)">
+      <div id="suggestions"></div>
+    </div>
+    <input id="searchPlace" placeholder="Place" oninput="filterData()">
+    <input id="searchProduct" placeholder="Product Name" oninput="filterData()">
+    <label>From: <input type="date" id="fromDate" onchange="filterData()"></label>
+    <label>To: <input type="date" id="toDate" onchange="filterData()"></label>
+    <button onclick="exportCSV()">Export CSV</button>
 
-<canvas id="paidBalanceChart" height="150"></canvas>
-<canvas id="barChart" height="150"></canvas>
+    <h3 id="reportTotal">Total Paid: ₹0</h3>
+    <h3 id="reportBalance">Total Balance: ₹0</h3>
 
-<h2>Customer Summary</h2>
-<table id="summaryTable">
-  <thead><tr><th>ID</th><th>Name</th><th>Total Paid</th><th>Total Balance</th></tr></thead>
-  <tbody></tbody>
-</table>
+    <canvas id="paidBalanceChart" height="150"></canvas>
+    <canvas id="barChart" height="150"></canvas>
 
-<h2>Detailed Payments</h2>
-<table>
-  <thead>
-    <tr>
-      <th>ID</th><th>Name</th><th>Place</th><th>Phone</th><th>Product</th>
-      <th>Paid</th><th>Balance</th><th>Dues</th><th>Date</th>
-    </tr>
-  </thead>
-  <tbody id="reportTable"></tbody>
-</table>
+    <h2>Customer Summary</h2>
+    <table id="summaryTable">
+      <thead><tr><th>ID</th><th>Name</th><th>Total Paid</th><th>Total Balance</th></tr></thead>
+      <tbody></tbody>
+    </table>
 
-  </main>  <script>
+    <h2>Detailed Payments</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Name</th><th>Place</th><th>Phone</th><th>Product</th>
+          <th>Paid</th><th>Balance</th><th>Dues</th><th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="reportTable"></tbody>
+    </table>
+  </main>
+
+  <script>
     let customers = [], flatReport = [], pieChart, barChart;
     let allSuggestions = new Set();
 
@@ -153,27 +159,28 @@
         allSuggestions.add(c.name);
         allSuggestions.add(c.phone);
 
-        c.paidDues = 0;
-        c.totalDues = 0;
-
         c.products.forEach(p => {
           const total = p.total || 0;
           const paid = p.paid || 0;
-
-          const paidDues = (p.datesPaid || []).length;
+          const datesPaid = p.datesPaid || [];
           const totalDues = p.totalDues || 0;
-
-          c.paidDues += paidDues;
-          c.totalDues += totalDues;
+          const avg = datesPaid.length ? paid / datesPaid.length : 0;
 
           let paidSoFar = 0;
-          const avg = paidDues > 0 ? paid / paidDues : 0;
 
-          (p.datesPaid || []).forEach(date => {
+          datesPaid.forEach((date, index) => {
             paidSoFar += avg;
             flatReport.push({
-              id: c.id, name: c.name, place: c.place, phone: c.phone,
-              product: p.name, paid: avg, balance: Math.max(0, total - paidSoFar), date
+              id: c.id,
+              name: c.name,
+              place: c.place,
+              phone: c.phone,
+              product: p.name,
+              paid: avg,
+              balance: Math.max(0, total - paidSoFar),
+              date: date,
+              paidDues: index + 1,
+              totalDues: totalDues
             });
           });
         });
@@ -211,22 +218,76 @@
 
       const tbody = document.getElementById("reportTable");
       tbody.innerHTML = "";
-      let totalPaid = 0;
+      let totalPaid = 0, totalBalance = 0;
 
       filtered.forEach(r => {
         totalPaid += r.paid;
-        const customer = customers.find(c => c.id === r.id);
-        const dues = customer ? `${customer.paidDues}/${customer.totalDues}` : "-";
-
+        totalBalance += r.balance;
         tbody.innerHTML += `
           <tr>
             <td>${r.id}</td><td>${r.name}</td><td>${r.place}</td><td>${r.phone}</td>
             <td>${r.product}</td><td>₹${r.paid.toFixed(2)}</td><td>₹${r.balance.toFixed(2)}</td>
-            <td>${dues}</td><td>${r.date}</td>
+            <td>${r.paidDues}/${r.totalDues || "?"}</td><td>${r.date}</td>
           </tr>`;
       });
 
       document.getElementById("reportTotal").innerText = `Total Paid: ₹${totalPaid.toFixed(2)}`;
+      document.getElementById("reportBalance").innerText = `Total Balance: ₹${totalBalance.toFixed(2)}`;
+
+      updateSummary(filtered);
+    }
+
+    function updateSummary(filtered) {
+      const summaryTable = document.querySelector("#summaryTable tbody");
+      summaryTable.innerHTML = "";
+
+      const summaryMap = new Map();
+
+      filtered.forEach(r => {
+        if (!summaryMap.has(r.id)) {
+          summaryMap.set(r.id, { name: r.name, paid: 0, balance: 0 });
+        }
+        const s = summaryMap.get(r.id);
+        s.paid += r.paid;
+        s.balance = r.balance;
+      });
+
+      let piePaid = 0, pieBal = 0;
+      summaryMap.forEach((v, id) => {
+        piePaid += v.paid;
+        pieBal += v.balance;
+        summaryTable.innerHTML += `<tr><td>${id}</td><td>${v.name}</td><td>₹${v.paid.toFixed(2)}</td><td>₹${v.balance.toFixed(2)}</td></tr>`;
+      });
+
+      drawCharts(piePaid, pieBal, summaryMap);
+    }
+
+    function drawCharts(paid, balance, summaryMap) {
+      if (pieChart) pieChart.destroy();
+      pieChart = new Chart(document.getElementById("paidBalanceChart"), {
+        type: "pie",
+        data: {
+          labels: ["Paid", "Balance"],
+          datasets: [{ data: [paid, balance], backgroundColor: ["#00e676", "#ff5252"] }]
+        }
+      });
+
+      if (barChart) barChart.destroy();
+      barChart = new Chart(document.getElementById("barChart"), {
+        type: "bar",
+        data: {
+          labels: Array.from(summaryMap.values()).map(v => v.name),
+          datasets: [{
+            label: "Paid Amount",
+            data: Array.from(summaryMap.values()).map(v => v.paid),
+            backgroundColor: "#00bcd4"
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
     }
 
     function exportCSV() {
@@ -254,5 +315,6 @@
       document.getElementById("suggestions").style.display = "none";
       filterData();
     }
-  </script></body>
+  </script>
+</body>
 </html>
