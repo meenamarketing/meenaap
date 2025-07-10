@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Add Collections - Agent App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       background: #121212;
@@ -48,7 +48,6 @@
       background: #00bcd4;
       color: black;
       font-weight: bold;
-      cursor: pointer;
     }
     .customer-box {
       margin-top: 10px;
@@ -159,7 +158,7 @@
       dropdown.innerHTML = "";
       selectedCustomer.products.forEach((p, index) => {
         let paid = 0;
-        if (p.payments && Array.isArray(p.payments)) {
+        if (Array.isArray(p.payments)) {
           paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
         } else {
           paid = p.paid || 0;
@@ -203,48 +202,48 @@
       const amt = parseFloat(document.getElementById("amount").value);
       const date = document.getElementById("date").value;
       const prodIndex = parseInt(document.getElementById("productDropdown").value);
-      const prod = unpaidProducts.find(p => p.index == prodIndex);
+      const prod = selectedCustomer.products[prodIndex];
 
       if (!selectedCustomer || isNaN(amt) || !date || !prod) {
         alert("Please fill all fields");
         return;
       }
 
-      if (amt > prod.balance) {
+      if (amt > (prod.total - (prod.payments?.reduce((sum, p) => sum + p.amount, 0) || 0))) {
         alert("Amount exceeds remaining balance!");
         return;
       }
 
-      // ✅ Correct due number logic
-      const product = selectedCustomer.products[prodIndex];
-      const priorPayments = Array.isArray(product.payments) ? product.payments.length : 0;
-      const basePaidDues = selectedCustomer.paidDues || 0;
-      const dueNumber = basePaidDues + priorPayments + 1;
-
-      // Add payment
-      if (!Array.isArray(product.payments)) {
-        product.payments = [];
+      // Ensure payments array exists
+      if (!Array.isArray(prod.payments)) {
+        prod.payments = [];
       }
-      product.payments.push({ amount: amt, date, dueNumber });
 
-      // Save to entries for review
-      const entry = {
+      const dueNumber = prod.payments.length + 1;
+
+      prod.payments.push({
+        date,
+        amount: amt,
+        dueNumber
+      });
+
+      // Save locally
+      entries.push({
         id: selectedCustomer.id,
         name: selectedCustomer.name,
         phone: selectedCustomer.phone,
-        product: product.name,
+        product: prod.name,
         amount: amt,
-        date: date,
-        dueNumber: dueNumber
-      };
+        date,
+        dueNumber
+      });
 
-      entries.push(entry);
       localStorage.setItem("agent_entries", JSON.stringify(entries));
       localStorage.setItem("agent_customers", JSON.stringify(customers));
 
-      alert(`✅ Entry saved with Due #${dueNumber}`);
+      alert(`Entry saved with Due #${dueNumber}`);
 
-      // Reset form
+      // Reset
       document.getElementById("customerInfo").style.display = "none";
       document.getElementById("amount").value = "";
       document.getElementById("searchBox").value = "";
