@@ -70,14 +70,14 @@
   <nav>
     <a href="index.html">Dashboard</a>
     <a href="entries.html">Add Entry</a>
-    <a href="view.html">View Entries</a>
+    <a href="view.html">Today's Entries</a>
     <a href="customer_report.html">Customer Report</a>
     <a href="review.html">Agent Review</a>
   </nav>
 
   <main>
     <h1>📄 Today's Payment Entries</h1>
-    <button onclick="exportJSON()">Export & Merge</button>
+    <button onclick="exportJSON()">Export Entries</button>
     <h3 id="totalCollected">Total: ₹0</h3>
 
     <table>
@@ -143,7 +143,7 @@
     function exportJSON() {
       const today = getToday();
 
-      // Export agent entries
+      // Step 1: Export today's collection
       const collectionBlob = new Blob([JSON.stringify(entries, null, 2)], { type: "application/json" });
       const collectionUrl = URL.createObjectURL(collectionBlob);
       const collectionLink = document.createElement("a");
@@ -151,7 +151,7 @@
       collectionLink.download = `collection_${today}.json`;
       collectionLink.click();
 
-      // Load main customers from memory
+      // Step 2: Merge into main_customers
       let mainCustomers = [];
       try {
         mainCustomers = JSON.parse(localStorage.getItem("main_customers")) || [];
@@ -163,29 +163,35 @@
       let updatedCount = 0;
       entries.forEach(entry => {
         const cust = mainCustomers.find(c => c.id === entry.id);
-        if (!cust) return;
+        if (cust) {
+          const prod = cust.products.find(p => p.name === entry.product);
+          if (!prod) return;
 
-        const prod = cust.products.find(p => p.name === entry.product);
-        if (!prod) return;
+          if (!prod.payments) prod.payments = [];
 
-        if (!Array.isArray(prod.payments)) prod.payments = [];
+          const baseDue = (cust.paidDues || 0);
+          const dueNum = Math.max(baseDue + prod.payments.length + 1, entry.dueNumber || 1);
 
-        // ✅ Use saved dueNumber from entry directly
-        prod.payments.push({
-          date: entry.date,
-          amount: parseFloat(entry.amount),
-          dueNumber: Number(entry.dueNumber)
-        });
+          prod.payments.push({
+            date: entry.date,
+            amount: parseFloat(entry.amount),
+            dueNumber: dueNum
+          });
 
-        prod.paid = prod.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-        if (!prod.datesPaid) prod.datesPaid = [];
-        prod.datesPaid.push(entry.date);
+          prod.paid = prod.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
-        // ✅ Keep max paid due number
-        cust.paidDues = Math.max(cust.paidDues || 0, entry.dueNumber);
+          if (!prod.datesPaid) prod.datesPaid = [];
+          prod.datesPaid.push(entry.date);
 
-        updatedCount++;
+          // Ensure the `paidDues` is updated correctly
+          cust.paidDues = Math.max(cust.paidDues || 0, dueNum);
+
+          updatedCount++;
+        }
       });
+
+      // Step 3: Save merged result and export main customer file
+      localStorage.setItem("main_customers", JSON.stringify(mainCustomers));
 
       const mergedBlob = new Blob([JSON.stringify(mainCustomers, null, 2)], { type: "application/json" });
       const mergedUrl = URL.createObjectURL(mergedBlob);
@@ -194,7 +200,7 @@
       mergedLink.download = `main_customers_updated_${today}.json`;
       mergedLink.click();
 
-      alert(`✅ Exported ${entries.length} entries.\n✅ Updated ${updatedCount} customers.`);
+      alert(`✅ Exported ${entries.length} entries.\n✅ Merged ${updatedCount} new payments`);
     }
 
     renderEntries();
