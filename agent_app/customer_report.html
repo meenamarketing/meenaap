@@ -101,18 +101,20 @@
       if (!selectedCustomer) return alert("Please search and select a customer.");
 
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
+      const doc = new jsPDF("p", "mm", "a4");
       const allRows = [];
 
       selectedCustomer.products.forEach(product => {
         const total = Number(product.total || 0);
         let balance = total;
-        const payments = product.payments || [];
+        const payments = [...(product.payments || [])];
 
-        payments.forEach((p, idx) => {
+        // Sort by dueNumber to ensure correct order
+        payments.sort((a, b) => Number(a.dueNumber) - Number(b.dueNumber));
+
+        payments.forEach(p => {
           const paid = Number(p.amount || 0);
           balance -= paid;
-          const dueNo = 21 + idx;
           allRows.push([
             selectedCustomer.id,
             selectedCustomer.name,
@@ -121,28 +123,34 @@
             product.name,
             `₹${paid.toFixed(2)}`,
             `₹${balance.toFixed(2)}`,
-            `${dueNo}/${selectedCustomer.totalDues}`,
+            `${p.dueNumber}/${selectedCustomer.totalDues}`,
             p.date || "-"
           ]);
         });
       });
 
       // Branding header
-      doc.setFontSize(22);
+      doc.setFontSize(26);
       doc.setTextColor(0, 200, 255);
-      doc.text("Meena Groups", 105, 18, { align: "center" });
+      doc.text("Meena Groups", 105, 20, { align: "center" });
 
       doc.setFontSize(10);
       doc.setTextColor(150);
-      doc.text("Powered by Goorac", 105, 24, { align: "center" });
+      doc.text("Powered by Goorac", 105, 26, { align: "center" });
 
       // Table
       doc.autoTable({
-        startY: 30,
+        startY: 32,
         head: [["ID", "Name", "Place", "Phone", "Product", "Paid", "Balance", "Dues", "Date"]],
         body: allRows,
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: [0, 188, 212] }
+        styles: { fontSize: 10, cellPadding: 3 },
+        headStyles: {
+          fillColor: [0, 188, 212],
+          textColor: 20,
+          fontStyle: 'bold'
+        },
+        theme: 'striped',
+        margin: { top: 32, left: 10, right: 10 }
       });
 
       doc.save(`${selectedCustomer.name}_Report.pdf`);
