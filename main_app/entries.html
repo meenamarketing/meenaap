@@ -128,9 +128,10 @@
         // Convert old format to new format
         if (!p.payments && Array.isArray(p.datesPaid)) {
           const avg = (p.paid || 0) / p.datesPaid.length;
-          p.payments = p.datesPaid.map(date => ({
+          p.payments = p.datesPaid.map((date, index) => ({
             date,
-            amount: Math.round(avg * 100) / 100
+            amount: Math.round(avg * 100) / 100,
+            dueNumber: index + 1
           }));
         }
 
@@ -178,10 +179,17 @@
       delete product.paid;
       delete product.datesPaid;
 
-      product.payments.push({ date, amount });
+      // Assign next due number based on existing payments
+      const nextDue = product.payments.length + 1;
+
+      product.payments.push({
+        date,
+        amount,
+        dueNumber: nextDue
+      });
 
       amtInput.value = "";
-      alert("Payment added.");
+      alert(`Payment added. Due number: ${nextDue}`);
       searchCustomer(); // refresh view
     }
 
