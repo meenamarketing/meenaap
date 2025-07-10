@@ -197,6 +197,7 @@
       });
 
       renderTable();
+      alert("Customer added successfully!");
     }
 
     function addProduct() {
@@ -211,6 +212,17 @@
       const total = parseFloat(document.getElementById("addProductTotal").value);
       const paid = parseFloat(document.getElementById("addProductPaid").value);
 
+      if (!name || isNaN(total) || isNaN(paid)) {
+        alert("Please enter valid product details.");
+        return;
+      }
+
+      const duplicate = customer.products.find(p => p.name.toLowerCase() === name.toLowerCase());
+      if (duplicate) {
+        alert("Product with this name already exists for this customer.");
+        return;
+      }
+
       customer.products.push({
         name,
         total,
@@ -219,6 +231,7 @@
       });
 
       renderTable();
+      alert("Product added successfully!");
     }
 
     function downloadJSON() {
