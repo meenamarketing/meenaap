@@ -184,7 +184,8 @@
               balance: Math.max(0, total - paidSoFar),
               date: payment.date,
               paidDues: startingDue + index + 1,
-              totalDues
+              totalDues,
+              total
             });
           });
         });
@@ -209,16 +210,15 @@
       const tbody = document.getElementById("reportTable");
       tbody.innerHTML = "";
       let totalPaid = 0;
-
-      const latestBalanceMap = new Map(); // to store last balance per product
+      let customerTotals = {};
 
       filtered.forEach(r => {
         totalPaid += r.paid;
-
         const key = `${r.id}-${r.product}`;
-        if (!latestBalanceMap.has(key) || new Date(r.date) > new Date(latestBalanceMap.get(key).date)) {
-          latestBalanceMap.set(key, { balance: r.balance, date: r.date });
+        if (!customerTotals[key]) {
+          customerTotals[key] = { total: r.total, paid: 0 };
         }
+        customerTotals[key].paid += r.paid;
 
         tbody.innerHTML += `
           <tr>
@@ -228,10 +228,14 @@
           </tr>`;
       });
 
-      const totalBalance = [...latestBalanceMap.values()].reduce((sum, val) => sum + val.balance, 0);
+      let totalBalance = 0;
+      Object.values(customerTotals).forEach(obj => {
+        totalBalance += Math.max(0, obj.total - obj.paid);
+      });
 
       document.getElementById("reportTotal").innerText = `Total Paid: ₹${totalPaid.toFixed(2)}`;
       document.getElementById("reportBalance").innerText = `Total Balance: ₹${totalBalance.toFixed(2)}`;
+
       updateSummaries(filtered);
     }
 
