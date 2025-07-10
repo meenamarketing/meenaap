@@ -136,7 +136,7 @@
       <thead>
         <tr>
           <th>ID</th><th>Name</th><th>Place</th><th>Phone</th><th>Product</th>
-          <th>Paid</th><th>Balance</th><th>Date</th>
+          <th>Paid</th><th>Balance</th><th>Dues</th><th>Date</th>
         </tr>
       </thead>
       <tbody id="reportTable"></tbody>
@@ -236,10 +236,14 @@
 
       filtered.forEach(r => {
         totalPaid += r.paid;
+        const customer = customers.find(c => c.id === r.id);
+        const dues = customer ? `${(customer.paidDues ?? 0)} / ${(customer.totalDues ?? 0)}` : "-";
+
         tbody.innerHTML += `
           <tr>
             <td>${r.id}</td><td>${r.name}</td><td>${r.place}</td><td>${r.phone}</td>
-            <td>${r.product}</td><td>₹${r.paid.toFixed(2)}</td><td>₹${r.balance.toFixed(2)}</td><td>${r.date}</td>
+            <td>${r.product}</td><td>₹${r.paid.toFixed(2)}</td><td>₹${r.balance.toFixed(2)}</td>
+            <td>${dues}</td><td>${r.date}</td>
           </tr>`;
       });
 
@@ -312,7 +316,7 @@
     }
 
     function exportCSV() {
-      let csv = "ID,Name,Place,Phone,Product,Paid,Balance,Date\n";
+      let csv = "ID,Name,Place,Phone,Product,Paid,Balance,Dues,Date\n";
       document.querySelectorAll("#reportTable tr").forEach(row => {
         csv += [...row.querySelectorAll("td")].map(td => td.innerText).join(",") + "\n";
       });
