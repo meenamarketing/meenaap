@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Customers - EMI Manager</title>
@@ -97,68 +96,51 @@
     <a href="entries.html">Entries</a>
     <a href="review.html">Agent Review</a>
     <a href="report.html">Reports</a>
-  </nav>
+  </nav>  <main>
+    <h1>Customer Manager</h1><input type="file" accept=".json" onchange="loadJSON(event)">
+<button onclick="downloadJSON()">Export Updated JSON</button>
 
-  <main>
-    <h1>Customer Manager</h1>
+<h2 id="formTitle">Add New Customer</h2>
+<input id="newId" placeholder="Customer ID" />
+<input id="newName" placeholder="Name" />
+<input id="newPhone" placeholder="Phone" />
+<input id="newPlace" placeholder="Place" />
+<input id="newProduct" placeholder="Product Name" />
+<input id="newTotal" placeholder="Total Amount" type="number" />
+<input id="newPaid" placeholder="Amount Paid" type="number" />
+<input id="newTotalDues" placeholder="Total Dues" type="number" />
+<input id="newPaidDues" placeholder="Dues Already Paid" type="number" />
+<button id="submitBtn" onclick="addCustomer()">Add Customer</button>
 
-    <input type="file" accept=".json" onchange="loadJSON(event)">
-    <button onclick="downloadJSON()">Export Updated JSON</button>
+<h2>Customer List</h2>
+<table>
+  <thead>
+    <tr>
+      <th>ID</th><th>Name</th><th>Phone</th><th>Place</th><th>Products</th><th>Actions</th>
+    </tr>
+  </thead>
+  <tbody id="customerTable"></tbody>
+</table>
 
-    <h2 id="formTitle">Add New Customer</h2>
-    <input id="newId" placeholder="Customer ID" />
-    <input id="newName" placeholder="Name" />
-    <input id="newPhone" placeholder="Phone" />
-    <input id="newPlace" placeholder="Place" />
-    <input id="newProduct" placeholder="Product Name" />
-    <input id="newTotal" placeholder="Total Amount" type="number" />
-    <input id="newPaid" placeholder="Amount Paid" type="number" />
-    <input id="newTotalDues" placeholder="Total Dues" type="number" />
-    <input id="newPaidDues" placeholder="Dues Already Paid" type="number" />
-    <button onclick="addCustomer()">Add Customer</button>
-
-    <h2>Add Product to Existing Customer</h2>
-    <input id="existingId" placeholder="Customer ID" oninput="showSuggestions()">
-    <div id="suggestions"></div>
-    <input id="addProductName" placeholder="Product Name" />
-    <input id="addProductTotal" placeholder="Total Amount" type="number" />
-    <input id="addProductPaid" placeholder="Amount Paid" type="number" />
-    <button onclick="addProduct()">Add Product</button>
-
-    <h2>Customer List</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th><th>Name</th><th>Phone</th><th>Place</th><th>Products</th>
-        </tr>
-      </thead>
-      <tbody id="customerTable"></tbody>
-    </table>
-  </main>
-
-  <script>
+  </main>  <script>
     let customers = [];
-    let isEditing = false;
-    let editingCustomerId = null;
+    let editMode = false;
+    let editIndex = -1;
 
     function loadJSON(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
       const reader = new FileReader();
       reader.onload = function (e) {
         customers = JSON.parse(e.target.result);
         renderTable();
       };
-      reader.readAsText(file);
+      reader.readAsText(event.target.files[0]);
     }
 
     function renderTable() {
       const table = document.getElementById("customerTable");
       table.innerHTML = "";
 
-      customers.forEach(c => {
-        const row = document.createElement("tr");
+      customers.forEach((c, index) => {
         let productList = "";
         c.products.forEach(p => {
           const bal = p.total - p.paid;
@@ -169,13 +151,16 @@
           ? `<div>Due ${c.paidDues + 1} of ${c.totalDues}</div>`
           : "";
 
+        const row = document.createElement("tr");
         row.innerHTML = `
           <td>${c.id}</td>
           <td>${c.name}</td>
           <td>${c.phone}</td>
           <td>${c.place}</td>
-          <td>${productList}${dueInfo}<br>
-              <button onclick="editCustomer('${c.id}')">✏️ Edit</button>
+          <td>${productList}${dueInfo}</td>
+          <td>
+            <button onclick="editCustomer(${index})">Edit</button>
+            <button onclick="deleteCustomer(${index})">Delete</button>
           </td>
         `;
         table.appendChild(row);
@@ -193,82 +178,41 @@
       const totalDues = parseInt(document.getElementById("newTotalDues").value);
       const paidDues = parseInt(document.getElementById("newPaidDues").value);
 
-      if (!name || !product || isNaN(total) || isNaN(paid) || isNaN(totalDues) || isNaN(paidDues) || totalDues <= 0 || paidDues < 0 || paidDues > totalDues) {
+      if (!name || !product || isNaN(total) || isNaN(paid) || isNaN(totalDues) || isNaN(paidDues)) {
         alert("Please fill all fields correctly.");
         return;
       }
 
-      if (isEditing) {
-        const c = customers.find(c => c.id === editingCustomerId);
-        if (!c) return;
+      const newCustomer = {
+        id,
+        name,
+        phone,
+        place,
+        totalDues,
+        paidDues,
+        products: [{ name: product, total, paid, datesPaid: [new Date().toISOString().split("T")[0]] }]
+      };
 
-        c.name = name;
-        c.phone = phone;
-        c.place = place;
-        c.totalDues = totalDues;
-        c.paidDues = paidDues;
-        c.products[0].name = product;
-        c.products[0].total = total;
-        c.products[0].paid = paid;
-
-        alert("Customer updated successfully!");
+      if (editMode && editIndex >= 0) {
+        customers[editIndex] = newCustomer;
+        editMode = false;
+        editIndex = -1;
+        document.getElementById("formTitle").innerText = "Add New Customer";
+        document.getElementById("submitBtn").innerText = "Add Customer";
+        document.getElementById("newId").disabled = false;
       } else {
         if (!id || customers.find(c => c.id === id)) {
           alert("Invalid or duplicate ID");
           return;
         }
-
-        customers.push({
-          id,
-          name,
-          phone,
-          place,
-          totalDues,
-          paidDues,
-          products: [{
-            name: product,
-            total,
-            paid,
-            datesPaid: [new Date().toISOString().split("T")[0]]
-          }]
-        });
-
-        alert("Customer added successfully!");
+        customers.push(newCustomer);
       }
 
-      resetForm();
+      clearForm();
       renderTable();
     }
 
-    function editCustomer(id) {
-      const c = customers.find(c => c.id === id);
-      if (!c) return;
-
-      isEditing = true;
-      editingCustomerId = id;
-
-      document.getElementById("newId").value = c.id;
-      document.getElementById("newId").disabled = true;
-      document.getElementById("newName").value = c.name;
-      document.getElementById("newPhone").value = c.phone;
-      document.getElementById("newPlace").value = c.place;
-      document.getElementById("newTotalDues").value = c.totalDues || "";
-      document.getElementById("newPaidDues").value = c.paidDues || "";
-
-      const p = c.products[0];
-      document.getElementById("newProduct").value = p.name;
-      document.getElementById("newTotal").value = p.total;
-      document.getElementById("newPaid").value = p.paid;
-
-      document.querySelector("button[onclick='addCustomer()']").innerText = "Update Customer";
-      document.getElementById("formTitle").innerText = "Edit Customer";
-    }
-
-    function resetForm() {
-      isEditing = false;
-      editingCustomerId = null;
-
-      document.getElementById("newId").disabled = false;
+    function clearForm() {
       document.getElementById("newId").value = "";
       document.getElementById("newName").value = "";
       document.getElementById("newPhone").value = "";
@@ -278,43 +222,34 @@
       document.getElementById("newPaid").value = "";
       document.getElementById("newTotalDues").value = "";
       document.getElementById("newPaidDues").value = "";
-
-      document.querySelector("button[onclick='addCustomer()']").innerText = "Add Customer";
-      document.getElementById("formTitle").innerText = "Add New Customer";
     }
 
-    function addProduct() {
-      const id = document.getElementById("existingId").value.trim();
-      const customer = customers.find(c => c.id === id);
-      if (!customer) {
-        alert("Customer not found");
-        return;
+    function editCustomer(index) {
+      const c = customers[index];
+      document.getElementById("newId").value = c.id;
+      document.getElementById("newId").disabled = true;
+      document.getElementById("newName").value = c.name;
+      document.getElementById("newPhone").value = c.phone;
+      document.getElementById("newPlace").value = c.place;
+      document.getElementById("newTotalDues").value = c.totalDues;
+      document.getElementById("newPaidDues").value = c.paidDues;
+      if (c.products.length) {
+        const p = c.products[0];
+        document.getElementById("newProduct").value = p.name;
+        document.getElementById("newTotal").value = p.total;
+        document.getElementById("newPaid").value = p.paid;
       }
+      document.getElementById("formTitle").innerText = "Edit Customer";
+      document.getElementById("submitBtn").innerText = "Update Customer";
+      editMode = true;
+      editIndex = index;
+    }
 
-      const name = document.getElementById("addProductName").value.trim();
-      const total = parseFloat(document.getElementById("addProductTotal").value);
-      const paid = parseFloat(document.getElementById("addProductPaid").value);
-
-      if (!name || isNaN(total) || isNaN(paid)) {
-        alert("Please enter valid product details.");
-        return;
+    function deleteCustomer(index) {
+      if (confirm("Are you sure you want to delete this customer?")) {
+        customers.splice(index, 1);
+        renderTable();
       }
-
-      const duplicate = customer.products.find(p => p.name.toLowerCase() === name.toLowerCase());
-      if (duplicate) {
-        alert("Product with this name already exists for this customer.");
-        return;
-      }
-
-      customer.products.push({
-        name,
-        total,
-        paid,
-        datesPaid: [new Date().toISOString().split("T")[0]]
-      });
-
-      renderTable();
-      alert("Product added successfully!");
     }
 
     function downloadJSON() {
@@ -325,35 +260,5 @@
       a.download = "customers.json";
       a.click();
     }
-
-    function showSuggestions() {
-      const input = document.getElementById("existingId");
-      const suggestionsBox = document.getElementById("suggestions");
-      const value = input.value.toLowerCase();
-      suggestionsBox.innerHTML = "";
-
-      if (!value) return;
-
-      const matches = customers.filter(c =>
-        c.id.toLowerCase().includes(value) || c.name.toLowerCase().includes(value)
-      );
-
-      matches.slice(0, 5).forEach(c => {
-        const div = document.createElement("div");
-        div.textContent = `${c.id} - ${c.name}`;
-        div.onclick = () => {
-          input.value = c.id;
-          suggestionsBox.innerHTML = "";
-        };
-        suggestionsBox.appendChild(div);
-      });
-    }
-
-    document.addEventListener("click", function (e) {
-      if (!e.target.closest("#existingId") && !e.target.closest("#suggestions")) {
-        document.getElementById("suggestions").innerHTML = "";
-      }
-    });
-  </script>
-</body>
+  </script></body>
 </html>
