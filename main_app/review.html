@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Review Agent Collections</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <title>Review Agent Collections - EMI Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       background: #121212;
@@ -14,8 +14,8 @@
     nav {
       background: #1f1f1f;
       display: flex;
-      gap: 10px;
       padding: 10px;
+      gap: 10px;
     }
     nav a {
       color: white;
@@ -31,8 +31,22 @@
     main {
       padding: 20px;
     }
-    h1 {
-      color: #00bcd4;
+    input, button {
+      padding: 10px;
+      margin: 10px 5px;
+      border-radius: 5px;
+      background: #1e1e1e;
+      color: white;
+      border: 1px solid #444;
+    }
+    button {
+      background: #00bcd4;
+      color: black;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #26c6da;
     }
     table {
       width: 100%;
@@ -50,118 +64,127 @@
     tr:nth-child(even) {
       background: #1f1f1f;
     }
-    button {
-      background: #00bcd4;
-      color: black;
-      padding: 10px 15px;
-      margin: 10px 5px 0 0;
-      font-weight: bold;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #26c6da;
+    #summary {
+      margin: 10px 0;
     }
   </style>
 </head>
 <body>
+
   <nav>
     <a href="index.html">Dashboard</a>
-    <a href="entries.html">Add Collection</a>
-    <a href="view.html">Today's Entries</a>
-    <a href="review.html">Review & Merge</a>
+    <a href="customers.html">Customers</a>
+    <a href="entries.html">Entries</a>
+    <a href="review.html">Agent Review</a>
     <a href="report.html">Reports</a>
   </nav>
 
   <main>
     <h1>Review Agent Collections</h1>
-    <p>All today's collections are shown below. Click Merge & Export to combine into main customer file.</p>
-
+    <input type="file" accept=".json" onchange="loadAgentData(event)">
+    <button onclick="approveData()">✅ Approve & Merge</button>
+    <button onclick="exportMainJSON()">📤 Export Updated JSON</button>
     <div id="summary"></div>
-    <table id="collectionTable">
+    <table id="agentTable">
       <thead>
         <tr>
-          <th>ID</th><th>Name</th><th>Phone</th><th>Product</th>
-          <th>Amount</th><th>Due Number</th><th>Date</th>
+          <th>ID</th><th>Name</th><th>Phone</th>
+          <th>Product</th><th>Amount</th><th>Due</th><th>Date</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
-
-    <button onclick="mergeAndExport()">✅ Merge & Export Final JSON</button>
   </main>
 
   <script>
-    const agentEntries = JSON.parse(localStorage.getItem("agent_entries") || "[]");
-    const customers = JSON.parse(localStorage.getItem("main_customers") || "[]");
-    const table = document.querySelector("#collectionTable tbody");
+    let mainCustomers = JSON.parse(localStorage.getItem("main_customers") || "[]");
+    let agentEntries = [];
 
-    // Display today's entries
-    function displayTable() {
-      table.innerHTML = "";
-      let total = 0;
-      agentEntries.forEach(e => {
-        total += e.amount;
-        table.innerHTML += `
-          <tr>
-            <td>${e.id}</td>
-            <td>${e.name}</td>
-            <td>${e.phone}</td>
-            <td>${e.product}</td>
-            <td>₹${e.amount.toFixed(2)}</td>
-            <td>${e.dueNumber}</td>
-            <td>${e.date}</td>
-          </tr>`;
-      });
-      document.getElementById("summary").innerText = `Total Collected: ₹${total.toFixed(2)}`;
+    function loadAgentData(event) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = e => {
+        agentEntries = JSON.parse(e.target.result);
+        renderAgentTable();
+      };
+      reader.readAsText(file);
     }
 
-    displayTable();
-
-    function mergeAndExport() {
-      let merged = 0;
+    function renderAgentTable() {
+      const tbody = document.querySelector("#agentTable tbody");
+      tbody.innerHTML = "";
+      let total = 0;
 
       agentEntries.forEach(entry => {
-        const customer = customers.find(c => c.id === entry.id);
-        if (!customer) return;
-
-        const product = customer.products.find(p => p.name === entry.product);
-        if (!product) return;
-
-        // Convert old format if necessary
-        if (!Array.isArray(product.payments)) product.payments = [];
-        if (!Array.isArray(product.datesPaid)) product.datesPaid = [];
-
-        // Add this entry to payments
-        product.payments.push({
-          date: entry.date,
-          amount: entry.amount,
-          dueNumber: entry.dueNumber
-        });
-
-        product.datesPaid.push(entry.date);
-        product.paid = product.payments.reduce((sum, p) => sum + p.amount, 0);
-
-        // Update paidDues if this is the latest
-        if (!customer.paidDues || entry.dueNumber > customer.paidDues) {
-          customer.paidDues = entry.dueNumber;
-        }
-
-        merged++;
+        total += parseFloat(entry.amount);
+        tbody.innerHTML += `
+          <tr>
+            <td>${entry.id}</td>
+            <td>${entry.name}</td>
+            <td>${entry.phone}</td>
+            <td>${entry.product}</td>
+            <td>₹${parseFloat(entry.amount).toFixed(2)}</td>
+            <td>${entry.dueNumber || '-'}</td>
+            <td>${entry.date}</td>
+          </tr>
+        `;
       });
 
-      alert(`✅ Merged ${merged} entries into main customer file`);
+      document.getElementById("summary").innerHTML = `<strong>Total Collected:</strong> ₹${total.toFixed(2)}`;
+    }
 
-      // Save to localStorage again (optional)
-      localStorage.setItem("main_customers", JSON.stringify(customers));
+    function approveData() {
+      let updated = 0;
 
-      // Export final JSON
-      const blob = new Blob([JSON.stringify(customers, null, 2)], { type: "application/json" });
+      agentEntries.forEach(entry => {
+        const cust = mainCustomers.find(c => c.id === entry.id);
+        if (!cust) return;
+
+        const prod = cust.products.find(p => p.name === entry.product);
+        if (!prod) return;
+
+        if (!Array.isArray(prod.payments)) prod.payments = [];
+
+        const existingDues = cust.paidDues || 0;
+        const nextDue = existingDues + prod.payments.length + 1;
+
+        prod.payments.push({
+          date: entry.date,
+          amount: parseFloat(entry.amount),
+          dueNumber: nextDue
+        });
+
+        // Update paid total
+        prod.paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
+        cust.paidDues = nextDue;
+
+        updated++;
+      });
+
+      localStorage.setItem("main_customers", JSON.stringify(mainCustomers));
+      alert(`✅ Approved and merged ${updated} entries`);
+    }
+
+    function exportMainJSON() {
+      const json = mainCustomers.map(c => ({
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        place: c.place,
+        totalDues: c.totalDues,
+        paidDues: c.paidDues,
+        products: c.products.map(p => ({
+          name: p.name,
+          total: p.total,
+          payments: p.payments || []
+        }))
+      }));
+
+      const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "final_merged_customers.json";
+      a.download = "updated_main_customers.json";
       a.click();
     }
   </script>
