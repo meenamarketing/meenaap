@@ -1,40 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Add Collections - Agent App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
-      background: #121212;
-      color: #eee;
-      font-family: sans-serif;
-      margin: 0;
-    }
-    nav {
-      background: #1f1f1f;
-      display: flex;
-      flex-wrap: wrap;
-      padding: 10px;
-      gap: 10px;
-    }
-    nav a {
-      color: white;
-      background: #333;
-      padding: 10px 15px;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-    nav a:hover {
-      background: #00bcd4;
-      color: black;
-    }
-    main {
-      padding: 20px;
-    }
-    h1 {
-      color: #00bcd4;
-    }
+    body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; }
+    nav { background: #1f1f1f; display: flex; flex-wrap: wrap; padding: 10px; gap: 10px; }
+    nav a { color: white; background: #333; padding: 10px 15px; border-radius: 5px; text-decoration: none; }
+    nav a:hover { background: #00bcd4; color: black; }
+    main { padding: 20px; }
+    h1 { color: #00bcd4; }
     input, button, select {
       padding: 10px;
       margin: 10px 0;
@@ -44,11 +20,7 @@
       border: 1px solid #444;
       width: 100%;
     }
-    button {
-      background: #00bcd4;
-      color: black;
-      font-weight: bold;
-    }
+    button { background: #00bcd4; color: black; font-weight: bold; }
     .customer-box {
       margin-top: 10px;
       padding: 10px;
@@ -66,17 +38,9 @@
       max-height: 200px;
       overflow-y: auto;
     }
-    #suggestions div {
-      padding: 10px;
-      cursor: pointer;
-    }
-    #suggestions div:hover {
-      background: #00bcd4;
-      color: black;
-    }
-    #productInfo {
-      margin-top: 10px;
-    }
+    #suggestions div { padding: 10px; cursor: pointer; }
+    #suggestions div:hover { background: #00bcd4; color: black; }
+    #productInfo { margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -157,22 +121,14 @@
 
       dropdown.innerHTML = "";
       selectedCustomer.products.forEach((p, index) => {
-        let paid = 0;
-        if (Array.isArray(p.payments)) {
-          paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
-        } else {
-          paid = p.paid || 0;
-        }
-
+        const payments = Array.isArray(p.payments) ? p.payments : [];
+        const paid = payments.reduce((sum, pay) => sum + pay.amount, 0);
         const balance = p.total - paid;
-
-        const paidDues = selectedCustomer.paidDues || 0;
-        const currentLength = p.payments?.length || 0;
-        const lastDue = paidDues + currentLength;
-        const nextDue = lastDue + 1;
+        const baseDue = selectedCustomer.paidDues || 0;
+        const nextDue = baseDue + payments.length + 2; // +2 as per your rule
 
         if (balance > 0) {
-          unpaidProducts.push({ ...p, index, paid, balance, lastDue, nextDue });
+          unpaidProducts.push({ ...p, index, paid, balance, nextDue });
           dropdown.innerHTML += `<option value="${index}">${p.name} - ₹${balance.toFixed(2)} due (Next Due: #${nextDue})</option>`;
         }
       });
@@ -201,7 +157,6 @@
         <p><strong>Total:</strong> ₹${prod.total}</p>
         <p><strong>Paid:</strong> ₹${prod.paid}</p>
         <p><strong>Balance:</strong> ₹${prod.balance}</p>
-        <p><strong>Last Due:</strong> #${prod.lastDue}</p>
         <p><strong>Next Due:</strong> #${prod.nextDue}</p>
       `;
     }
@@ -221,8 +176,7 @@
         prod.payments = [];
       }
 
-      const baseDue = selectedCustomer.paidDues || 0;
-      const dueNumber = baseDue + prod.payments.length + 1;
+      const dueNumber = (selectedCustomer.paidDues || 0) + prod.payments.length + 2;
 
       prod.payments.push({
         date,
