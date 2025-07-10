@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Add Collections - Agent App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; }
     nav { background: #1f1f1f; display: flex; flex-wrap: wrap; padding: 10px; gap: 10px; }
@@ -12,31 +12,18 @@
     main { padding: 20px; }
     h1 { color: #00bcd4; }
     input, button, select {
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 5px;
-      background: #1e1e1e;
-      color: white;
-      border: 1px solid #444;
-      width: 100%;
+      padding: 10px; margin: 10px 0; border-radius: 5px;
+      background: #1e1e1e; color: white; border: 1px solid #444; width: 100%;
     }
     button { background: #00bcd4; color: black; font-weight: bold; }
     .customer-box {
-      margin-top: 10px;
-      padding: 10px;
-      background: #1d1d1d;
-      border: 1px solid #333;
-      border-radius: 8px;
+      margin-top: 10px; padding: 10px;
+      background: #1d1d1d; border: 1px solid #333; border-radius: 8px;
     }
     #suggestions {
-      background: #222;
-      border: 1px solid #333;
-      border-radius: 5px;
-      display: none;
-      position: absolute;
-      z-index: 999;
-      max-height: 200px;
-      overflow-y: auto;
+      background: #222; border: 1px solid #333;
+      border-radius: 5px; display: none; position: absolute;
+      z-index: 999; max-height: 200px; overflow-y: auto;
     }
     #suggestions div { padding: 10px; cursor: pointer; }
     #suggestions div:hover { background: #00bcd4; color: black; }
@@ -82,8 +69,7 @@
     function showSuggestions(input) {
       const box = document.getElementById("suggestions");
       if (!input || input.length < 1) {
-        box.style.display = "none";
-        return;
+        box.style.display = "none"; return;
       }
 
       const results = customers.filter(c =>
@@ -92,7 +78,9 @@
         c.phone.includes(input)
       ).slice(0, 10);
 
-      box.innerHTML = results.map(c => `<div onclick="selectCustomer('${c.id}')">${c.id} - ${c.name} (${c.phone})</div>`).join("");
+      box.innerHTML = results.map(c =>
+        `<div onclick="selectCustomer('${c.id}')">${c.id} - ${c.name} (${c.phone})</div>`
+      ).join("");
       box.style.display = results.length ? "block" : "none";
 
       const rect = document.getElementById("searchBox").getBoundingClientRect();
@@ -110,22 +98,33 @@
       document.getElementById("customerInfo").style.display = "block";
       document.getElementById("suggestions").style.display = "none";
       document.getElementById("searchBox").value = selectedCustomer.name;
-
       loadUnpaidProducts();
+    }
+
+    function convertOldToPayments(product, paidDues) {
+      if (!product.payments && product.paid && Array.isArray(product.datesPaid)) {
+        product.payments = product.datesPaid.map((date, index) => ({
+          date,
+          amount: product.paid,
+          dueNumber: (paidDues || 0) + 1 + index
+        }));
+        delete product.paid;
+        delete product.datesPaid;
+      }
     }
 
     function loadUnpaidProducts() {
       const dropdown = document.getElementById("productDropdown");
       const productInfo = document.getElementById("productInfo");
       unpaidProducts = [];
-
       dropdown.innerHTML = "";
+
       selectedCustomer.products.forEach((p, index) => {
+        convertOldToPayments(p, selectedCustomer.paidDues);
         const payments = Array.isArray(p.payments) ? p.payments : [];
         const paid = payments.reduce((sum, pay) => sum + pay.amount, 0);
         const balance = p.total - paid;
-        const baseDue = selectedCustomer.paidDues || 0;
-        const nextDue = baseDue + payments.length + 2; // +2 as per your rule
+        const nextDue = (selectedCustomer.paidDues || 0) + payments.length + 1;
 
         if (balance > 0) {
           unpaidProducts.push({ ...p, index, paid, balance, nextDue });
@@ -172,17 +171,11 @@
         return;
       }
 
-      if (!Array.isArray(prod.payments)) {
-        prod.payments = [];
-      }
+      if (!Array.isArray(prod.payments)) prod.payments = [];
 
-      const dueNumber = (selectedCustomer.paidDues || 0) + prod.payments.length + 2;
+      const dueNumber = (selectedCustomer.paidDues || 0) + prod.payments.length + 1;
 
-      prod.payments.push({
-        date,
-        amount: amt,
-        dueNumber
-      });
+      prod.payments.push({ date, amount: amt, dueNumber });
 
       entries.push({
         id: selectedCustomer.id,
@@ -198,7 +191,6 @@
       localStorage.setItem("agent_customers", JSON.stringify(customers));
 
       alert(`✅ Entry saved with Due #${dueNumber}`);
-
       document.getElementById("customerInfo").style.display = "none";
       document.getElementById("amount").value = "";
       document.getElementById("searchBox").value = "";
