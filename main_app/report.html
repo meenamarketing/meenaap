@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Reports - EMI Manager</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8">
+  <title>Customers - EMI Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       background: #121212;
       color: #eee;
       font-family: sans-serif;
       margin: 0;
+      padding: 0;
     }
     nav {
       background: #1f1f1f;
@@ -36,19 +36,25 @@
     h1 {
       color: #00bcd4;
     }
-    input, button, select {
+    input, button {
       padding: 10px;
-      margin: 5px 10px 15px 0;
+      margin: 5px 5px 15px 0;
       border-radius: 5px;
+      border: none;
+    }
+    input {
       background: #1e1e1e;
-      color: white;
+      color: #fff;
       border: 1px solid #444;
     }
     button {
       background: #00bcd4;
-      color: black;
+      color: #000;
       font-weight: bold;
       cursor: pointer;
+    }
+    button:hover {
+      background: #26c6da;
     }
     table {
       width: 100%;
@@ -56,7 +62,7 @@
       margin-top: 10px;
     }
     th, td {
-      padding: 8px;
+      padding: 10px;
       border: 1px solid #333;
     }
     thead {
@@ -66,23 +72,21 @@
       background: #1d1d1d;
     }
     #suggestions {
-      position: absolute;
       background: #222;
-      border: 1px solid #333;
-      border-radius: 5px;
-      z-index: 999;
-      display: none;
-      max-height: 200px;
+      border: 1px solid #444;
+      max-height: 150px;
       overflow-y: auto;
+      position: absolute;
+      z-index: 100;
+      width: 250px;
     }
     #suggestions div {
-      padding: 10px;
-      border-bottom: 1px solid #333;
+      padding: 8px;
       cursor: pointer;
     }
     #suggestions div:hover {
       background: #00bcd4;
-      color: black;
+      color: #000;
     }
   </style>
 </head>
@@ -92,281 +96,179 @@
     <a href="customers.html">Customers</a>
     <a href="entries.html">Entries</a>
     <a href="review.html">Agent Review</a>
-    <a href="reports.html">Reports</a>
+    <a href="report.html">Reports</a>
   </nav>
 
   <main>
-    <h1>📊 Reports & Filter</h1>
+    <h1>Customer Manager</h1>
 
-    <input type="file" accept=".json" onchange="loadData(event)">
-    <br>
+    <input type="file" accept=".json" onchange="loadJSON(event)">
+    <button onclick="downloadJSON()">Export Updated JSON</button>
 
-    <label for="jumpSelect">Jump to Customer:</label>
-    <select id="jumpSelect" onchange="jumpToCustomer(this.value)">
-      <option value="">-- Select --</option>
-    </select>
+    <h2>Add New Customer</h2>
+    <input id="newId" placeholder="Customer ID" />
+    <input id="newName" placeholder="Name" />
+    <input id="newPhone" placeholder="Phone" />
+    <input id="newPlace" placeholder="Place" />
+    <input id="newProduct" placeholder="Product Name" />
+    <input id="newTotal" placeholder="Total Amount" type="number" />
+    <input id="newPaid" placeholder="Amount Paid" type="number" />
+    <button onclick="addCustomer()">Add Customer</button>
 
-    <div style="position:relative;">
-      <input id="searchId" placeholder="Search by ID / Name / Phone" oninput="filterData(); showSuggestions(this.value)">
-      <div id="suggestions"></div>
-    </div>
-    <input id="searchPlace" placeholder="Place" oninput="filterData()">
-    <input id="searchProduct" placeholder="Product Name" oninput="filterData()">
-    <label>From: <input type="date" id="fromDate" onchange="filterData()"></label>
-    <label>To: <input type="date" id="toDate" onchange="filterData()"></label>
-    <button onclick="exportCSV()">Export CSV</button>
+    <h2>Add Product to Existing Customer</h2>
+    <input id="existingId" placeholder="Customer ID" oninput="showSuggestions()">
+    <div id="suggestions"></div>
+    <input id="addProductName" placeholder="Product Name" />
+    <input id="addProductTotal" placeholder="Total Amount" type="number" />
+    <input id="addProductPaid" placeholder="Amount Paid" type="number" />
+    <button onclick="addProduct()">Add Product</button>
 
-    <h3 id="reportTotal">Total Paid: ₹0</h3>
-    <h3 id="reportBalance">Total Balance: ₹0</h3>
-
-    <canvas id="paidBalanceChart" height="150"></canvas>
-    <canvas id="barChart" height="150"></canvas>
-
-    <h2>Customer Summary</h2>
-    <table id="summaryTable">
-      <thead><tr><th>ID</th><th>Name</th><th>Total Paid</th><th>Total Balance</th></tr></thead>
-      <tbody></tbody>
-    </table>
-
-    <h2>Monthly Breakdown</h2>
-    <table id="monthlyTable">
-      <thead><tr><th>Month</th><th>Total Paid</th></tr></thead>
-      <tbody></tbody>
-    </table>
-
-    <h2>Detailed Payments</h2>
+    <h2>Customer List</h2>
     <table>
       <thead>
         <tr>
-          <th>ID</th><th>Name</th><th>Place</th><th>Phone</th><th>Product</th>
-          <th>Paid</th><th>Balance</th><th>Date</th>
+          <th>ID</th><th>Name</th><th>Phone</th><th>Place</th><th>Products</th>
         </tr>
       </thead>
-      <tbody id="reportTable"></tbody>
+      <tbody id="customerTable"></tbody>
     </table>
   </main>
 
   <script>
     let customers = [];
-    let flatReport = [];
-    let allSuggestions = new Set();
-    let pieChart, barChart;
 
-    function loadData(event) {
+    function loadJSON(event) {
       const file = event.target.files[0];
+      if (!file) return;
+
       const reader = new FileReader();
       reader.onload = function (e) {
         customers = JSON.parse(e.target.result);
-        flattenData();
-        filterData();
-        updateDropdown();
+        renderTable();
       };
       reader.readAsText(file);
     }
 
-    function flattenData() {
-      flatReport = [];
-      allSuggestions.clear();
+    function renderTable() {
+      const table = document.getElementById("customerTable");
+      table.innerHTML = "";
 
       customers.forEach(c => {
-        allSuggestions.add(c.id);
-        allSuggestions.add(c.name);
-        allSuggestions.add(c.phone);
-
-        c.products.forEach(p => {
-          const total = p.total || 0;
-          let paidSoFar = 0;
-
-          // calculate totalPaid
-          let totalPaid = 0;
-          if (Array.isArray(p.payments)) {
-            totalPaid = p.payments.reduce((sum, payment) => sum + payment.amount, 0);
-            if (totalPaid >= total) return; // Skip fully paid
-          } else if (Array.isArray(p.datesPaid)) {
-            totalPaid = p.paid || 0;
-            if (totalPaid >= total) return;
-          }
-
-          if (Array.isArray(p.payments)) {
-            p.payments.forEach(payment => {
-              paidSoFar += payment.amount;
-              flatReport.push({
-                id: c.id,
-                name: c.name,
-                place: c.place,
-                phone: c.phone,
-                product: p.name,
-                paid: payment.amount,
-                balance: Math.max(0, total - paidSoFar),
-                date: payment.date
-              });
-            });
-          } else if (Array.isArray(p.datesPaid)) {
-            const avg = totalPaid / p.datesPaid.length;
-            p.datesPaid.forEach((date, idx) => {
-              paidSoFar += avg;
-              flatReport.push({
-                id: c.id,
-                name: c.name,
-                place: c.place,
-                phone: c.phone,
-                product: p.name,
-                paid: avg,
-                balance: Math.max(0, total - paidSoFar),
-                date: date
-              });
-            });
-          }
-        });
-      });
-    }
-
-    function updateDropdown() {
-      const select = document.getElementById("jumpSelect");
-      const unique = [...new Set(flatReport.map(r => `${r.id} - ${r.name}`))];
-      select.innerHTML = `<option value="">-- Select --</option>`;
-      unique.forEach(val => {
-        select.innerHTML += `<option value="${val}">${val}</option>`;
-      });
-    }
-
-    function jumpToCustomer(value) {
-      if (!value) return;
-      const id = value.split(" - ")[0];
-      document.getElementById("searchId").value = id;
-      filterData();
-    }
-
-    function filterData() {
-      const id = document.getElementById("searchId").value.toLowerCase();
-      const place = document.getElementById("searchPlace").value.toLowerCase();
-      const product = document.getElementById("searchProduct").value.toLowerCase();
-      const fromDate = document.getElementById("fromDate").value;
-      const toDate = document.getElementById("toDate").value;
-
-      const filtered = flatReport.filter(r => {
-        return (
-          (!id || r.id.toLowerCase().includes(id) || r.name.toLowerCase().includes(id) || r.phone.includes(id)) &&
-          (!place || r.place.toLowerCase().includes(place)) &&
-          (!product || r.product.toLowerCase().includes(product)) &&
-          (!fromDate || r.date >= fromDate) &&
-          (!toDate || r.date <= toDate)
-        );
-      });
-
-      const tbody = document.getElementById("reportTable");
-      tbody.innerHTML = "";
-      let totalPaid = 0;
-
-      filtered.forEach(r => {
-        totalPaid += r.paid;
         const row = document.createElement("tr");
+        let productList = "";
+
+        if (Array.isArray(c.products)) {
+          c.products.forEach(p => {
+            const bal = (p.total || 0) - (p.paid || 0);
+            productList += `<div>${p.name} - ₹${p.paid || 0}/₹${p.total || 0} (Balance: ₹${bal})</div>`;
+          });
+        }
+
         row.innerHTML = `
-          <td>${r.id}</td><td>${r.name}</td><td>${r.place}</td><td>${r.phone}</td>
-          <td>${r.product}</td><td>₹${r.paid.toFixed(2)}</td>
-          <td>₹${r.balance.toFixed(2)}</td><td>${r.date}</td>
+          <td>${c.id}</td>
+          <td>${c.name}</td>
+          <td>${c.phone}</td>
+          <td>${c.place}</td>
+          <td>${productList}</td>
         `;
-        tbody.appendChild(row);
-      });
-
-      document.getElementById("reportTotal").innerText = `Total Paid: ₹${totalPaid.toFixed(2)}`;
-      updateSummaries(filtered);
-    }
-
-    function updateSummaries(filtered) {
-      const summaryTable = document.querySelector("#summaryTable tbody");
-      const monthlyTable = document.querySelector("#monthlyTable tbody");
-      summaryTable.innerHTML = "";
-      monthlyTable.innerHTML = "";
-
-      const customerMap = new Map();
-      const monthlyMap = new Map();
-      let piePaid = 0, pieBalance = 0;
-
-      filtered.forEach(r => {
-        if (!customerMap.has(r.id)) {
-          customerMap.set(r.id, { name: r.name, paid: 0, balance: 0 });
-        }
-        customerMap.get(r.id).paid += r.paid;
-        customerMap.get(r.id).balance = r.balance;
-
-        const month = r.date?.slice(0, 7);
-        monthlyMap.set(month, (monthlyMap.get(month) || 0) + r.paid);
-      });
-
-      customerMap.forEach((data, id) => {
-        summaryTable.innerHTML += `<tr><td>${id}</td><td>${data.name}</td><td>₹${data.paid.toFixed(2)}</td><td>₹${data.balance.toFixed(2)}</td></tr>`;
-        piePaid += data.paid;
-        pieBalance += data.balance;
-      });
-
-      monthlyMap.forEach((amt, month) => {
-        monthlyTable.innerHTML += `<tr><td>${month}</td><td>₹${amt.toFixed(2)}</td></tr>`;
-      });
-
-      document.getElementById("reportBalance").innerText = `Total Balance: ₹${pieBalance.toFixed(2)}`;
-      drawCharts(piePaid, pieBalance, customerMap);
-    }
-
-    function drawCharts(paid, balance, customerMap) {
-      const pieCtx = document.getElementById('paidBalanceChart').getContext('2d');
-      if (pieChart) pieChart.destroy();
-      pieChart = new Chart(pieCtx, {
-        type: 'pie',
-        data: {
-          labels: ['Paid', 'Balance'],
-          datasets: [{ data: [paid, balance], backgroundColor: ['#00e676', '#ff5252'] }]
-        }
-      });
-
-      const barCtx = document.getElementById('barChart').getContext('2d');
-      if (barChart) barChart.destroy();
-      const labels = [], data = [];
-      customerMap.forEach((v) => {
-        labels.push(v.name);
-        data.push(v.paid);
-      });
-      barChart = new Chart(barCtx, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{ label: 'Paid Amount', data, backgroundColor: '#00bcd4' }]
-        },
-        options: {
-          responsive: true,
-          scales: { y: { beginAtZero: true } },
-          plugins: { legend: { display: false } }
-        }
+        table.appendChild(row);
       });
     }
 
-    function exportCSV() {
-      let csv = "ID,Name,Place,Phone,Product,Paid,Balance,Date\n";
-      document.querySelectorAll("#reportTable tr").forEach(r => {
-        const row = Array.from(r.querySelectorAll("td")).map(td => td.innerText).join(",");
-        csv += row + "\n";
+    function addCustomer() {
+      const id = document.getElementById("newId").value.trim();
+      const name = document.getElementById("newName").value.trim();
+      const phone = document.getElementById("newPhone").value.trim();
+      const place = document.getElementById("newPlace").value.trim();
+      const product = document.getElementById("newProduct").value.trim();
+      const total = parseFloat(document.getElementById("newTotal").value);
+      const paid = parseFloat(document.getElementById("newPaid").value);
+
+      if (!id || customers.find(c => c.id === id)) {
+        alert("Invalid or duplicate ID");
+        return;
+      }
+
+      customers.push({
+        id, name, phone, place,
+        products: [{
+          name: product,
+          total,
+          paid,
+          datesPaid: [new Date().toISOString().split("T")[0]]
+        }]
       });
-      const blob = new Blob([csv], { type: "text/csv" });
+
+      renderTable();
+      alert("Customer added successfully!");
+    }
+
+    function addProduct() {
+      const id = document.getElementById("existingId").value.trim();
+      const name = document.getElementById("addProductName").value.trim();
+      const total = parseFloat(document.getElementById("addProductTotal").value);
+      const paid = parseFloat(document.getElementById("addProductPaid").value);
+
+      const customer = customers.find(c => c.id === id);
+      if (!customer) {
+        alert("Customer not found");
+        return;
+      }
+
+      const duplicate = customer.products.some(p => p.name.toLowerCase() === name.toLowerCase());
+      if (duplicate) {
+        alert("Product with this name already exists for this customer.");
+        return;
+      }
+
+      customer.products.push({
+        name,
+        total,
+        paid,
+        datesPaid: [new Date().toISOString().split("T")[0]]
+      });
+
+      renderTable();
+      alert("Product added successfully!");
+    }
+
+    function downloadJSON() {
+      const blob = new Blob([JSON.stringify(customers, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "filtered_report.csv";
+      a.download = "customers.json";
       a.click();
     }
 
-    function showSuggestions(input) {
-      const box = document.getElementById("suggestions");
-      if (!input || input.length < 1) return box.style.display = "none";
-      const results = [...allSuggestions].filter(s => s.toLowerCase().includes(input.toLowerCase())).slice(0, 10);
-      box.innerHTML = results.map(r => `<div onclick="selectSuggestion('${r}')">${r}</div>`).join("");
-      box.style.display = results.length ? "block" : "none";
+    function showSuggestions() {
+      const input = document.getElementById("existingId");
+      const suggestionsBox = document.getElementById("suggestions");
+      const value = input.value.toLowerCase();
+      suggestionsBox.innerHTML = "";
+
+      if (!value) return;
+
+      const matches = customers.filter(c =>
+        c.id.toLowerCase().includes(value) || c.name.toLowerCase().includes(value)
+      );
+
+      matches.slice(0, 5).forEach(c => {
+        const div = document.createElement("div");
+        div.textContent = `${c.id} - ${c.name}`;
+        div.onclick = () => {
+          input.value = c.id;
+          suggestionsBox.innerHTML = "";
+        };
+        suggestionsBox.appendChild(div);
+      });
     }
 
-    function selectSuggestion(value) {
-      document.getElementById("searchId").value = value;
-      document.getElementById("suggestions").style.display = "none";
-      filterData();
-    }
+    document.addEventListener("click", function (e) {
+      if (!e.target.closest("#existingId") && !e.target.closest("#suggestions")) {
+        document.getElementById("suggestions").innerHTML = "";
+      }
+    });
   </script>
 </body>
 </html>
