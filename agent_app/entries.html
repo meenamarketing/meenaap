@@ -117,7 +117,10 @@
 
     function showSuggestions(input) {
       const box = document.getElementById("suggestions");
-      if (!input || input.length < 1) return box.style.display = "none";
+      if (!input || input.length < 1) {
+        box.style.display = "none";
+        return;
+      }
 
       const results = customers.filter(c =>
         c.id.toLowerCase().includes(input.toLowerCase()) ||
@@ -127,6 +130,11 @@
 
       box.innerHTML = results.map(c => `<div onclick="selectCustomer('${c.id}')">${c.id} - ${c.name} (${c.phone})</div>`).join("");
       box.style.display = results.length ? "block" : "none";
+
+      const rect = document.getElementById("searchBox").getBoundingClientRect();
+      box.style.left = rect.left + "px";
+      box.style.top = rect.bottom + window.scrollY + "px";
+      box.style.width = rect.width + "px";
     }
 
     function selectCustomer(id) {
@@ -142,22 +150,6 @@
       loadUnpaidProducts();
     }
 
-    function convertOldToNew(product) {
-      if (!Array.isArray(product.payments)) {
-        product.payments = [];
-        if (Array.isArray(product.datesPaid)) {
-          const avg = (product.paid || 0) / product.datesPaid.length;
-          product.datesPaid.forEach((date, i) => {
-            product.payments.push({
-              amount: Math.round(avg * 100) / 100,
-              date,
-              dueNumber: i + 1
-            });
-          });
-        }
-      }
-    }
-
     function loadUnpaidProducts() {
       const dropdown = document.getElementById("productDropdown");
       const productInfo = document.getElementById("productInfo");
@@ -165,14 +157,17 @@
 
       dropdown.innerHTML = "";
       selectedCustomer.products.forEach((p, index) => {
-        convertOldToNew(p);
-        const paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
-        const balance = p.total - paid;
-        const dueCount = p.payments.length;
+        let paid = 0;
+        if (Array.isArray(p.payments)) {
+          paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
+        } else {
+          paid = p.paid || 0;
+        }
 
+        const balance = p.total - paid;
         if (balance > 0) {
-          unpaidProducts.push({ ...p, index, paid, balance, dueCount });
-          dropdown.innerHTML += `<option value="${index}">${p.name} - ₹${balance.toFixed(2)} due (Next Due: #${dueCount + 1})</option>`;
+          unpaidProducts.push({ ...p, index, paid, balance });
+          dropdown.innerHTML += `<option value="${index}">${p.name} - ₹${balance.toFixed(2)} due</option>`;
         }
       });
 
@@ -191,16 +186,19 @@
     }
 
     function updateProductInfo() {
-      const selectedIdx = parseInt(document.getElementById("productDropdown").value);
-      const prod = unpaidProducts.find(p => p.index === selectedIdx);
+      const selectedIdx = document.getElementById("productDropdown").value;
+      const prod = unpaidProducts.find(p => p.index == selectedIdx);
       if (!prod) return;
+
+      const baseDue = selectedCustomer.paidDues || 0;
+      const nextDue = baseDue + (prod.payments?.length || 0) + 1;
 
       document.getElementById("productInfo").innerHTML = `
         <p><strong>Product:</strong> ${prod.name}</p>
         <p><strong>Total:</strong> ₹${prod.total}</p>
         <p><strong>Paid:</strong> ₹${prod.paid}</p>
         <p><strong>Balance:</strong> ₹${prod.balance}</p>
-        <p><strong>Next Due Number:</strong> #${prod.dueCount + 1}</p>
+        <p><strong>Next Due Number:</strong> #${nextDue}</p>
       `;
     }
 
@@ -210,12 +208,17 @@
       const prodIndex = parseInt(document.getElementById("productDropdown").value);
       const prod = selectedCustomer.products[prodIndex];
 
-      convertOldToNew(prod);
-
       if (!selectedCustomer || isNaN(amt) || !date || !prod) {
         alert("Please fill all fields");
         return;
       }
+
+      if (!Array.isArray(prod.payments)) {
+        prod.payments = [];
+      }
+
+      const baseDue = selectedCustomer.paidDues || 0;
+      const dueNumber = baseDue + prod.payments.length + 1;
 
       const paid = prod.payments.reduce((sum, p) => sum + p.amount, 0);
       const balance = prod.total - paid;
@@ -225,10 +228,10 @@
         return;
       }
 
-      const dueNumber = prod.payments.length + 1;
+      // Save payment
+      prod.payments.push({ date, amount: amt, dueNumber });
 
-      prod.payments.push({ amount: amt, date, dueNumber });
-
+      // Save entry
       entries.push({
         id: selectedCustomer.id,
         name: selectedCustomer.name,
@@ -242,7 +245,7 @@
       localStorage.setItem("agent_entries", JSON.stringify(entries));
       localStorage.setItem("agent_customers", JSON.stringify(customers));
 
-      alert(`✅ Payment added. Due #${dueNumber}`);
+      alert(`✅ Entry saved with Due #${dueNumber}`);
 
       // Reset
       document.getElementById("customerInfo").style.display = "none";
