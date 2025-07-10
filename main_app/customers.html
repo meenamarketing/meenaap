@@ -113,6 +113,8 @@
     <input id="newProduct" placeholder="Product Name" />
     <input id="newTotal" placeholder="Total Amount" type="number" />
     <input id="newPaid" placeholder="Amount Paid" type="number" />
+    <input id="newTotalDues" placeholder="Total Dues" type="number" />
+    <input id="newPaidDues" placeholder="Dues Already Paid" type="number" />
     <button onclick="addCustomer()">Add Customer</button>
 
     <h2>Add Product to Existing Customer</h2>
@@ -161,12 +163,16 @@
           productList += `<div>${p.name} - ₹${p.paid}/₹${p.total} (Balance: ₹${bal})</div>`;
         });
 
+        let dueInfo = (c.totalDues && c.paidDues != null)
+          ? `<div>Due ${c.paidDues + 1} of ${c.totalDues}</div>`
+          : "";
+
         row.innerHTML = `
           <td>${c.id}</td>
           <td>${c.name}</td>
           <td>${c.phone}</td>
           <td>${c.place}</td>
-          <td>${productList}</td>
+          <td>${productList}${dueInfo}</td>
         `;
         table.appendChild(row);
       });
@@ -180,14 +186,26 @@
       const product = document.getElementById("newProduct").value.trim();
       const total = parseFloat(document.getElementById("newTotal").value);
       const paid = parseFloat(document.getElementById("newPaid").value);
+      const totalDues = parseInt(document.getElementById("newTotalDues").value);
+      const paidDues = parseInt(document.getElementById("newPaidDues").value);
 
       if (!id || customers.find(c => c.id === id)) {
         alert("Invalid or duplicate ID");
         return;
       }
 
+      if (!name || !product || isNaN(total) || isNaN(paid) || isNaN(totalDues) || isNaN(paidDues) || totalDues <= 0 || paidDues < 0 || paidDues > totalDues) {
+        alert("Please fill all fields correctly.");
+        return;
+      }
+
       customers.push({
-        id, name, phone, place,
+        id,
+        name,
+        phone,
+        place,
+        totalDues,
+        paidDues,
         products: [{
           name: product,
           total,
@@ -198,6 +216,17 @@
 
       renderTable();
       alert("Customer added successfully!");
+
+      // Clear fields
+      document.getElementById("newId").value = "";
+      document.getElementById("newName").value = "";
+      document.getElementById("newPhone").value = "";
+      document.getElementById("newPlace").value = "";
+      document.getElementById("newProduct").value = "";
+      document.getElementById("newTotal").value = "";
+      document.getElementById("newPaid").value = "";
+      document.getElementById("newTotalDues").value = "";
+      document.getElementById("newPaidDues").value = "";
     }
 
     function addProduct() {
