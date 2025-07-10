@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Add Collections - Agent App</title>
@@ -83,31 +84,38 @@
     <a href="index.html">Home</a>
     <a href="entries.html">Add Collection</a>
     <a href="view.html">Today's Entries</a>
-  </nav>  <main>
+  </nav>
+
+  <main>
     <h1>Add Collection Entry</h1>
     <input type="text" id="searchBox" placeholder="Search by ID, Name or Phone" oninput="showSuggestions(this.value)">
-    <div id="suggestions"></div><div class="customer-box" id="customerInfo" style="display:none;">
-  <p><strong>ID:</strong> <span id="custId"></span></p>
-  <p><strong>Name:</strong> <span id="custName"></span></p>
-  <p><strong>Phone:</strong> <span id="custPhone"></span></p>
-  <p><strong>Place:</strong> <span id="custPlace"></span></p>
+    <div id="suggestions"></div>
 
-  <div id="productSection">
-    <label>Select Product:</label>
-    <select id="productDropdown"></select>
-    <div id="productInfo"></div>
-  </div>
+    <div class="customer-box" id="customerInfo" style="display:none;">
+      <p><strong>ID:</strong> <span id="custId"></span></p>
+      <p><strong>Name:</strong> <span id="custName"></span></p>
+      <p><strong>Phone:</strong> <span id="custPhone"></span></p>
+      <p><strong>Place:</strong> <span id="custPlace"></span></p>
 
-  <input type="number" id="amount" placeholder="Enter Amount Collected">
-  <input type="date" id="date" value="">
-  <button onclick="saveEntry()">Save Entry</button>
-</div>
+      <div id="productSection">
+        <label>Select Product:</label>
+        <select id="productDropdown"></select>
+        <div id="productInfo"></div>
+      </div>
 
-  </main>  <script>
+      <input type="number" id="amount" placeholder="Enter Amount Collected">
+      <input type="date" id="date">
+      <button onclick="saveEntry()">Save Entry</button>
+    </div>
+  </main>
+
+  <script>
     let customers = JSON.parse(localStorage.getItem('agent_customers') || '[]');
     let entries = JSON.parse(localStorage.getItem('agent_entries') || '[]');
     let selectedCustomer = null;
     let unpaidProducts = [];
+
+    document.getElementById("date").value = new Date().toISOString().split("T")[0];
 
     function showSuggestions(input) {
       const box = document.getElementById("suggestions");
@@ -152,7 +160,7 @@
       dropdown.innerHTML = "";
       selectedCustomer.products.forEach((p, index) => {
         let paid = 0;
-        if (p.payments && Array.isArray(p.payments)) {
+        if (Array.isArray(p.payments)) {
           paid = p.payments.reduce((sum, pay) => sum + pay.amount, 0);
         } else {
           paid = p.paid || 0;
@@ -196,51 +204,43 @@
       const amt = parseFloat(document.getElementById("amount").value);
       const date = document.getElementById("date").value;
       const prodIndex = parseInt(document.getElementById("productDropdown").value);
-      const prod = unpaidProducts.find(p => p.index == prodIndex);
 
-      if (!selectedCustomer || isNaN(amt) || !date || !prod) {
+      if (!selectedCustomer || isNaN(amt) || !date || isNaN(prodIndex)) {
         alert("Please fill all fields");
         return;
       }
 
-      if (amt > prod.balance) {
-        alert("Amount exceeds remaining balance!");
-        return;
-      }
-
+      const product = selectedCustomer.products[prodIndex];
+      const payments = product.payments || [];
       const baseDues = selectedCustomer.paidDues || 0;
-      const dueNumber = baseDues + (prod.payments?.length || 0) + 1;
+      const dueNumber = baseDues + payments.length + 1;
 
       const payment = { amount: amt, date, dueNumber };
-
-      if (!Array.isArray(selectedCustomer.products[prodIndex].payments)) {
-        selectedCustomer.products[prodIndex].payments = [];
+      if (!Array.isArray(product.payments)) {
+        product.payments = [];
       }
-      selectedCustomer.products[prodIndex].payments.push(payment);
+      product.payments.push(payment);
 
-      const entry = {
+      entries.push({
         id: selectedCustomer.id,
         name: selectedCustomer.name,
         phone: selectedCustomer.phone,
-        product: prod.name,
+        product: product.name,
         amount: amt,
         date: date,
         dueNumber: dueNumber
-      };
+      });
 
-      entries.push(entry);
       localStorage.setItem("agent_entries", JSON.stringify(entries));
       localStorage.setItem("agent_customers", JSON.stringify(customers));
-      alert(`Entry saved with Due #${dueNumber}`);
 
-      // Reset
-      document.getElementById("customerInfo").style.display = "none";
+      alert(`✅ Entry saved with Due #${dueNumber}`);
+
+      // Refresh customer data and inputs
+      selectCustomer(selectedCustomer.id);
       document.getElementById("amount").value = "";
-      document.getElementById("searchBox").value = "";
-      selectedCustomer = null;
-      unpaidProducts = [];
+      document.getElementById("amount").focus();
     }
-
-    document.getElementById("date").value = new Date().toISOString().split("T")[0];
-  </script></body>
+  </script>
+</body>
 </html>
