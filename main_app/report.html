@@ -156,7 +156,7 @@
         c.products.forEach(p => {
           const total = p.total || 0;
           const totalDues = p.totalDues || c.totalDues || 0;
-          let previousDues = p.paidDues || 0;
+          const previousDues = (p.paidDues !== undefined) ? p.paidDues : (p.payments?.length || p.datesPaid?.length || 0);
 
           if (Array.isArray(p.payments)) {
             let paidSoFar = 0;
