@@ -89,14 +89,14 @@
     <a href="entries.html">Entries</a>
     <a href="review.html">Agent Review</a>
     <a href="reports.html">Reports</a>
-  </nav>  <main>
+  </nav>
+  <main>
     <h1>📊 Reports & Filter</h1>
-    <input type="file" accept=".json" onchange="loadData(event)" /><br /><label for="jumpSelect">Jump to Customer:</label>
-<select id="jumpSelect" onchange="jumpToCustomer(this.value)">
-  <option value="">-- Select --</option>
-</select>
-
-<div style="position:relative;">
+    <input type="file" accept=".json" onchange="loadData(event)" /><br />
+    <label for="jumpSelect">Jump to Customer:</label>
+    <select id="jumpSelect" onchange="jumpToCustomer(this.value)">
+      <option value="">-- Select --</option>
+    </select><div style="position:relative;">
   <input id="searchId" placeholder="Search by ID / Name / Phone" oninput="filterData(); showSuggestions(this.value)" />
   <div id="suggestions"></div>
 </div>
@@ -156,6 +156,7 @@
         c.products.forEach(p => {
           const total = p.total || 0;
           const totalDues = p.totalDues || c.totalDues || 0;
+          const paidDues = p.payments?.length || 0;
 
           if (Array.isArray(p.payments)) {
             let paidSoFar = 0;
@@ -170,25 +171,6 @@
                 paid: payment.amount,
                 balance: Math.max(0, total - paidSoFar),
                 date: payment.date,
-                paidDues: index + 1,
-                totalDues: totalDues
-              });
-            });
-          } else if (Array.isArray(p.datesPaid)) {
-            const paid = p.paid || 0;
-            const avg = paid / p.datesPaid.length;
-            let paidSoFar = 0;
-            p.datesPaid.forEach((date, index) => {
-              paidSoFar += avg;
-              flatReport.push({
-                id: c.id,
-                name: c.name,
-                place: c.place,
-                phone: c.phone,
-                product: p.name,
-                paid: avg,
-                balance: Math.max(0, total - paidSoFar),
-                date,
                 paidDues: index + 1,
                 totalDues: totalDues
               });
