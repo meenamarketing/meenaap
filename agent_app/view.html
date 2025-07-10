@@ -161,21 +161,27 @@
       const doc = new jsPDF();
 
       doc.setFont("Helvetica", "bold");
-      doc.setFontSize(16);
+      doc.setFontSize(18);
       doc.text("Today's Agent Collection", 15, 20);
 
       let startY = 30;
       const headers = ["ID", "Name", "Phone", "Product", "Amount", "Date", "Due #"];
-      const colWidths = [20, 40, 30, 30, 25, 30, 15];
+      const colWidths = [20, 40, 35, 35, 25, 30, 15];
+      const cellHeight = 10;
 
       // Table header
       headers.forEach((h, i) => {
-        doc.text(h, 10 + colWidths.slice(0, i).reduce((a, b) => a + b, 0), startY);
+        const x = 10 + colWidths.slice(0, i).reduce((a, b) => a + b, 0);
+        doc.setFontSize(12);
+        doc.setFont("Helvetica", "bold");
+        doc.text(h, x + 2, startY + 7);
+        doc.rect(x, startY, colWidths[i], cellHeight);
       });
 
-      // Table rows
+      let total = 0;
+      // Table body
       entries.forEach((e, idx) => {
-        const y = startY + 10 + idx * 10;
+        const y = startY + (idx + 1) * cellHeight;
         const row = [
           e.id,
           e.name,
@@ -185,12 +191,22 @@
           e.date,
           String(e.dueNumber)
         ];
+        total += parseFloat(e.amount || 0);
+
         row.forEach((val, i) => {
-          doc.setFontSize(12);
+          const x = 10 + colWidths.slice(0, i).reduce((a, b) => a + b, 0);
+          doc.setFontSize(11);
           doc.setFont("Helvetica", "normal");
-          doc.text(String(val), 10 + colWidths.slice(0, i).reduce((a, b) => a + b, 0), y);
+          doc.text(String(val), x + 2, y + 7);
+          doc.rect(x, y, colWidths[i], cellHeight);
         });
       });
+
+      // Total at the bottom
+      const finalY = startY + (entries.length + 1) * cellHeight + 10;
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text(`Total Collected: ₹${total.toFixed(2)}`, 15, finalY);
 
       doc.save(`collection_${getTodayDateStr()}.pdf`);
     }
