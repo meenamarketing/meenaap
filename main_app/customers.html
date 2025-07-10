@@ -105,7 +105,7 @@
     <input type="file" accept=".json" onchange="loadJSON(event)">
     <button onclick="downloadJSON()">Export Updated JSON</button>
 
-    <h2>Add New Customer</h2>
+    <h2 id="formTitle">Add New Customer</h2>
     <input id="newId" placeholder="Customer ID" />
     <input id="newName" placeholder="Name" />
     <input id="newPhone" placeholder="Phone" />
@@ -138,6 +138,8 @@
 
   <script>
     let customers = [];
+    let isEditing = false;
+    let editingCustomerId = null;
 
     function loadJSON(event) {
       const file = event.target.files[0];
@@ -172,7 +174,9 @@
           <td>${c.name}</td>
           <td>${c.phone}</td>
           <td>${c.place}</td>
-          <td>${productList}${dueInfo}</td>
+          <td>${productList}${dueInfo}<br>
+              <button onclick="editCustomer('${c.id}')">✏️ Edit</button>
+          </td>
         `;
         table.appendChild(row);
       });
@@ -189,35 +193,82 @@
       const totalDues = parseInt(document.getElementById("newTotalDues").value);
       const paidDues = parseInt(document.getElementById("newPaidDues").value);
 
-      if (!id || customers.find(c => c.id === id)) {
-        alert("Invalid or duplicate ID");
-        return;
-      }
-
       if (!name || !product || isNaN(total) || isNaN(paid) || isNaN(totalDues) || isNaN(paidDues) || totalDues <= 0 || paidDues < 0 || paidDues > totalDues) {
         alert("Please fill all fields correctly.");
         return;
       }
 
-      customers.push({
-        id,
-        name,
-        phone,
-        place,
-        totalDues,
-        paidDues,
-        products: [{
-          name: product,
-          total,
-          paid,
-          datesPaid: [new Date().toISOString().split("T")[0]]
-        }]
-      });
+      if (isEditing) {
+        const c = customers.find(c => c.id === editingCustomerId);
+        if (!c) return;
 
+        c.name = name;
+        c.phone = phone;
+        c.place = place;
+        c.totalDues = totalDues;
+        c.paidDues = paidDues;
+        c.products[0].name = product;
+        c.products[0].total = total;
+        c.products[0].paid = paid;
+
+        alert("Customer updated successfully!");
+      } else {
+        if (!id || customers.find(c => c.id === id)) {
+          alert("Invalid or duplicate ID");
+          return;
+        }
+
+        customers.push({
+          id,
+          name,
+          phone,
+          place,
+          totalDues,
+          paidDues,
+          products: [{
+            name: product,
+            total,
+            paid,
+            datesPaid: [new Date().toISOString().split("T")[0]]
+          }]
+        });
+
+        alert("Customer added successfully!");
+      }
+
+      resetForm();
       renderTable();
-      alert("Customer added successfully!");
+    }
 
-      // Clear fields
+    function editCustomer(id) {
+      const c = customers.find(c => c.id === id);
+      if (!c) return;
+
+      isEditing = true;
+      editingCustomerId = id;
+
+      document.getElementById("newId").value = c.id;
+      document.getElementById("newId").disabled = true;
+      document.getElementById("newName").value = c.name;
+      document.getElementById("newPhone").value = c.phone;
+      document.getElementById("newPlace").value = c.place;
+      document.getElementById("newTotalDues").value = c.totalDues || "";
+      document.getElementById("newPaidDues").value = c.paidDues || "";
+
+      const p = c.products[0];
+      document.getElementById("newProduct").value = p.name;
+      document.getElementById("newTotal").value = p.total;
+      document.getElementById("newPaid").value = p.paid;
+
+      document.querySelector("button[onclick='addCustomer()']").innerText = "Update Customer";
+      document.getElementById("formTitle").innerText = "Edit Customer";
+    }
+
+    function resetForm() {
+      isEditing = false;
+      editingCustomerId = null;
+
+      document.getElementById("newId").disabled = false;
       document.getElementById("newId").value = "";
       document.getElementById("newName").value = "";
       document.getElementById("newPhone").value = "";
@@ -227,6 +278,9 @@
       document.getElementById("newPaid").value = "";
       document.getElementById("newTotalDues").value = "";
       document.getElementById("newPaidDues").value = "";
+
+      document.querySelector("button[onclick='addCustomer()']").innerText = "Add Customer";
+      document.getElementById("formTitle").innerText = "Add New Customer";
     }
 
     function addProduct() {
