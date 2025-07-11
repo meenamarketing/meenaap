@@ -172,7 +172,7 @@
     function mergeData() {
       let updated = 0;
 
-      // Group by customer+product
+      // Group entries by customer+product
       const grouped = {};
 
       agentEntries.forEach(entry => {
@@ -194,22 +194,22 @@
 
         if (!Array.isArray(product.payments)) product.payments = [];
 
-        // Add each payment individually
+        // 🔥 FIX: Remove datesPaid[] if present
+        if (Array.isArray(product.datesPaid)) delete product.datesPaid;
+
+        // Add payments
         payments.forEach(p => {
           product.payments.push({
             date: p.date,
             amount: p.amount
-            // Do NOT add dueNumber
           });
         });
 
-        // Update total paid
         product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-
         updated++;
       });
 
-      alert(`✅ Merged ${updated} grouped entries into customer data (paidDues kept as-is).`);
+      alert(`✅ Merged ${updated} entries into customer data.`);
     }
 
     function exportMerged() {
