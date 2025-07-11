@@ -199,20 +199,17 @@
           product.payments.push({
             date: p.date,
             amount: p.amount
-            // ❌ no dueNumber
+            // Do NOT add dueNumber
           });
         });
 
         // Update total paid
         product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
-        // 🧠 Trick: update paidDues so that report shows correct due numbers
-        customer.paidDues = product.payments.length - 1;
-
         updated++;
       });
 
-      alert(`✅ Merged ${updated} grouped entries into customer data.`);
+      alert(`✅ Merged ${updated} grouped entries into customer data (paidDues kept as-is).`);
     }
 
     function exportMerged() {
