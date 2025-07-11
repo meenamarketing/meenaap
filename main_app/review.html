@@ -141,16 +141,22 @@
         if (!Array.isArray(product.payments)) product.payments = [];
         if (!Array.isArray(product.datesPaid)) product.datesPaid = [];
 
-        // Check if same amount + date already exists to allow duplicates
+        // Add payment
         product.payments.push({
           date: entry.date,
           amount: Number(entry.amount),
-          dueNumber: entry.dueNumber // optional if not used by reports.html
+          dueNumber: entry.dueNumber
         });
 
-        // Always push same date again for reports.html row mapping
+        // Add one matching date
         product.datesPaid.push(entry.date);
 
+        // FIX mismatch bug: remove extra dates
+        while (product.datesPaid.length > product.payments.length) {
+          product.datesPaid.pop();
+        }
+
+        // Recalculate paid amount
         product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
         updated++;
       });
