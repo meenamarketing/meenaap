@@ -11,6 +11,7 @@
     }
     nav {
       background: #1f1f1f; display: flex; gap: 10px; padding: 10px;
+      flex-wrap: wrap;
     }
     nav a {
       color: white; background: #333;
@@ -40,9 +41,9 @@
       margin-top: 10px; cursor: pointer;
     }
     button:hover { background: #26c6da; }
-    .editable {
-      background: #1e1e1e; color: white; border: 1px solid #444;
-      padding: 5px; border-radius: 4px; width: 80px;
+    input.editable {
+      width: 70px; text-align: center;
+      background: #222; border: 1px solid #555; border-radius: 4px; color: #fff;
     }
   </style>
 </head>
@@ -102,18 +103,18 @@
       tbody.innerHTML = "";
       let total = 0;
 
-      agentEntries.forEach((e, i) => {
+      agentEntries.forEach((e, index) => {
         total += Number(e.amount || 0);
         const row = document.createElement("tr");
         row.innerHTML = `
           <td>${e.id}</td>
           <td>${e.name}</td>
           <td>${e.phone}</td>
-          <td>${e.product}</td>
-          <td><input type="number" class="editable" value="${e.amount}" disabled onchange="editEntry(${i}, 'amount', this.value)"></td>
-          <td><input type="number" class="editable" value="${e.dueNumber}" disabled onchange="editEntry(${i}, 'dueNumber', this.value)"></td>
+          <td>${e.product || "-"}</td>
+          <td><input class="editable" value="${e.amount}" onchange="agentEntries[${index}].amount=this.value"></td>
+          <td><input class="editable" value="${e.dueNumber}" onchange="agentEntries[${index}].dueNumber=this.value"></td>
           <td>${e.date}</td>
-          <td><button onclick="enableEdit(this)">✏️ Edit</button></td>
+          <td><button onclick="editEntry(${index})">📝</button></td>
         `;
         tbody.appendChild(row);
       });
@@ -124,14 +125,13 @@
       document.getElementById("exportBtn").style.display = "inline-block";
     }
 
-    function enableEdit(btn) {
-      const row = btn.closest("tr");
-      const inputs = row.querySelectorAll("input.editable");
-      inputs.forEach(input => input.disabled = false);
-    }
-
-    function editEntry(index, key, value) {
-      agentEntries[index][key] = Number(value);
+    function editEntry(index) {
+      const entry = agentEntries[index];
+      const newAmount = prompt("Edit amount:", entry.amount);
+      const newDue = prompt("Edit due number:", entry.dueNumber);
+      if (newAmount !== null) agentEntries[index].amount = parseFloat(newAmount);
+      if (newDue !== null) agentEntries[index].dueNumber = parseInt(newDue);
+      showAgentTable();
     }
 
     function mergeData() {
@@ -145,39 +145,32 @@
         if (!product) return;
 
         if (!Array.isArray(product.payments)) product.payments = [];
+        if (!Array.isArray(product.datesPaid)) product.datesPaid = [];
 
-        const isDuplicate = product.payments.some(p =>
-          p.date === entry.date && p.amount === entry.amount
-        );
+        // ✅ Always push, even if same amount/date/due
+        product.payments.push({
+          date: entry.date,
+          amount: Number(entry.amount),
+          dueNumber: entry.dueNumber
+        });
 
-        if (!isDuplicate) {
-          product.payments.push({
-            date: entry.date,
-            amount: Number(entry.amount),
-            dueNumber: Number(entry.dueNumber)
-          });
-
-          product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-          updated++;
-        }
+        product.datesPaid.push(entry.date);
+        product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        updated++;
       });
 
-      alert(`✅ Merged ${updated} entries into main customers.`);
+      alert(`✅ Merged ${updated} entries into customer data.`);
     }
 
     function exportMerged() {
+      const now = new Date();
+      const fileName = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear()).slice(-2)}.json`;
+
       const blob = new Blob([JSON.stringify(mainCustomers, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-
-      const now = new Date();
-      const dd = String(now.getDate()).padStart(2, '0');
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const yy = String(now.getFullYear()).slice(-2);
-      const filename = `${dd}-${mm}-${yy}.json`;
-
       a.href = url;
-      a.download = filename;
+      a.download = fileName;
       a.click();
     }
 
