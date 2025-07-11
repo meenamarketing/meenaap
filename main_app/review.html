@@ -40,13 +40,26 @@
       margin-top: 10px; cursor: pointer;
     }
     button:hover { background: #26c6da; }
+    .edit-btn {
+      font-size: 14px; padding: 5px 10px;
+      margin-left: 5px; background: #555; border-radius: 3px;
+    }
+    .edit-btn:hover {
+      background: #00bcd4; color: black;
+    }
+    .input-edit {
+      width: 90px;
+      background: #222;
+      color: #fff;
+      border: 1px solid #666;
+      padding: 5px;
+    }
   </style>
 </head>
 <body>
   <nav>
     <a href="index.html">Dashboard</a>
     <a href="entries.html">Add Entry</a>
-  
     <a href="report.html">Reports</a>
   </nav>
 
@@ -63,7 +76,7 @@
       <thead>
         <tr>
           <th>ID</th><th>Name</th><th>Phone</th>
-          <th>Product</th><th>Amount</th><th>Due</th><th>Date</th>
+          <th>Product</th><th>Amount</th><th>Due</th><th>Date</th><th>Action</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -99,7 +112,7 @@
       tbody.innerHTML = "";
       let total = 0;
 
-      agentEntries.forEach(e => {
+      agentEntries.forEach((e, idx) => {
         total += Number(e.amount || 0);
         const row = document.createElement("tr");
         row.innerHTML = `
@@ -107,9 +120,12 @@
           <td>${e.name}</td>
           <td>${e.phone}</td>
           <td>${e.product || "-"}</td>
-          <td>₹${parseFloat(e.amount).toFixed(2)}</td>
-          <td>${e.dueNumber || "-"}</td>
-          <td>${e.date}</td>
+          <td><span id="amt-${idx}">₹${parseFloat(e.amount).toFixed(2)}</span></td>
+          <td><span id="due-${idx}">${e.dueNumber || "-"}</span></td>
+          <td><span id="date-${idx}">${e.date}</span></td>
+          <td>
+            <button class="edit-btn" onclick="editRow(${idx})">✏️ Edit</button>
+          </td>
         `;
         tbody.appendChild(row);
       });
@@ -118,6 +134,33 @@
       document.getElementById("agentTable").style.display = "table";
       document.getElementById("approveBtn").style.display = "inline-block";
       document.getElementById("exportBtn").style.display = "inline-block";
+    }
+
+    function editRow(index) {
+      const entry = agentEntries[index];
+
+      const amtCell = document.getElementById(`amt-${index}`);
+      const dueCell = document.getElementById(`due-${index}`);
+      const dateCell = document.getElementById(`date-${index}`);
+
+      amtCell.innerHTML = `<input class="input-edit" type="number" value="${entry.amount}" id="newAmt-${index}" />`;
+      dueCell.innerHTML = `<input class="input-edit" type="number" value="${entry.dueNumber}" id="newDue-${index}" />`;
+      dateCell.innerHTML = `<input class="input-edit" type="date" value="${entry.date}" id="newDate-${index}" />`;
+
+      const actionCell = amtCell.parentElement.querySelector("td:last-child");
+      actionCell.innerHTML = `<button class="edit-btn" onclick="saveRow(${index})">💾 Save</button>`;
+    }
+
+    function saveRow(index) {
+      const newAmt = parseFloat(document.getElementById(`newAmt-${index}`).value);
+      const newDue = parseInt(document.getElementById(`newDue-${index}`).value);
+      const newDate = document.getElementById(`newDate-${index}`).value;
+
+      agentEntries[index].amount = newAmt;
+      agentEntries[index].dueNumber = newDue;
+      agentEntries[index].date = newDate;
+
+      showAgentTable();
     }
 
     function mergeData() {
@@ -133,7 +176,6 @@
         if (!Array.isArray(product.payments)) product.payments = [];
         if (!Array.isArray(product.datesPaid)) product.datesPaid = [];
 
-        // Use dueNumber from agent entry directly
         const alreadyExists = product.payments.some(p =>
           p.date === entry.date && p.amount === entry.amount && p.dueNumber === entry.dueNumber
         );
