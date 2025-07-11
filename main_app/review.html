@@ -186,22 +186,32 @@
         const product = customer.products.find(p => p.name === entry.product);
         if (!product) return;
 
+        // Ensure payments array exists
         if (!Array.isArray(product.payments)) product.payments = [];
-        if (!Array.isArray(product.datesPaid)) product.datesPaid = [];
 
-        // ✅ Allow duplicate payments with same date but different due numbers
-        product.payments.push({
-          date: entry.date,
-          amount: Number(entry.amount),
-          dueNumber: entry.dueNumber
-        });
+        // Check if this dueNumber already exists (unique per product)
+        const exists = product.payments.some(p =>
+          p.dueNumber === entry.dueNumber
+        );
 
-        product.datesPaid.push(entry.date);
-        product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-        updated++;
+        if (!exists) {
+          product.payments.push({
+            date: entry.date,
+            amount: Number(entry.amount),
+            dueNumber: entry.dueNumber
+          });
+
+          // ✅ Remove legacy datesPaid to prevent confusion
+          delete product.datesPaid;
+
+          // Update total paid
+          product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+          updated++;
+        }
       });
 
-      alert(`✅ Merged ${updated} entries into customer data.`);
+      alert(`✅ Merged ${updated} new entries into customer data.`);
     }
 
     function exportMerged() {
