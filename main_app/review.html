@@ -95,7 +95,7 @@
 
     <label>📂 Upload Main Customer JSON:</label>
     <input type="file" accept=".json" onchange="loadMainJSON(event)">
-
+    
     <label>📂 Upload Agent Collection JSON:</label>
     <input type="file" accept=".json" onchange="loadAgentJSON(event)">
 
@@ -106,14 +106,8 @@
     <table id="agentTable" style="display:none;">
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Product</th>
-          <th>Amount</th>
-          <th>Due</th>
-          <th>Date</th>
-          <th>Action</th>
+          <th>ID</th><th>Name</th><th>Phone</th><th>Product</th>
+          <th>Amount</th><th>Due</th><th>Date</th><th>Action</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -188,24 +182,21 @@
 
         if (!Array.isArray(product.payments)) product.payments = [];
 
-        // Track how many payments already have this date
-        const sameDateCount = product.payments.filter(p => p.date.startsWith(entry.date)).length;
-        let finalDate = entry.date;
+        // 🔁 Combine payments by date
+        const sameDate = product.payments.find(p => p.date === entry.date);
 
-        // Append suffix if duplicate date found
-        if (sameDateCount > 0) {
-          finalDate = `${entry.date} (${sameDateCount + 1})`;
+        if (sameDate) {
+          sameDate.amount += Number(entry.amount);
+          sameDate.dueNumber = Math.max(sameDate.dueNumber, entry.dueNumber);
+        } else {
+          product.payments.push({
+            date: entry.date,
+            amount: Number(entry.amount),
+            dueNumber: entry.dueNumber
+          });
         }
 
-        product.payments.push({
-          date: finalDate,
-          amount: Number(entry.amount),
-          dueNumber: entry.dueNumber
-        });
-
-        // Cleanup legacy field
-        delete product.datesPaid;
-
+        // Update total paid
         product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
         updated++;
       });
