@@ -5,45 +5,32 @@
   <title>Review Agent Collections - EMI Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
-      background: #121212; color: #eee;
-      font-family: sans-serif; margin: 0;
-    }
-    nav {
-      background: #1f1f1f; display: flex; gap: 10px; padding: 10px;
-      flex-wrap: wrap;
-    }
-    nav a {
-      color: white; background: #333;
-      padding: 10px 15px; border-radius: 5px; text-decoration: none;
-    }
-    nav a:hover {
-      background: #00bcd4; color: black;
-    }
+    body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; }
+    nav { background: #1f1f1f; display: flex; gap: 10px; padding: 10px; }
+    nav a { color: white; background: #333; padding: 10px 15px; border-radius: 5px; text-decoration: none; }
+    nav a:hover { background: #00bcd4; color: black; }
     main { padding: 20px; }
-    table {
-      width: 100%; border-collapse: collapse; margin-top: 20px;
-    }
-    th, td {
-      padding: 10px; border: 1px solid #444; text-align: center;
-    }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 10px; border: 1px solid #444; text-align: center; }
     thead { background: #2c2c2c; }
     tr:nth-child(even) { background: #1f1f1f; }
     input[type="file"], input[type="text"] {
-      background: #1e1e1e; color: white;
-      border: 1px solid #444; padding: 10px;
-      border-radius: 5px; width: 100%; margin: 10px 0;
+      background: #1e1e1e; color: white; border: 1px solid #444;
+      padding: 10px; border-radius: 5px; width: 100%; margin: 10px 0;
     }
     button {
-      background: #00bcd4; color: black;
-      font-weight: bold; padding: 10px 15px;
-      border: none; border-radius: 5px;
+      background: #00bcd4; color: black; font-weight: bold;
+      padding: 10px 15px; border: none; border-radius: 5px;
       margin-top: 10px; cursor: pointer;
     }
     button:hover { background: #26c6da; }
-    input.editable {
-      width: 70px; text-align: center;
-      background: #222; border: 1px solid #555; border-radius: 4px; color: #fff;
+    .edit-btn {
+      background: #ff9800;
+      color: black;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -67,7 +54,7 @@
       <thead>
         <tr>
           <th>ID</th><th>Name</th><th>Phone</th>
-          <th>Product</th><th>Amount</th><th>Due</th><th>Date</th><th>Edit</th>
+          <th>Product</th><th>Amount</th><th>Due</th><th>Date</th><th>Action</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -103,7 +90,7 @@
       tbody.innerHTML = "";
       let total = 0;
 
-      agentEntries.forEach((e, index) => {
+      agentEntries.forEach((e, i) => {
         total += Number(e.amount || 0);
         const row = document.createElement("tr");
         row.innerHTML = `
@@ -111,10 +98,10 @@
           <td>${e.name}</td>
           <td>${e.phone}</td>
           <td>${e.product || "-"}</td>
-          <td><input class="editable" value="${e.amount}" onchange="agentEntries[${index}].amount=this.value"></td>
-          <td><input class="editable" value="${e.dueNumber}" onchange="agentEntries[${index}].dueNumber=this.value"></td>
-          <td>${e.date}</td>
-          <td><button onclick="editEntry(${index})">📝</button></td>
+          <td><input type="number" value="${e.amount}" onchange="agentEntries[${i}].amount = parseFloat(this.value)" /></td>
+          <td><input type="number" value="${e.dueNumber}" onchange="agentEntries[${i}].dueNumber = parseInt(this.value)" /></td>
+          <td><input type="date" value="${e.date}" onchange="agentEntries[${i}].date = this.value" /></td>
+          <td><button class="edit-btn" onclick="editEntry(${i})">Edit</button></td>
         `;
         tbody.appendChild(row);
       });
@@ -126,12 +113,7 @@
     }
 
     function editEntry(index) {
-      const entry = agentEntries[index];
-      const newAmount = prompt("Edit amount:", entry.amount);
-      const newDue = prompt("Edit due number:", entry.dueNumber);
-      if (newAmount !== null) agentEntries[index].amount = parseFloat(newAmount);
-      if (newDue !== null) agentEntries[index].dueNumber = parseInt(newDue);
-      showAgentTable();
+      alert("✅ You can now edit directly in the row. Changes will reflect during merge/export.");
     }
 
     function mergeData() {
@@ -147,7 +129,7 @@
         if (!Array.isArray(product.payments)) product.payments = [];
         if (!Array.isArray(product.datesPaid)) product.datesPaid = [];
 
-        // ✅ Always push, even if same amount/date/due
+        // ✅ Always push entry, allow same date and amount with different due
         product.payments.push({
           date: entry.date,
           amount: Number(entry.amount),
@@ -163,14 +145,13 @@
     }
 
     function exportMerged() {
-      const now = new Date();
-      const fileName = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear()).slice(-2)}.json`;
-
+      const today = new Date();
+      const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth()+1).padStart(2, '0')}-${today.getFullYear().toString().slice(-2)}`;
       const blob = new Blob([JSON.stringify(mainCustomers, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = fileName;
+      a.download = `${dateStr}.json`;
       a.click();
     }
 
