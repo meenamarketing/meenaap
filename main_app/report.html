@@ -165,11 +165,11 @@
           const totalDues = p.totalDues || c.totalDues || 0;
           const startingDue = c.paidDues || 0;
 
-          let payments = p.payments || [];
-          if (!payments.length && Array.isArray(p.datesPaid)) {
-            const avg = (p.paid || 0) / p.datesPaid.length;
-            payments = p.datesPaid.map(date => ({ date, amount: avg }));
-          }
+          const payments = Array.isArray(p.payments) && p.payments.length
+            ? p.payments
+            : Array.isArray(p.datesPaid)
+              ? p.datesPaid.map(date => ({ date, amount: (p.paid || 0) / p.datesPaid.length }))
+              : [];
 
           let paidSoFar = 0;
           payments.forEach((payment, index) => {
@@ -183,7 +183,7 @@
               paid: payment.amount,
               balance: Math.max(0, total - paidSoFar),
               date: payment.date,
-              paidDues: startingDue + index + 1,
+              paidDues: payment.dueNumber || (startingDue + index + 1),
               totalDues,
               total
             });
