@@ -95,7 +95,7 @@
 
     <label>📂 Upload Main Customer JSON:</label>
     <input type="file" accept=".json" onchange="loadMainJSON(event)">
-    
+
     <label>📂 Upload Agent Collection JSON:</label>
     <input type="file" accept=".json" onchange="loadAgentJSON(event)">
 
@@ -186,29 +186,28 @@
         const product = customer.products.find(p => p.name === entry.product);
         if (!product) return;
 
-        // Ensure payments array exists
         if (!Array.isArray(product.payments)) product.payments = [];
 
-        // Check if this dueNumber already exists (unique per product)
-        const exists = product.payments.some(p =>
-          p.dueNumber === entry.dueNumber
-        );
+        // Check if this dueNumber already exists (prevent exact duplicate)
+        const exists = product.payments.some(p => p.dueNumber === entry.dueNumber);
+        if (exists) return;
 
-        if (!exists) {
-          product.payments.push({
-            date: entry.date,
-            amount: Number(entry.amount),
-            dueNumber: entry.dueNumber
-          });
+        // If same date already exists, change this one to "same"
+        const sameDateExists = product.payments.some(p => p.date === entry.date);
+        const dateToUse = sameDateExists ? "same" : entry.date;
 
-          // ✅ Remove legacy datesPaid to prevent confusion
-          delete product.datesPaid;
+        // Add new payment entry
+        product.payments.push({
+          date: dateToUse,
+          amount: Number(entry.amount),
+          dueNumber: entry.dueNumber
+        });
 
-          // Update total paid
-          product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        // Remove legacy field
+        delete product.datesPaid;
 
-          updated++;
-        }
+        product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        updated++;
       });
 
       alert(`✅ Merged ${updated} new entries into customer data.`);
