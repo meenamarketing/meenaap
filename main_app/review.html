@@ -6,39 +6,80 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
-      background: #121212; color: #eee;
-      font-family: sans-serif; margin: 0;
+      background: #121212;
+      color: #eee;
+      font-family: sans-serif;
+      margin: 0;
     }
     nav {
-      background: #1f1f1f; display: flex; gap: 10px; padding: 10px; flex-wrap: wrap;
+      background: #1f1f1f;
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      flex-wrap: wrap;
     }
     nav a {
-      color: white; background: #333; padding: 10px 15px;
-      border-radius: 5px; text-decoration: none;
+      color: white;
+      background: #333;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
     }
-    nav a:hover { background: #00bcd4; color: black; }
-    main { padding: 20px; }
+    nav a:hover {
+      background: #00bcd4;
+      color: black;
+    }
+    main {
+      padding: 20px;
+    }
     table {
-      width: 100%; border-collapse: collapse; margin-top: 20px;
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
     }
     th, td {
-      padding: 10px; border: 1px solid #444; text-align: center;
+      padding: 10px;
+      border: 1px solid #444;
+      text-align: center;
     }
-    thead { background: #2c2c2c; }
-    tr:nth-child(even) { background: #1f1f1f; }
-    input[type="file"], input[type="text"], input[type="number"], input[type="date"] {
-      background: #1e1e1e; color: white; border: 1px solid #444;
-      padding: 8px; border-radius: 5px; width: 100%; box-sizing: border-box;
+    thead {
+      background: #2c2c2c;
+    }
+    tr:nth-child(even) {
+      background: #1f1f1f;
+    }
+    input[type="file"],
+    input[type="text"],
+    input[type="number"],
+    input[type="date"] {
+      background: #1e1e1e;
+      color: white;
+      border: 1px solid #444;
+      padding: 8px;
+      border-radius: 5px;
+      width: 100%;
+      box-sizing: border-box;
     }
     button {
-      background: #00bcd4; color: black; font-weight: bold;
-      padding: 10px 15px; border: none; border-radius: 5px;
-      margin-top: 10px; cursor: pointer;
+      background: #00bcd4;
+      color: black;
+      font-weight: bold;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      margin-top: 10px;
+      cursor: pointer;
     }
-    button:hover { background: #26c6da; }
+    button:hover {
+      background: #26c6da;
+    }
     .edit-btn {
-      background: #ff9800; color: black; padding: 5px 10px;
-      border: none; border-radius: 4px; cursor: pointer;
+      background: #ff9800;
+      color: black;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -65,8 +106,13 @@
     <table id="agentTable" style="display:none;">
       <thead>
         <tr>
-          <th>ID</th><th>Name</th><th>Phone</th><th>Product</th>
-          <th>Amount</th><th>Date</th><th>Action</th>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Product</th>
+          <th>Amount</th>
+          <th>Date</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -139,25 +185,23 @@
         if (!product) return;
 
         if (!Array.isArray(product.payments)) product.payments = [];
-        if (!Array.isArray(product.datesPaid)) product.datesPaid = [];
 
-        // Add payment
+        // Add the new payment
         product.payments.push({
           date: entry.date,
           amount: Number(entry.amount),
           dueNumber: entry.dueNumber
         });
 
-        // Add one matching date
-        product.datesPaid.push(entry.date);
-
-        // FIX mismatch bug: remove extra dates
-        while (product.datesPaid.length > product.payments.length) {
-          product.datesPaid.pop();
+        // 🧠 This line fixes Sherin's problem:
+        // If payments exist, remove datesPaid so reports.html uses payments
+        if (product.payments.length > 0) {
+          delete product.datesPaid;
         }
 
-        // Recalculate paid amount
+        // Update total paid
         product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+
         updated++;
       });
 
