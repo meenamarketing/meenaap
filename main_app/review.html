@@ -71,6 +71,18 @@
     button:hover {
       background: #26c6da;
     }
+    .edit-btn {
+      background: orange;
+      color: black;
+      font-weight: bold;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .edit-btn:hover {
+      background: gold;
+    }
   </style>
 </head>
 <body>
@@ -85,10 +97,10 @@
 
     <label>📂 Upload Main Customer JSON:</label>
     <input type="file" accept=".json" onchange="loadMainJSON(event)">
-    
+
     <label>📂 Upload Agent Collection JSON:</label>
     <input type="file" accept=".json" onchange="loadAgentJSON(event)">
-    
+
     <input type="text" id="searchInput" placeholder="🔍 Search ID or Name" oninput="filterTable()">
 
     <div id="summary"></div>
@@ -96,13 +108,8 @@
     <table id="agentTable" style="display:none;">
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Product</th>
-          <th>Amount</th>
-          <th>Due</th>
-          <th>Date</th>
+          <th>ID</th><th>Name</th><th>Phone</th>
+          <th>Product</th><th>Amount</th><th>Due</th><th>Date</th><th>Edit</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -147,7 +154,7 @@
       tbody.innerHTML = "";
       let total = 0;
 
-      agentEntries.forEach(e => {
+      agentEntries.forEach((e, i) => {
         total += Number(e.amount || 0);
         const row = document.createElement("tr");
         row.innerHTML = `
@@ -155,9 +162,10 @@
           <td>${e.name}</td>
           <td>${e.phone}</td>
           <td>${e.product || "-"}</td>
-          <td>₹${parseFloat(e.amount).toFixed(2)}</td>
-          <td>${e.dueNumber || "-"}</td>
-          <td>${e.date}</td>
+          <td><input type="number" value="${e.amount}" onchange="agentEntries[${i}].amount = this.value"></td>
+          <td><input type="number" value="${e.dueNumber}" onchange="agentEntries[${i}].dueNumber = this.value"></td>
+          <td><input type="date" value="${e.date}" onchange="agentEntries[${i}].date = this.value"></td>
+          <td><button class="edit-btn" onclick="editEntry(${i})">✏️ Edit</button></td>
         `;
         tbody.appendChild(row);
       });
@@ -166,6 +174,10 @@
       document.getElementById("agentTable").style.display = "table";
       document.getElementById("approveBtn").style.display = "inline-block";
       document.getElementById("exportBtn").style.display = "inline-block";
+    }
+
+    function editEntry(index) {
+      alert(`You can edit directly in the table fields above.\nChanges are saved instantly.`);
     }
 
     function mergeData() {
@@ -181,7 +193,7 @@
         if (!Array.isArray(product.payments)) product.payments = [];
         if (!Array.isArray(product.datesPaid)) product.datesPaid = [];
 
-        // ✅ No duplicate checking — merge all entries
+        // Merge all entries
         product.payments.push({
           date: entry.date,
           amount: Number(entry.amount),
