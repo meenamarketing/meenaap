@@ -142,9 +142,8 @@
     function loadJSON(event) {
       const file = event.target.files[0];
       if (!file) return;
-
       const reader = new FileReader();
-      reader.onload = function (e) {
+      reader.onload = e => {
         customers = JSON.parse(e.target.result);
         renderTable();
       };
@@ -154,18 +153,15 @@
     function renderTable() {
       const table = document.getElementById("customerTable");
       table.innerHTML = "";
-
       customers.forEach((c, index) => {
         const row = document.createElement("tr");
         let productList = "";
         c.products.forEach(p => {
-          const bal = p.total - p.paid;
+          const bal = p.total - (p.paid || 0);
           productList += `<div>${p.name} - ₹${p.paid}/₹${p.total} (Balance: ₹${bal})</div>`;
         });
-
-        let dueInfo = (c.totalDues && c.paidDues != null)
-          ? `<div>Due ${c.paidDues + 1} of ${c.totalDues}</div>`
-          : "";
+        const dueInfo = (c.totalDues && c.paidDues != null)
+          ? `<div>Due ${c.paidDues + 1} of ${c.totalDues}</div>` : "";
 
         row.innerHTML = `
           <td><input value="${c.id}" disabled /></td>
@@ -176,6 +172,7 @@
           <td>
             <input type="number" value="${c.totalDues || ''}" placeholder="Total Dues" onchange="customers[${index}].totalDues=parseInt(this.value)" />
             <input type="number" value="${c.paidDues || 0}" placeholder="Paid Dues" onchange="customers[${index}].paidDues=parseInt(this.value)" />
+            <br/><button onclick="deleteCustomer(${index})">🗑️ Delete</button>
           </td>
         `;
         table.appendChild(row);
@@ -214,7 +211,11 @@
           name: product,
           total,
           paid,
-          datesPaid: [new Date().toISOString().split("T")[0]]
+          payments: [{
+            date: new Date().toISOString().split("T")[0],
+            amount: paid,
+            dueNumber: paidDues + 1
+          }]
         }]
       });
 
@@ -249,11 +250,22 @@
         name,
         total,
         paid,
-        datesPaid: [new Date().toISOString().split("T")[0]]
+        payments: [{
+          date: new Date().toISOString().split("T")[0],
+          amount: paid,
+          dueNumber: customer.paidDues + 1
+        }]
       });
 
       renderTable();
       alert("Product added successfully!");
+    }
+
+    function deleteCustomer(index) {
+      if (confirm("Are you sure you want to delete this customer?")) {
+        customers.splice(index, 1);
+        renderTable();
+      }
     }
 
     function downloadJSON() {
