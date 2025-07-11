@@ -6,80 +6,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
-      background: #121212;
-      color: #eee;
-      font-family: sans-serif;
-      margin: 0;
+      background: #121212; color: #eee;
+      font-family: sans-serif; margin: 0;
     }
     nav {
-      background: #1f1f1f;
-      display: flex;
-      gap: 10px;
-      padding: 10px;
-      flex-wrap: wrap;
+      background: #1f1f1f; display: flex; gap: 10px; padding: 10px; flex-wrap: wrap;
     }
     nav a {
-      color: white;
-      background: #333;
-      padding: 10px 15px;
-      border-radius: 5px;
-      text-decoration: none;
+      color: white; background: #333; padding: 10px 15px;
+      border-radius: 5px; text-decoration: none;
     }
-    nav a:hover {
-      background: #00bcd4;
-      color: black;
-    }
-    main {
-      padding: 20px;
-    }
+    nav a:hover { background: #00bcd4; color: black; }
+    main { padding: 20px; }
     table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
+      width: 100%; border-collapse: collapse; margin-top: 20px;
     }
     th, td {
-      padding: 10px;
-      border: 1px solid #444;
-      text-align: center;
+      padding: 10px; border: 1px solid #444; text-align: center;
     }
-    thead {
-      background: #2c2c2c;
-    }
-    tr:nth-child(even) {
-      background: #1f1f1f;
-    }
-    input[type="file"],
-    input[type="text"],
-    input[type="number"],
-    input[type="date"] {
-      background: #1e1e1e;
-      color: white;
-      border: 1px solid #444;
-      padding: 8px;
-      border-radius: 5px;
-      width: 100%;
-      box-sizing: border-box;
+    thead { background: #2c2c2c; }
+    tr:nth-child(even) { background: #1f1f1f; }
+    input[type="file"], input[type="text"], input[type="number"], input[type="date"] {
+      background: #1e1e1e; color: white; border: 1px solid #444;
+      padding: 8px; border-radius: 5px; width: 100%; box-sizing: border-box;
     }
     button {
-      background: #00bcd4;
-      color: black;
-      font-weight: bold;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 5px;
-      margin-top: 10px;
-      cursor: pointer;
+      background: #00bcd4; color: black; font-weight: bold;
+      padding: 10px 15px; border: none; border-radius: 5px;
+      margin-top: 10px; cursor: pointer;
     }
-    button:hover {
-      background: #26c6da;
-    }
+    button:hover { background: #26c6da; }
     .edit-btn {
-      background: #ff9800;
-      color: black;
-      padding: 5px 10px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
+      background: #ff9800; color: black; padding: 5px 10px;
+      border: none; border-radius: 4px; cursor: pointer;
     }
   </style>
 </head>
@@ -172,38 +131,25 @@
     function mergeData() {
       let updated = 0;
 
-      // Group entries by customer+product
-      const grouped = {};
-
       agentEntries.forEach(entry => {
-        const key = `${entry.id}||${entry.product}`;
-        if (!grouped[key]) grouped[key] = [];
-        grouped[key].push({
-          date: entry.date,
-          amount: Number(entry.amount)
-        });
-      });
-
-      Object.entries(grouped).forEach(([key, payments]) => {
-        const [id, productName] = key.split("||");
-        const customer = mainCustomers.find(c => c.id === id);
+        const customer = mainCustomers.find(c => c.id === entry.id);
         if (!customer) return;
 
-        const product = customer.products.find(p => p.name === productName);
+        const product = customer.products.find(p => p.name === entry.product);
         if (!product) return;
 
         if (!Array.isArray(product.payments)) product.payments = [];
+        if (!Array.isArray(product.datesPaid)) product.datesPaid = [];
 
-        // 🔥 FIX: Remove datesPaid[] if present
-        if (Array.isArray(product.datesPaid)) delete product.datesPaid;
-
-        // Add payments
-        payments.forEach(p => {
-          product.payments.push({
-            date: p.date,
-            amount: p.amount
-          });
+        // Check if same amount + date already exists to allow duplicates
+        product.payments.push({
+          date: entry.date,
+          amount: Number(entry.amount),
+          dueNumber: entry.dueNumber // optional if not used by reports.html
         });
+
+        // Always push same date again for reports.html row mapping
+        product.datesPaid.push(entry.date);
 
         product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
         updated++;
