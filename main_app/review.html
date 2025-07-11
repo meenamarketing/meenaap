@@ -94,12 +94,12 @@
     <h1>Review Agent Collections</h1>
 
     <label>📂 Upload Main Customer JSON:</label>
-    <input type="file" accept=".json" onchange="loadMainJSON(event)">
+    <input type="file" accept=".json" onchange="loadMainJSON(event)" />
 
     <label>📂 Upload Agent Collection JSON:</label>
-    <input type="file" accept=".json" onchange="loadAgentJSON(event)">
+    <input type="file" accept=".json" onchange="loadAgentJSON(event)" />
 
-    <input type="text" id="searchInput" placeholder="🔍 Search ID or Name" oninput="filterTable()">
+    <input type="text" id="searchInput" placeholder="🔍 Search ID or Name" oninput="filterTable()" />
 
     <div id="summary"></div>
 
@@ -111,6 +111,7 @@
           <th>Phone</th>
           <th>Product</th>
           <th>Amount</th>
+          <th>Due</th>
           <th>Date</th>
           <th>Action</th>
         </tr>
@@ -158,6 +159,7 @@
           <td>${e.phone}</td>
           <td>${e.product || "-"}</td>
           <td><input type="number" value="${e.amount}" onchange="agentEntries[${i}].amount = parseFloat(this.value)" /></td>
+          <td><input type="number" value="${e.dueNumber}" onchange="agentEntries[${i}].dueNumber = parseInt(this.value)" /></td>
           <td><input type="date" value="${e.date}" onchange="agentEntries[${i}].date = this.value" /></td>
           <td><button class="edit-btn" onclick="editEntry(${i})">Edit</button></td>
         `;
@@ -177,32 +179,39 @@
     function mergeData() {
       let updated = 0;
 
+      // Group by customer ID + product
+      const grouped = {};
       agentEntries.forEach(entry => {
-        const customer = mainCustomers.find(c => c.id === entry.id);
+        const key = `${entry.id}_${entry.product}`;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(entry);
+      });
+
+      Object.entries(grouped).forEach(([key, entries]) => {
+        const [id, productName] = key.split("_");
+        const customer = mainCustomers.find(c => c.id === id);
         if (!customer) return;
 
-        const product = customer.products.find(p => p.name === entry.product);
+        const product = customer.products.find(p => p.name === productName);
         if (!product) return;
 
         if (!Array.isArray(product.payments)) product.payments = [];
 
-        // Add the new payment
-        product.payments.push({
-          date: entry.date,
-          amount: Number(entry.amount),
-          dueNumber: entry.dueNumber
+        entries.forEach(entry => {
+          product.payments.push({
+            date: entry.date,
+            amount: Number(entry.amount),
+            dueNumber: entry.dueNumber
+          });
+          updated++;
         });
 
-        // 🧠 This line fixes Sherin's problem:
-        // If payments exist, remove datesPaid so reports.html uses payments
-        if (product.payments.length > 0) {
-          delete product.datesPaid;
-        }
+        // Remove datesPaid to avoid conflict
+        delete product.datesPaid;
 
-        // Update total paid
+        // Recalculate total paid (optional but safe)
         product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-
-        updated++;
+        // 🔒 Do NOT update customer.paidDues as per your request
       });
 
       alert(`✅ Merged ${updated} entries into customer data.`);
