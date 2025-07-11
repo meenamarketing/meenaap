@@ -6,53 +6,70 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
-      background: #121212; color: #eee;
-      font-family: sans-serif; margin: 0;
+      background: #121212;
+      color: #eee;
+      font-family: sans-serif;
+      margin: 0;
     }
     nav {
-      background: #1f1f1f; display: flex; gap: 10px; padding: 10px;
+      background: #1f1f1f;
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      flex-wrap: wrap;
     }
     nav a {
-      color: white; background: #333;
-      padding: 10px 15px; border-radius: 5px; text-decoration: none;
+      color: white;
+      background: #333;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
     }
     nav a:hover {
-      background: #00bcd4; color: black;
+      background: #00bcd4;
+      color: black;
     }
-    main { padding: 20px; }
+    main {
+      padding: 20px;
+    }
     table {
-      width: 100%; border-collapse: collapse; margin-top: 20px;
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
     }
     th, td {
-      padding: 10px; border: 1px solid #444; text-align: center;
+      padding: 10px;
+      border: 1px solid #444;
+      text-align: center;
     }
-    thead { background: #2c2c2c; }
-    tr:nth-child(even) { background: #1f1f1f; }
-    input[type="file"], input[type="text"] {
-      background: #1e1e1e; color: white;
-      border: 1px solid #444; padding: 10px;
-      border-radius: 5px; width: 100%; margin: 10px 0;
+    thead {
+      background: #2c2c2c;
+    }
+    tr:nth-child(even) {
+      background: #1f1f1f;
+    }
+    input[type="file"],
+    input[type="text"] {
+      background: #1e1e1e;
+      color: white;
+      border: 1px solid #444;
+      padding: 10px;
+      border-radius: 5px;
+      width: 100%;
+      margin: 10px 0;
     }
     button {
-      background: #00bcd4; color: black;
-      font-weight: bold; padding: 10px 15px;
-      border: none; border-radius: 5px;
-      margin-top: 10px; cursor: pointer;
+      background: #00bcd4;
+      color: black;
+      font-weight: bold;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      margin-top: 10px;
+      cursor: pointer;
     }
-    button:hover { background: #26c6da; }
-    .edit-btn {
-      font-size: 14px; padding: 5px 10px;
-      margin-left: 5px; background: #555; border-radius: 3px;
-    }
-    .edit-btn:hover {
-      background: #00bcd4; color: black;
-    }
-    .input-edit {
-      width: 90px;
-      background: #222;
-      color: #fff;
-      border: 1px solid #666;
-      padding: 5px;
+    button:hover {
+      background: #26c6da;
     }
   </style>
 </head>
@@ -65,22 +82,32 @@
 
   <main>
     <h1>Review Agent Collections</h1>
+
     <label>📂 Upload Main Customer JSON:</label>
     <input type="file" accept=".json" onchange="loadMainJSON(event)">
+    
     <label>📂 Upload Agent Collection JSON:</label>
     <input type="file" accept=".json" onchange="loadAgentJSON(event)">
+    
     <input type="text" id="searchInput" placeholder="🔍 Search ID or Name" oninput="filterTable()">
 
     <div id="summary"></div>
+
     <table id="agentTable" style="display:none;">
       <thead>
         <tr>
-          <th>ID</th><th>Name</th><th>Phone</th>
-          <th>Product</th><th>Amount</th><th>Due</th><th>Date</th><th>Action</th>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Product</th>
+          <th>Amount</th>
+          <th>Due</th>
+          <th>Date</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
+
     <button onclick="mergeData()" id="approveBtn" style="display:none;">✅ Approve & Merge</button>
     <button onclick="exportMerged()" id="exportBtn" style="display:none;">📤 Export Merged JSON</button>
   </main>
@@ -92,8 +119,12 @@
     function loadMainJSON(event) {
       const reader = new FileReader();
       reader.onload = e => {
-        mainCustomers = JSON.parse(e.target.result);
-        alert("✅ Main customer data loaded.");
+        try {
+          mainCustomers = JSON.parse(e.target.result);
+          alert("✅ Main customer data loaded.");
+        } catch (err) {
+          alert("❌ Invalid JSON file for main customers.");
+        }
       };
       reader.readAsText(event.target.files[0]);
     }
@@ -101,8 +132,12 @@
     function loadAgentJSON(event) {
       const reader = new FileReader();
       reader.onload = e => {
-        agentEntries = JSON.parse(e.target.result);
-        showAgentTable();
+        try {
+          agentEntries = JSON.parse(e.target.result);
+          showAgentTable();
+        } catch (err) {
+          alert("❌ Invalid JSON file for agent data.");
+        }
       };
       reader.readAsText(event.target.files[0]);
     }
@@ -112,7 +147,7 @@
       tbody.innerHTML = "";
       let total = 0;
 
-      agentEntries.forEach((e, idx) => {
+      agentEntries.forEach(e => {
         total += Number(e.amount || 0);
         const row = document.createElement("tr");
         row.innerHTML = `
@@ -120,12 +155,9 @@
           <td>${e.name}</td>
           <td>${e.phone}</td>
           <td>${e.product || "-"}</td>
-          <td><span id="amt-${idx}">₹${parseFloat(e.amount).toFixed(2)}</span></td>
-          <td><span id="due-${idx}">${e.dueNumber || "-"}</span></td>
-          <td><span id="date-${idx}">${e.date}</span></td>
-          <td>
-            <button class="edit-btn" onclick="editRow(${idx})">✏️ Edit</button>
-          </td>
+          <td>₹${parseFloat(e.amount).toFixed(2)}</td>
+          <td>${e.dueNumber || "-"}</td>
+          <td>${e.date}</td>
         `;
         tbody.appendChild(row);
       });
@@ -134,33 +166,6 @@
       document.getElementById("agentTable").style.display = "table";
       document.getElementById("approveBtn").style.display = "inline-block";
       document.getElementById("exportBtn").style.display = "inline-block";
-    }
-
-    function editRow(index) {
-      const entry = agentEntries[index];
-
-      const amtCell = document.getElementById(`amt-${index}`);
-      const dueCell = document.getElementById(`due-${index}`);
-      const dateCell = document.getElementById(`date-${index}`);
-
-      amtCell.innerHTML = `<input class="input-edit" type="number" value="${entry.amount}" id="newAmt-${index}" />`;
-      dueCell.innerHTML = `<input class="input-edit" type="number" value="${entry.dueNumber}" id="newDue-${index}" />`;
-      dateCell.innerHTML = `<input class="input-edit" type="date" value="${entry.date}" id="newDate-${index}" />`;
-
-      const actionCell = amtCell.parentElement.querySelector("td:last-child");
-      actionCell.innerHTML = `<button class="edit-btn" onclick="saveRow(${index})">💾 Save</button>`;
-    }
-
-    function saveRow(index) {
-      const newAmt = parseFloat(document.getElementById(`newAmt-${index}`).value);
-      const newDue = parseInt(document.getElementById(`newDue-${index}`).value);
-      const newDate = document.getElementById(`newDate-${index}`).value;
-
-      agentEntries[index].amount = newAmt;
-      agentEntries[index].dueNumber = newDue;
-      agentEntries[index].date = newDate;
-
-      showAgentTable();
     }
 
     function mergeData() {
@@ -176,23 +181,19 @@
         if (!Array.isArray(product.payments)) product.payments = [];
         if (!Array.isArray(product.datesPaid)) product.datesPaid = [];
 
-        const alreadyExists = product.payments.some(p =>
-          p.date === entry.date && p.amount === entry.amount && p.dueNumber === entry.dueNumber
-        );
-        if (!alreadyExists) {
-          product.payments.push({
-            date: entry.date,
-            amount: Number(entry.amount),
-            dueNumber: entry.dueNumber
-          });
+        // ✅ No duplicate checking — merge all entries
+        product.payments.push({
+          date: entry.date,
+          amount: Number(entry.amount),
+          dueNumber: entry.dueNumber
+        });
 
-          product.datesPaid.push(entry.date);
-          product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-          updated++;
-        }
+        product.datesPaid.push(entry.date);
+        product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        updated++;
       });
 
-      alert(`✅ Merged ${updated} entries into main customers.`);
+      alert(`✅ Merged ${updated} entries into main customer records.`);
     }
 
     function exportMerged() {
