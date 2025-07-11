@@ -95,7 +95,7 @@
 
     <label>📂 Upload Main Customer JSON:</label>
     <input type="file" accept=".json" onchange="loadMainJSON(event)">
-    
+
     <label>📂 Upload Agent Collection JSON:</label>
     <input type="file" accept=".json" onchange="loadAgentJSON(event)">
 
@@ -107,7 +107,7 @@
       <thead>
         <tr>
           <th>ID</th><th>Name</th><th>Phone</th><th>Product</th>
-          <th>Amount</th><th>Due</th><th>Date</th><th>Action</th>
+          <th>Amount</th><th>Date</th><th>Action</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -153,7 +153,6 @@
           <td>${e.phone}</td>
           <td>${e.product || "-"}</td>
           <td><input type="number" value="${e.amount}" onchange="agentEntries[${i}].amount = parseFloat(this.value)" /></td>
-          <td><input type="number" value="${e.dueNumber}" onchange="agentEntries[${i}].dueNumber = parseInt(this.value)" /></td>
           <td><input type="date" value="${e.date}" onchange="agentEntries[${i}].date = this.value" /></td>
           <td><button class="edit-btn" onclick="editEntry(${i})">Edit</button></td>
         `;
@@ -173,40 +172,52 @@
     function mergeData() {
       let updated = 0;
 
+      // Group by customer+product
+      const grouped = {};
+
       agentEntries.forEach(entry => {
-        const customer = mainCustomers.find(c => c.id === entry.id);
+        const key = `${entry.id}||${entry.product}`;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push({
+          date: entry.date,
+          amount: Number(entry.amount)
+        });
+      });
+
+      Object.entries(grouped).forEach(([key, payments]) => {
+        const [id, productName] = key.split("||");
+        const customer = mainCustomers.find(c => c.id === id);
         if (!customer) return;
 
-        const product = customer.products.find(p => p.name === entry.product);
+        const product = customer.products.find(p => p.name === productName);
         if (!product) return;
 
         if (!Array.isArray(product.payments)) product.payments = [];
 
-        // 🔁 Combine payments by date
-        const sameDate = product.payments.find(p => p.date === entry.date);
-
-        if (sameDate) {
-          sameDate.amount += Number(entry.amount);
-          sameDate.dueNumber = Math.max(sameDate.dueNumber, entry.dueNumber);
-        } else {
+        // Add each payment individually
+        payments.forEach(p => {
           product.payments.push({
-            date: entry.date,
-            amount: Number(entry.amount),
-            dueNumber: entry.dueNumber
+            date: p.date,
+            amount: p.amount
+            // ❌ no dueNumber
           });
-        }
+        });
 
         // Update total paid
         product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+        // 🧠 Trick: update paidDues so that report shows correct due numbers
+        customer.paidDues = product.payments.length - 1;
+
         updated++;
       });
 
-      alert(`✅ Merged ${updated} entries into customer data.`);
+      alert(`✅ Merged ${updated} grouped entries into customer data.`);
     }
 
     function exportMerged() {
       const today = new Date();
-      const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth()+1).padStart(2, '0')}-${today.getFullYear().toString().slice(-2)}`;
+      const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear().toString().slice(-2)}`;
       const blob = new Blob([JSON.stringify(mainCustomers, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
