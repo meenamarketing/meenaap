@@ -40,6 +40,10 @@
       margin-top: 10px; cursor: pointer;
     }
     button:hover { background: #26c6da; }
+    .editable {
+      background: #1e1e1e; color: white; border: 1px solid #444;
+      padding: 5px; border-radius: 4px; width: 80px;
+    }
   </style>
 </head>
 <body>
@@ -102,14 +106,14 @@
         total += Number(e.amount || 0);
         const row = document.createElement("tr");
         row.innerHTML = `
-          <td><input value="${e.id}" onchange="editEntry(${i}, 'id', this.value)"/></td>
-          <td><input value="${e.name}" onchange="editEntry(${i}, 'name', this.value)"/></td>
-          <td><input value="${e.phone}" onchange="editEntry(${i}, 'phone', this.value)"/></td>
-          <td><input value="${e.product}" onchange="editEntry(${i}, 'product', this.value)"/></td>
-          <td><input value="${e.amount}" onchange="editEntry(${i}, 'amount', this.value)"/></td>
-          <td><input value="${e.dueNumber}" onchange="editEntry(${i}, 'dueNumber', this.value)"/></td>
-          <td><input value="${e.date}" onchange="editEntry(${i}, 'date', this.value)"/></td>
-          <td>✔️</td>
+          <td>${e.id}</td>
+          <td>${e.name}</td>
+          <td>${e.phone}</td>
+          <td>${e.product}</td>
+          <td><input type="number" class="editable" value="${e.amount}" disabled onchange="editEntry(${i}, 'amount', this.value)"></td>
+          <td><input type="number" class="editable" value="${e.dueNumber}" disabled onchange="editEntry(${i}, 'dueNumber', this.value)"></td>
+          <td>${e.date}</td>
+          <td><button onclick="enableEdit(this)">✏️ Edit</button></td>
         `;
         tbody.appendChild(row);
       });
@@ -120,8 +124,14 @@
       document.getElementById("exportBtn").style.display = "inline-block";
     }
 
+    function enableEdit(btn) {
+      const row = btn.closest("tr");
+      const inputs = row.querySelectorAll("input.editable");
+      inputs.forEach(input => input.disabled = false);
+    }
+
     function editEntry(index, key, value) {
-      agentEntries[index][key] = key === "amount" || key === "dueNumber" ? Number(value) : value;
+      agentEntries[index][key] = Number(value);
     }
 
     function mergeData() {
@@ -135,7 +145,6 @@
         if (!product) return;
 
         if (!Array.isArray(product.payments)) product.payments = [];
-        if (!Array.isArray(product.datesPaid)) product.datesPaid = [];
 
         const isDuplicate = product.payments.some(p =>
           p.date === entry.date && p.amount === entry.amount
@@ -148,7 +157,6 @@
             dueNumber: Number(entry.dueNumber)
           });
 
-          product.datesPaid.push(entry.date);
           product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
           updated++;
         }
@@ -177,8 +185,8 @@
       const keyword = document.getElementById("searchInput").value.toLowerCase();
       const rows = document.querySelectorAll("#agentTable tbody tr");
       rows.forEach(row => {
-        const id = row.children[0].querySelector("input").value.toLowerCase();
-        const name = row.children[1].querySelector("input").value.toLowerCase();
+        const id = row.children[0].innerText.toLowerCase();
+        const name = row.children[1].innerText.toLowerCase();
         row.style.display = (id.includes(keyword) || name.includes(keyword)) ? "" : "none";
       });
     }
