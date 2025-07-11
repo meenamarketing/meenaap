@@ -188,18 +188,22 @@
 
         if (!Array.isArray(product.payments)) product.payments = [];
 
-        const alreadyExists = product.payments.some(p =>
-          p.dueNumber === entry.dueNumber
-        );
-        if (alreadyExists) return;
+        // Track how many payments already have this date
+        const sameDateCount = product.payments.filter(p => p.date.startsWith(entry.date)).length;
+        let finalDate = entry.date;
+
+        // Append suffix if duplicate date found
+        if (sameDateCount > 0) {
+          finalDate = `${entry.date} (${sameDateCount + 1})`;
+        }
 
         product.payments.push({
-          date: entry.date,
+          date: finalDate,
           amount: Number(entry.amount),
           dueNumber: entry.dueNumber
         });
 
-        // Clean up legacy fields
+        // Cleanup legacy field
         delete product.datesPaid;
 
         product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
