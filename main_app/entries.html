@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Entries - EMI Manager</title>
@@ -68,25 +69,27 @@
     <a href="entries.html">Entries</a>
     <a href="review.html">Agent Review</a>
     <a href="report.html">Reports</a>
-  </nav>  <main>
-    <h1>Daily Payment Entry</h1><input type="file" accept=".json" onchange="loadJSON(event)">
-<br>
-<input id="searchId" placeholder="Search by Customer ID or Name" oninput="searchCustomer()">
-<div id="resultArea"></div>
+  </nav>
 
-<button onclick="exportUpdated()">Export Updated JSON</button>
+  <main>
+    <h1>Daily Payment Entry</h1>
+    <input type="file" accept=".json" onchange="loadJSON(event)">
+    <br>
+    <input id="searchId" placeholder="Search by Customer ID or Name" oninput="searchCustomer()">
+    <div id="resultArea"></div>
+    <button onclick="exportUpdated()">Export Updated JSON</button>
+  </main>
 
-  </main>  <script>
+  <script>
     let customers = [];
 
     function loadJSON(event) {
       const file = event.target.files[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = function (e) {
         customers = JSON.parse(e.target.result);
-        alert("Data loaded. You can now search and update.");
+        alert("✅ Data loaded. You can now search and update.");
       };
       reader.readAsText(file);
     }
@@ -119,7 +122,7 @@
       container.innerHTML = `<h3>${match.name} (${match.id})</h3><p>Phone: ${match.phone} | Place: ${match.place}</p>`;
 
       match.products.forEach((p, i) => {
-        // Convert old format to new format
+        // Convert old format to new format if necessary
         if (!p.payments && Array.isArray(p.datesPaid)) {
           const avg = (p.paid || 0) / p.datesPaid.length;
           p.payments = p.datesPaid.map((date, index) => ({
@@ -157,34 +160,38 @@
       const date = dateInput.value;
 
       if (isNaN(amount) || amount <= 0 || !date) {
-        alert("Enter a valid amount and date.");
+        alert("❌ Enter a valid amount and date.");
         return;
       }
 
       const customer = customers.find(c => c.id === custId);
       const product = customer.products[productIndex];
 
-      // Convert to new structure if old
       if (!Array.isArray(product.payments)) {
         product.payments = [];
       }
 
-      // Remove old keys
+      // Clean up old format keys
       delete product.paid;
       delete product.datesPaid;
 
-      const basePaidDues = customer.paidDues || 0;
-      const dueNumber = basePaidDues + product.payments.length + 1;
+      // ✅ Find the highest dueNumber in existing payments
+      let lastDue = 0;
+      if (product.payments.length > 0) {
+        lastDue = Math.max(...product.payments.map(p => p.dueNumber || 0));
+      }
+
+      const newDue = lastDue + 1;
 
       product.payments.push({
         date,
         amount,
-        dueNumber
+        dueNumber: newDue
       });
 
       amtInput.value = "";
-      alert(`Payment added. Due number: ${dueNumber}`);
-      searchCustomer(); // refresh view
+      alert(`✅ Payment added. Due number: ${newDue}`);
+      searchCustomer(); // Refresh display
     }
 
     function exportUpdated() {
@@ -195,5 +202,6 @@
       a.download = "updated_customers.json";
       a.click();
     }
-  </script></body>
+  </script>
+</body>
 </html>
