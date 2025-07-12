@@ -144,7 +144,6 @@
 
       selectedCustomer.products.forEach(product => {
         let balance = Number(product.total);
-        let dueNo = Number(selectedCustomer.paidDues) + 1;
         let paidTotal = 0;
         let rows = "";
 
@@ -152,15 +151,16 @@
           const paid = Number(p.amount || 0);
           balance -= paid;
           paidTotal += paid;
+          const dueNumber = p.dueNumber || "-";
+
           rows += `
             <tr>
-              <td>${dueNo}/${selectedCustomer.totalDues}</td>
+              <td>${dueNumber}/${selectedCustomer.totalDues}</td>
               <td>${p.date || "-"}</td>
               <td>₹${paid.toFixed(2)}</td>
               <td>₹${balance.toFixed(2)}</td>
             </tr>
           `;
-          dueNo++;
         });
 
         html += `
@@ -195,7 +195,6 @@
         const total = Number(product.total || 0);
         let balance = total;
         const payments = [...(product.payments || [])];
-        let dueCounter = Number(selectedCustomer.paidDues) + 1;
 
         payments.forEach(p => {
           const paid = Number(p.amount || 0);
@@ -209,16 +208,14 @@
             product.name,
             `₹${paid.toFixed(2)}`,
             `₹${balance.toFixed(2)}`,
-            `${dueCounter}/${selectedCustomer.totalDues}`,
+            `${p.dueNumber || "-"}/${selectedCustomer.totalDues}`,
             p.date || "-"
           ]);
-          dueCounter++;
         });
 
         grandBalance += balance;
       });
 
-      // Branding
       doc.setFontSize(28);
       doc.setTextColor(20, 20, 20);
       doc.setFont("helvetica", "bold");
@@ -229,7 +226,6 @@
       doc.setTextColor(100);
       doc.text("Powered by Goorac", 105, 26, { align: "center" });
 
-      // Table
       doc.autoTable({
         startY: 32,
         head: [["ID", "Name", "Place", "Phone", "Product", "Paid", "Balance", "Dues", "Date"]],
