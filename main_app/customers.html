@@ -120,6 +120,7 @@
     <input id="addProductName" placeholder="Product Name" />
     <input id="addProductTotal" placeholder="Total Amount" type="number" />
     <input id="addProductPaid" placeholder="Amount Paid" type="number" />
+    <input id="addProductDuesPaid" placeholder="Paid Dues" type="number" />
     <button onclick="addProduct()">Add Product</button>
 
     <h2>Customer List</h2>
@@ -166,7 +167,7 @@
           <td><input value="${c.phone}" onchange="customers[${index}].phone=this.value" /></td>
           <td><input value="${c.place}" onchange="customers[${index}].place=this.value" /></td>
           <td>${productList}
-            <div>Dues: ${c.paidDues + 1}/${c.totalDues}</div>
+            <div>Dues: ${c.paidDues}/${c.totalDues}</div>
           </td>
           <td>
             <button onclick="deleteCustomer(${index})">🗑️ Delete</button><br>
@@ -215,13 +216,13 @@
           payments: [{
             date: today,
             amount: paid,
-            dueNumber: 1
+            dueNumber: paidDues // ✅ USE paidDues here
           }]
         }]
       });
 
       renderTable();
-      alert("✅ Customer added with payment as Due #1");
+      alert("✅ Customer added with payment as Due #" + paidDues);
     }
 
     function deleteCustomer(index) {
@@ -242,9 +243,10 @@
       const name = document.getElementById("addProductName").value.trim();
       const total = parseFloat(document.getElementById("addProductTotal").value);
       const paid = parseFloat(document.getElementById("addProductPaid").value);
+      const paidDues = parseInt(document.getElementById("addProductDuesPaid").value);
       const today = new Date().toISOString().split("T")[0];
 
-      if (!name || isNaN(total) || isNaN(paid)) {
+      if (!name || isNaN(total) || isNaN(paid) || isNaN(paidDues)) {
         alert("❌ Enter valid product details");
         return;
       }
@@ -256,12 +258,12 @@
         payments: [{
           date: today,
           amount: paid,
-          dueNumber: 1
+          dueNumber: paidDues // ✅ USE paidDues here
         }]
       });
 
       renderTable();
-      alert("✅ Product added to customer");
+      alert("✅ Product added with Due #" + paidDues);
     }
 
     function downloadJSON() {
