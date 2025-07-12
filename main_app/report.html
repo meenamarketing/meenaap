@@ -6,81 +6,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      background: #121212;
-      color: #eee;
-      font-family: sans-serif;
-      margin: 0;
-    }
-    nav {
-      background: #1f1f1f;
-      display: flex;
-      padding: 10px;
-      gap: 15px;
-      flex-wrap: wrap;
-    }
-    nav a {
-      color: white;
-      background: #333;
-      padding: 8px 15px;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-    nav a:hover {
-      background: #00bcd4;
-      color: black;
-    }
-    main {
-      padding: 20px;
-    }
+    body { background: #121212; color: #eee; font-family: sans-serif; margin: 0; }
+    nav { background: #1f1f1f; display: flex; padding: 10px; gap: 15px; flex-wrap: wrap; }
+    nav a { color: white; background: #333; padding: 8px 15px; border-radius: 5px; text-decoration: none; }
+    nav a:hover { background: #00bcd4; color: black; }
+    main { padding: 20px; }
     input, button, select {
-      padding: 10px;
-      margin: 5px 10px 15px 0;
-      border-radius: 5px;
-      background: #1e1e1e;
-      color: white;
-      border: 1px solid #444;
+      padding: 10px; margin: 5px 10px 15px 0;
+      border-radius: 5px; background: #1e1e1e;
+      color: white; border: 1px solid #444;
     }
-    button {
-      background: #00bcd4;
-      color: black;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      padding: 8px;
-      border: 1px solid #333;
-    }
-    thead {
-      background: #2c2c2c;
-    }
-    tr:nth-child(odd) {
-      background: #1d1d1d;
-    }
+    button { background: #00bcd4; color: black; font-weight: bold; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 8px; border: 1px solid #333; }
+    thead { background: #2c2c2c; }
+    tr:nth-child(odd) { background: #1d1d1d; }
     #suggestions {
-      position: absolute;
-      background: #222;
-      border: 1px solid #333;
-      border-radius: 5px;
-      z-index: 999;
-      display: none;
-      max-height: 200px;
-      overflow-y: auto;
+      position: absolute; background: #222; border: 1px solid #333;
+      border-radius: 5px; z-index: 999; display: none;
+      max-height: 200px; overflow-y: auto;
     }
     #suggestions div {
-      padding: 10px;
-      border-bottom: 1px solid #333;
-      cursor: pointer;
+      padding: 10px; border-bottom: 1px solid #333; cursor: pointer;
     }
-    #suggestions div:hover {
-      background: #00bcd4;
-      color: black;
-    }
+    #suggestions div:hover { background: #00bcd4; color: black; }
   </style>
 </head>
 <body>
@@ -111,9 +60,6 @@
     <h3 id="reportTotal">Total Paid: ₹0</h3>
     <h3 id="reportBalance">Total Balance: ₹0</h3>
 
-    <canvas id="paidBalanceChart" height="150"></canvas>
-    <canvas id="barChart" height="150"></canvas>
-
     <h2>Customer Summary</h2>
     <table id="summaryTable">
       <thead>
@@ -129,11 +75,14 @@
       <thead>
         <tr>
           <th>ID</th><th>Name</th><th>Place</th><th>Phone</th><th>Product</th>
-          <th>Paid</th><th>Balance</th><th>Dues</th><th>Date</th>
+          <th>Paid</th><th>Balance</th><th>Due #</th><th>Date</th>
         </tr>
       </thead>
       <tbody id="reportTable"></tbody>
     </table>
+
+    <canvas id="paidBalanceChart" height="150"></canvas>
+    <canvas id="barChart" height="150"></canvas>
   </main>
 
   <script>
@@ -172,7 +121,7 @@
           }
 
           let paidSoFar = 0;
-          payments.forEach((payment, index) => {
+          payments.forEach(payment => {
             paidSoFar += payment.amount;
             flatReport.push({
               id: c.id,
@@ -183,7 +132,7 @@
               paid: payment.amount,
               balance: Math.max(0, total - paidSoFar),
               date: payment.date,
-              paidDues: startingDue + index + 1,
+              dueNumber: payment.dueNumber || "?", // <- added line
               totalDues,
               total
             });
@@ -224,7 +173,7 @@
           <tr>
             <td>${r.id}</td><td>${r.name}</td><td>${r.place}</td><td>${r.phone}</td>
             <td>${r.product}</td><td>₹${r.paid.toFixed(2)}</td><td>₹${r.balance.toFixed(2)}</td>
-            <td>${r.paidDues}/${r.totalDues || "?"}</td><td>${r.date}</td>
+            <td>${r.dueNumber}</td><td>${r.date}</td>
           </tr>`;
       });
 
@@ -322,7 +271,7 @@
     }
 
     function exportCSV() {
-      let csv = "ID,Name,Place,Phone,Product,Paid,Balance,Dues,Date\n";
+      let csv = "ID,Name,Place,Phone,Product,Paid,Balance,DueNumber,Date\n";
       document.querySelectorAll("#reportTable tr").forEach(row => {
         csv += [...row.querySelectorAll("td")].map(td => td.innerText).join(",") + "\n";
       });
