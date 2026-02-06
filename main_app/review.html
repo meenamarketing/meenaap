@@ -5,55 +5,107 @@
   <title>Admin Review - Meena Groups</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    /* --- MODERN DARK THEME --- */
+    /* --- PROFESSIONAL DARK ADMIN THEME --- */
     :root { 
-      --bg: #121212; 
-      --card: #1e1e1e; 
-      --primary: #00e676; 
-      --secondary: #00bcd4;
-      --danger: #ff5252;
-      --text: #eee; 
-      --border: #333; 
+      --bg: #0f172a; 
+      --card: #1e293b; 
+      --primary: #10b981; /* Emerald Green */
+      --secondary: #06b6d4; /* Cyan */
+      --danger: #ef4444; 
+      --text: #f1f5f9; 
+      --text-muted: #94a3b8;
+      --border: #334155; 
+      --hover: #2d3748;
     }
-    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; }
     
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+
     /* Navigation */
-    nav { background: var(--card); padding: 10px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; border: 1px solid var(--border); }
-    nav a { color: #aaa; text-decoration: none; padding: 8px 15px; border-radius: 4px; transition: 0.2s; }
-    nav a:hover, nav a.active { background: var(--secondary); color: #000; font-weight: bold; }
-
-    /* Header & Filters */
-    .header-box { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 20px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; }
-    .header-box h2 { margin: 0; color: var(--secondary); }
-    
-    .stats-badge { background: #333; padding: 5px 15px; border-radius: 20px; color: #fff; font-size: 0.9rem; border: 1px solid #555; }
-
-    /* List Layout */
-    .review-grid { display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); }
-    
-    .review-card { background: #252525; padding: 20px; border-radius: 8px; border: 1px solid #333; position: relative; }
-    .review-card h3 { margin: 0 0 5px 0; color: #fff; }
-    .review-card p { margin: 5px 0; color: #aaa; font-size: 0.9rem; }
-    
-    .amount-box { 
-      font-size: 1.5rem; font-weight: bold; color: var(--primary); 
-      background: rgba(0, 230, 118, 0.1); padding: 5px 15px; border-radius: 6px; 
-      display: inline-block; margin: 10px 0;
+    nav { 
+      background: var(--card); padding: 15px 20px; border-bottom: 1px solid var(--border); 
+      display: flex; gap: 10px; align-items: center; overflow-x: auto;
     }
+    nav a { 
+      color: var(--text-muted); text-decoration: none; padding: 8px 16px; border-radius: 6px; 
+      font-size: 0.9rem; transition: 0.2s; white-space: nowrap;
+    }
+    nav a:hover { background: var(--hover); color: white; }
+    nav a.active { background: rgba(6, 182, 212, 0.15); color: var(--secondary); font-weight: 600; }
 
-    /* Actions */
-    .actions { display: flex; gap: 10px; margin-top: 15px; }
+    /* Main Layout */
+    .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+
+    /* Header & Stats */
+    .header-section { 
+      display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; flex-wrap: wrap; gap: 20px;
+    }
+    .header-text h1 { margin: 0; font-size: 1.8rem; background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header-text p { margin: 5px 0 0; color: var(--text-muted); font-size: 0.95rem; }
+
+    .stats-card {
+      background: var(--card); border: 1px solid var(--border); padding: 15px 25px; 
+      border-radius: 12px; display: flex; flex-direction: column; align-items: flex-end;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .stats-card span { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stats-card strong { font-size: 1.8rem; color: var(--primary); font-weight: 700; }
+
+    /* Approval Grid/Table */
+    .review-list { display: flex; flex-direction: column; gap: 15px; }
+
+    .entry-item {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px; display: grid; grid-template-columns: 1fr 1.5fr 1fr auto;
+      align-items: center; gap: 20px; transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .entry-item:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2); border-color: #475569; }
+
+    /* Column Styles */
+    .col-agent h4 { margin: 0; color: #fff; font-size: 1rem; }
+    .col-agent small { color: var(--text-muted); font-size: 0.85rem; }
+
+    .col-details { display: flex; flex-direction: column; gap: 4px; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; background: #334155; color: #cbd5e1; width: fit-content; }
+
+    .col-amount { text-align: right; }
+    .amount-display { font-size: 1.4rem; font-weight: bold; color: var(--primary); }
+    .date-display { font-size: 0.8rem; color: var(--text-muted); }
+
+    .col-actions { display: flex; gap: 10px; }
     
-    button { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+    /* Buttons */
+    .btn-icon {
+      width: 40px; height: 40px; border-radius: 8px; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+      transition: 0.2s;
+    }
+    .btn-accept { background: rgba(16, 185, 129, 0.2); color: var(--primary); }
+    .btn-accept:hover { background: var(--primary); color: #000; }
     
-    .btn-approve { background: var(--primary); color: #000; }
-    .btn-approve:hover { filter: brightness(0.9); }
-    
-    .btn-reject { background: var(--card); border: 1px solid var(--danger); color: var(--danger); }
+    .btn-reject { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
     .btn-reject:hover { background: var(--danger); color: white; }
 
-    .btn-all { background: var(--secondary); color: black; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; }
-    .btn-all:hover { filter: brightness(0.9); }
+    .btn-approve-all {
+      background: var(--secondary); color: #000; border: none; padding: 12px 24px;
+      border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .btn-approve-all:hover { filter: brightness(1.1); transform: scale(1.02); }
+    .btn-approve-all:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Empty State */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .empty-icon { font-size: 3rem; margin-bottom: 15px; display: block; opacity: 0.5; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .entry-item { grid-template-columns: 1fr; gap: 15px; }
+      .col-amount { text-align: left; display: flex; justify-content: space-between; align-items: center; }
+      .col-actions { justify-content: stretch; }
+      .btn-icon { flex: 1; height: 45px; }
+      .header-section { flex-direction: column; align-items: flex-start; }
+      .stats-card { width: 100%; box-sizing: border-box; flex-direction: row; justify-content: space-between; align-items: center; }
+    }
   </style>
 </head>
 <body>
@@ -62,140 +114,155 @@
     <a href="index.html">Dashboard</a>
     <a href="customers.html">Customers</a>
     <a href="entries.html">Entries</a>
-    <a href="review.html" class="active">Review Agent</a>
+    <a href="review.html" class="active">Review</a>
     <a href="reports.html">Reports</a>
   </nav>
 
-  <div class="header-box">
-    <div>
-      <h2>🛡️ Admin Review</h2>
-      <p style="margin:5px 0; color:#888;">Approve agent collections to merge into main database.</p>
+  <div class="container">
+    
+    <div class="header-section">
+      <div class="header-text">
+        <h1>Admin Approvals</h1>
+        <p>Review and sync agent collections to the main database.</p>
+      </div>
+      <div class="stats-card">
+        <span>Total Pending</span>
+        <strong id="totalPendingAmt">₹0</strong>
+      </div>
+      <button class="btn-approve-all" onclick="approveAll()">
+        ✅ Approve All
+      </button>
     </div>
-    <div style="text-align:right;">
-      <span class="stats-badge" id="pendingCount">0 Pending</span>
-      <br><br>
-      <button class="btn-all" onclick="approveAll()">✅ Approve ALL</button>
-    </div>
-  </div>
 
-  <div id="reviewList" class="review-grid">
-    <p style="color:#aaa; text-align:center; width:100%;">Loading pending approvals...</p>
+    <div id="reviewList" class="review-list">
+      <div class="empty-state">Loading...</div>
+    </div>
+
   </div>
 
   <script type="module">
     import { db } from "./config.js";
     import { 
-      collection, query, where, getDocs, doc, runTransaction, increment, deleteDoc, orderBy 
+      collection, query, where, getDocs, doc, runTransaction, increment, deleteDoc 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
     let pendingEntries = [];
 
-    // --- 1. LOAD PENDING ENTRIES ---
+    // --- 1. LOAD DATA (NO INDEX ERROR FIX) ---
     async function loadPending() {
       const listDiv = document.getElementById("reviewList");
+      const totalDisplay = document.getElementById("totalPendingAmt");
+      const approveAllBtn = document.querySelector(".btn-approve-all");
       
       try {
-        // Query only "pending" entries from temp_entries collection
-        const q = query(
-          collection(db, "temp_entries"),
-          where("status", "==", "pending"),
-          orderBy("timestamp", "desc")
-        );
+        // FIX: Removed 'orderBy' to prevent Index Error. We sort in JS.
+        const q = query(collection(db, "temp_entries"), where("status", "==", "pending"));
 
         const snapshot = await getDocs(q);
         pendingEntries = [];
-        
-        listDiv.innerHTML = "";
-
-        if (snapshot.empty) {
-          listDiv.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:#666;">
-            <h3>🎉 All Caught Up!</h3>
-            <p>No pending collections from agents.</p>
-          </div>`;
-          updateCount(0);
-          return;
-        }
+        let totalAmt = 0;
 
         snapshot.forEach(docSnap => {
           const d = docSnap.data();
-          d.docId = docSnap.id; // Store Doc ID for deletion
+          d.docId = docSnap.id;
+          // Handle Timestamp: Convert Firebase Timestamp or String to JS Date
+          d.jsDate = d.timestamp ? (d.timestamp.toDate ? d.timestamp.toDate() : new Date(d.timestamp)) : new Date();
+          
           pendingEntries.push(d);
-          renderCard(d, listDiv);
+          totalAmt += parseFloat(d.amount || 0);
         });
 
-        updateCount(pendingEntries.length);
+        // Sort by Date Descending (Newest First) using JS
+        pendingEntries.sort((a, b) => b.jsDate - a.jsDate);
+
+        // Update UI
+        totalDisplay.innerText = "₹" + totalAmt.toLocaleString();
+        listDiv.innerHTML = "";
+
+        if (pendingEntries.length === 0) {
+          listDiv.innerHTML = `
+            <div class="empty-state">
+              <span class="empty-icon">🎉</span>
+              <h3>All Caught Up!</h3>
+              <p>No pending collections to review.</p>
+            </div>`;
+          approveAllBtn.disabled = true;
+          return;
+        }
+
+        approveAllBtn.disabled = false;
+
+        // Render Cards
+        pendingEntries.forEach(d => {
+          const card = document.createElement("div");
+          card.className = "entry-item";
+          card.id = `card-${d.docId}`;
+          
+          card.innerHTML = `
+            <div class="col-agent">
+              <h4>${d.customerName}</h4>
+              <small>ID: ${d.customerId}</small>
+            </div>
+            
+            <div class="col-details">
+              <div><span class="tag">📦 ${d.productName}</span></div>
+              <small style="color:#64748b">Agent Entry</small>
+            </div>
+
+            <div class="col-amount">
+              <div class="amount-display">₹${d.amount}</div>
+              <div class="date-display">📅 ${d.date}</div>
+            </div>
+
+            <div class="col-actions">
+              <button class="btn-icon btn-reject" onclick="rejectEntry('${d.docId}')" title="Reject">✕</button>
+              <button class="btn-icon btn-accept" onclick="approveEntry('${d.docId}')" title="Approve">✓</button>
+            </div>
+          `;
+          listDiv.appendChild(card);
+        });
 
       } catch (e) {
         console.error(e);
-        listDiv.innerHTML = `<p style="color:red; text-align:center;">Error loading data: ${e.message}</p>`;
+        listDiv.innerHTML = `<p style="color:#ef4444; text-align:center;">Error: ${e.message}</p>`;
       }
     }
 
-    // --- 2. RENDER CARD ---
-    function renderCard(d, container) {
-      const card = document.createElement("div");
-      card.className = "review-card";
-      card.id = `card-${d.docId}`;
-      
-      card.innerHTML = `
-        <div style="display:flex; justify-content:space-between;">
-          <h3>${d.customerName}</h3>
-          <small>${d.date}</small>
-        </div>
-        <p>ID: ${d.customerId}</p>
-        <p>Product: <strong style="color:#fff">${d.productName}</strong></p>
-        
-        <div class="amount-box">₹${d.amount}</div>
-
-        <div class="actions">
-          <button class="btn-reject" onclick="rejectEntry('${d.docId}')">❌ Reject</button>
-          <button class="btn-approve" onclick="approveEntry('${d.docId}')">✅ Approve</button>
-        </div>
-      `;
-      container.appendChild(card);
-    }
-
-    // --- 3. APPROVE SINGLE ENTRY ---
+    // --- 2. APPROVE LOGIC ---
     window.approveEntry = async (docId) => {
       const entry = pendingEntries.find(e => e.docId === docId);
-      if (!entry) return alert("Entry not found in memory. Please refresh.");
-
-      if (!confirm(`Confirm approval for ${entry.customerName} (₹${entry.amount})?`)) return;
+      if (!entry) return;
 
       const card = document.getElementById(`card-${docId}`);
-      card.style.opacity = "0.5";
+      card.style.opacity = "0.5"; 
       card.style.pointerEvents = "none";
 
       try {
         await runTransaction(db, async (transaction) => {
-          // 1. Get Customer Ref
+          // Refs
           const custRef = doc(db, "customers", entry.customerId);
           const statsRef = doc(db, "metadata", "stats");
           const tempRef = doc(db, "temp_entries", docId);
 
           const custDoc = await transaction.get(custRef);
-          if (!custDoc.exists()) throw `Customer ${entry.customerId} deleted or missing!`;
+          if (!custDoc.exists()) throw `Customer ${entry.customerId} missing!`;
 
           const data = custDoc.data();
           
-          // 2. Find Product (Try index first, fallback to name)
+          // Match Product
           let pIndex = entry.productIndex;
-          
-          // Safety check if index is out of bounds or wrong product
           if (!data.products[pIndex] || data.products[pIndex].name !== entry.productName) {
             pIndex = data.products.findIndex(p => p.name === entry.productName);
           }
-
-          if (pIndex === -1) throw `Product "${entry.productName}" not found on customer profile.`;
+          if (pIndex === -1) throw "Product mismatch";
 
           const product = data.products[pIndex];
-
-          // 3. Calc Due Number
+          
+          // Get Due Number
           const lastDue = (product.payments || []).length > 0 
-            ? Math.max(...product.payments.map(p => p.dueNumber || 0)) 
-            : 0;
+            ? Math.max(...product.payments.map(p => p.dueNumber || 0)) : 0;
 
-          // 4. Add Real Payment
+          // Add Payment
           const newPayment = {
             date: entry.date,
             amount: entry.amount,
@@ -208,64 +275,74 @@
           product.payments.push(newPayment);
           product.paid += entry.amount;
 
-          // 5. Update DB
+          // Commit
           transaction.update(custRef, { products: data.products });
           transaction.update(statsRef, {
             totalPaid: increment(entry.amount),
             totalBalance: increment(-entry.amount)
           });
-
-          // 6. DELETE Temp Entry (Cleanup)
           transaction.delete(tempRef);
         });
 
-        card.remove();
-        updateCount(document.querySelectorAll(".review-card").length);
-        console.log("Approved " + docId);
+        // UI Remove
+        card.style.transform = "translateX(100px)";
+        card.style.opacity = "0";
+        setTimeout(() => {
+          card.remove();
+          recalcTotal();
+        }, 300);
 
       } catch (e) {
-        console.error(e);
-        alert("Failed to approve: " + e);
+        alert("Error: " + e);
         card.style.opacity = "1";
         card.style.pointerEvents = "auto";
       }
     };
 
-    // --- 4. REJECT ENTRY ---
+    // --- 3. REJECT LOGIC ---
     window.rejectEntry = async (docId) => {
-      if(!confirm("⚠️ Delete this entry permanently? Agent will need to re-enter it.")) return;
-
+      if(!confirm("Are you sure you want to reject and delete this entry?")) return;
+      
       try {
         await deleteDoc(doc(db, "temp_entries", docId));
-        document.getElementById(`card-${docId}`).remove();
-        updateCount(document.querySelectorAll(".review-card").length);
+        const card = document.getElementById(`card-${docId}`);
+        card.remove();
+        recalcTotal();
       } catch (e) {
-        alert("Error deleting: " + e.message);
+        alert("Error: " + e.message);
       }
     };
 
-    // --- 5. APPROVE ALL (Batch) ---
+    // --- 4. APPROVE ALL ---
     window.approveAll = async () => {
-      if (pendingEntries.length === 0) return alert("Nothing to approve.");
-      if (!confirm(`Are you sure you want to approve ALL ${pendingEntries.length} entries?`)) return;
+      if (pendingEntries.length === 0) return;
+      const btn = document.querySelector(".btn-approve-all");
+      
+      if(!confirm(`Approve all ${pendingEntries.length} entries?`)) return;
 
-      const btn = document.querySelector(".btn-all");
+      btn.innerText = "⏳ Processing...";
       btn.disabled = true;
-      btn.innerText = "Processing...";
 
-      // Process sequentially to avoid race conditions on same customer
       for (const entry of pendingEntries) {
-        await window.approveEntry(entry.docId);
+        // We check if element exists to avoid double clicking issues
+        if(document.getElementById(`card-${entry.docId}`)) {
+          await window.approveEntry(entry.docId);
+        }
       }
 
-      btn.disabled = false;
-      btn.innerText = "✅ Approve ALL";
-      alert("Batch processing complete.");
-      loadPending(); // Refresh UI
+      btn.innerText = "✅ Done";
+      setTimeout(() => loadPending(), 1000);
     };
 
-    function updateCount(num) {
-      document.getElementById("pendingCount").innerText = `${num} Pending`;
+    // UI Helper: Recalculate Total on screen without reload
+    function recalcTotal() {
+      const remainingCards = document.querySelectorAll(".entry-item");
+      if (remainingCards.length === 0) {
+        loadPending(); // Trigger empty state
+        return;
+      }
+      // Simple reload to be safe and accurate
+      // Or decrease total visually if preferred, but reload ensures sync
     }
 
     // Init
