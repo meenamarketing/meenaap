@@ -1,242 +1,275 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Review Agent Collections - EMI Manager</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <title>Admin Review - Meena Groups</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      background: #121212;
-      color: #eee;
-      font-family: sans-serif;
-      margin: 0;
+    /* --- MODERN DARK THEME --- */
+    :root { 
+      --bg: #121212; 
+      --card: #1e1e1e; 
+      --primary: #00e676; 
+      --secondary: #00bcd4;
+      --danger: #ff5252;
+      --text: #eee; 
+      --border: #333; 
     }
-    nav {
-      background: #1f1f1f;
-      display: flex;
-      gap: 10px;
-      padding: 10px;
-      flex-wrap: wrap;
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; }
+    
+    /* Navigation */
+    nav { background: var(--card); padding: 10px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; border: 1px solid var(--border); }
+    nav a { color: #aaa; text-decoration: none; padding: 8px 15px; border-radius: 4px; transition: 0.2s; }
+    nav a:hover, nav a.active { background: var(--secondary); color: #000; font-weight: bold; }
+
+    /* Header & Filters */
+    .header-box { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 20px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; }
+    .header-box h2 { margin: 0; color: var(--secondary); }
+    
+    .stats-badge { background: #333; padding: 5px 15px; border-radius: 20px; color: #fff; font-size: 0.9rem; border: 1px solid #555; }
+
+    /* List Layout */
+    .review-grid { display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); }
+    
+    .review-card { background: #252525; padding: 20px; border-radius: 8px; border: 1px solid #333; position: relative; }
+    .review-card h3 { margin: 0 0 5px 0; color: #fff; }
+    .review-card p { margin: 5px 0; color: #aaa; font-size: 0.9rem; }
+    
+    .amount-box { 
+      font-size: 1.5rem; font-weight: bold; color: var(--primary); 
+      background: rgba(0, 230, 118, 0.1); padding: 5px 15px; border-radius: 6px; 
+      display: inline-block; margin: 10px 0;
     }
-    nav a {
-      color: white;
-      background: #333;
-      padding: 10px 15px;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-    nav a:hover {
-      background: #00bcd4;
-      color: black;
-    }
-    main {
-      padding: 20px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #444;
-      text-align: center;
-    }
-    thead {
-      background: #2c2c2c;
-    }
-    tr:nth-child(even) {
-      background: #1f1f1f;
-    }
-    input[type="file"],
-    input[type="text"],
-    input[type="number"],
-    input[type="date"] {
-      background: #1e1e1e;
-      color: white;
-      border: 1px solid #444;
-      padding: 8px;
-      border-radius: 5px;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    button {
-      background: #00bcd4;
-      color: black;
-      font-weight: bold;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 5px;
-      margin-top: 10px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #26c6da;
-    }
-    .edit-btn {
-      background: #ff9800;
-      color: black;
-      padding: 5px 10px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
+
+    /* Actions */
+    .actions { display: flex; gap: 10px; margin-top: 15px; }
+    
+    button { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+    
+    .btn-approve { background: var(--primary); color: #000; }
+    .btn-approve:hover { filter: brightness(0.9); }
+    
+    .btn-reject { background: var(--card); border: 1px solid var(--danger); color: var(--danger); }
+    .btn-reject:hover { background: var(--danger); color: white; }
+
+    .btn-all { background: var(--secondary); color: black; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; }
+    .btn-all:hover { filter: brightness(0.9); }
   </style>
 </head>
 <body>
+
   <nav>
     <a href="index.html">Dashboard</a>
-    <a href="entries.html">Add Entry</a>
-    <a href="report.html">Reports</a>
+    <a href="customers.html">Customers</a>
+    <a href="entries.html">Entries</a>
+    <a href="review.html" class="active">Review Agent</a>
+    <a href="reports.html">Reports</a>
   </nav>
 
-  <main>
-    <h1>Review Agent Collections</h1>
+  <div class="header-box">
+    <div>
+      <h2>🛡️ Admin Review</h2>
+      <p style="margin:5px 0; color:#888;">Approve agent collections to merge into main database.</p>
+    </div>
+    <div style="text-align:right;">
+      <span class="stats-badge" id="pendingCount">0 Pending</span>
+      <br><br>
+      <button class="btn-all" onclick="approveAll()">✅ Approve ALL</button>
+    </div>
+  </div>
 
-    <label>📂 Upload Main Customer JSON:</label>
-    <input type="file" accept=".json" onchange="loadMainJSON(event)" />
+  <div id="reviewList" class="review-grid">
+    <p style="color:#aaa; text-align:center; width:100%;">Loading pending approvals...</p>
+  </div>
 
-    <label>📂 Upload Agent Collection JSON:</label>
-    <input type="file" accept=".json" onchange="loadAgentJSON(event)" />
+  <script type="module">
+    import { db } from "./config.js";
+    import { 
+      collection, query, where, getDocs, doc, runTransaction, increment, deleteDoc, orderBy 
+    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    <input type="text" id="searchInput" placeholder="🔍 Search ID or Name" oninput="filterTable()" />
+    let pendingEntries = [];
 
-    <div id="summary"></div>
+    // --- 1. LOAD PENDING ENTRIES ---
+    async function loadPending() {
+      const listDiv = document.getElementById("reviewList");
+      
+      try {
+        // Query only "pending" entries from temp_entries collection
+        const q = query(
+          collection(db, "temp_entries"),
+          where("status", "==", "pending"),
+          orderBy("timestamp", "desc")
+        );
 
-    <table id="agentTable" style="display:none;">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Product</th>
-          <th>Amount</th>
-          <th>Due</th>
-          <th>Date</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+        const snapshot = await getDocs(q);
+        pendingEntries = [];
+        
+        listDiv.innerHTML = "";
 
-    <button onclick="mergeData()" id="approveBtn" style="display:none;">✅ Approve & Merge</button>
-    <button onclick="exportMerged()" id="exportBtn" style="display:none;">📤 Export Merged JSON</button>
-  </main>
+        if (snapshot.empty) {
+          listDiv.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:#666;">
+            <h3>🎉 All Caught Up!</h3>
+            <p>No pending collections from agents.</p>
+          </div>`;
+          updateCount(0);
+          return;
+        }
 
-  <script>
-    let mainCustomers = [];
-    let agentEntries = [];
-
-    function loadMainJSON(event) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        mainCustomers = JSON.parse(e.target.result);
-        alert("✅ Main customer data loaded.");
-      };
-      reader.readAsText(event.target.files[0]);
-    }
-
-    function loadAgentJSON(event) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        agentEntries = JSON.parse(e.target.result);
-        showAgentTable();
-      };
-      reader.readAsText(event.target.files[0]);
-    }
-
-    function showAgentTable() {
-      const tbody = document.querySelector("#agentTable tbody");
-      tbody.innerHTML = "";
-      let total = 0;
-
-      agentEntries.forEach((e, i) => {
-        total += Number(e.amount || 0);
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${e.id}</td>
-          <td>${e.name}</td>
-          <td>${e.phone}</td>
-          <td>${e.product || "-"}</td>
-          <td><input type="number" value="${e.amount}" onchange="agentEntries[${i}].amount = parseFloat(this.value)" /></td>
-          <td><input type="number" value="${e.dueNumber}" onchange="agentEntries[${i}].dueNumber = parseInt(this.value)" /></td>
-          <td><input type="date" value="${e.date}" onchange="agentEntries[${i}].date = this.value" /></td>
-          <td><button class="edit-btn" onclick="editEntry(${i})">Edit</button></td>
-        `;
-        tbody.appendChild(row);
-      });
-
-      document.getElementById("summary").innerHTML = `<strong>Total Collected:</strong> ₹${total.toFixed(2)}`;
-      document.getElementById("agentTable").style.display = "table";
-      document.getElementById("approveBtn").style.display = "inline-block";
-      document.getElementById("exportBtn").style.display = "inline-block";
-    }
-
-    function editEntry(index) {
-      alert("📝 You can now edit directly in the row. Changes will reflect during merge/export.");
-    }
-
-    function mergeData() {
-      let updated = 0;
-
-      // Group by customer ID + product
-      const grouped = {};
-      agentEntries.forEach(entry => {
-        const key = `${entry.id}_${entry.product}`;
-        if (!grouped[key]) grouped[key] = [];
-        grouped[key].push(entry);
-      });
-
-      Object.entries(grouped).forEach(([key, entries]) => {
-        const [id, productName] = key.split("_");
-        const customer = mainCustomers.find(c => c.id === id);
-        if (!customer) return;
-
-        const product = customer.products.find(p => p.name === productName);
-        if (!product) return;
-
-        if (!Array.isArray(product.payments)) product.payments = [];
-
-        entries.forEach(entry => {
-          product.payments.push({
-            date: entry.date,
-            amount: Number(entry.amount),
-            dueNumber: entry.dueNumber
-          });
-          updated++;
+        snapshot.forEach(docSnap => {
+          const d = docSnap.data();
+          d.docId = docSnap.id; // Store Doc ID for deletion
+          pendingEntries.push(d);
+          renderCard(d, listDiv);
         });
 
-        // Remove datesPaid to avoid conflict
-        delete product.datesPaid;
+        updateCount(pendingEntries.length);
 
-        // Recalculate total paid (optional but safe)
-        product.paid = product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-        // 🔒 Do NOT update customer.paidDues as per your request
-      });
-
-      alert(`✅ Merged ${updated} entries into customer data.`);
+      } catch (e) {
+        console.error(e);
+        listDiv.innerHTML = `<p style="color:red; text-align:center;">Error loading data: ${e.message}</p>`;
+      }
     }
 
-    function exportMerged() {
-      const today = new Date();
-      const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear().toString().slice(-2)}`;
-      const blob = new Blob([JSON.stringify(mainCustomers, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${dateStr}.json`;
-      a.click();
+    // --- 2. RENDER CARD ---
+    function renderCard(d, container) {
+      const card = document.createElement("div");
+      card.className = "review-card";
+      card.id = `card-${d.docId}`;
+      
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between;">
+          <h3>${d.customerName}</h3>
+          <small>${d.date}</small>
+        </div>
+        <p>ID: ${d.customerId}</p>
+        <p>Product: <strong style="color:#fff">${d.productName}</strong></p>
+        
+        <div class="amount-box">₹${d.amount}</div>
+
+        <div class="actions">
+          <button class="btn-reject" onclick="rejectEntry('${d.docId}')">❌ Reject</button>
+          <button class="btn-approve" onclick="approveEntry('${d.docId}')">✅ Approve</button>
+        </div>
+      `;
+      container.appendChild(card);
     }
 
-    function filterTable() {
-      const keyword = document.getElementById("searchInput").value.toLowerCase();
-      const rows = document.querySelectorAll("#agentTable tbody tr");
-      rows.forEach(row => {
-        const id = row.children[0].innerText.toLowerCase();
-        const name = row.children[1].innerText.toLowerCase();
-        row.style.display = (id.includes(keyword) || name.includes(keyword)) ? "" : "none";
-      });
+    // --- 3. APPROVE SINGLE ENTRY ---
+    window.approveEntry = async (docId) => {
+      const entry = pendingEntries.find(e => e.docId === docId);
+      if (!entry) return alert("Entry not found in memory. Please refresh.");
+
+      if (!confirm(`Confirm approval for ${entry.customerName} (₹${entry.amount})?`)) return;
+
+      const card = document.getElementById(`card-${docId}`);
+      card.style.opacity = "0.5";
+      card.style.pointerEvents = "none";
+
+      try {
+        await runTransaction(db, async (transaction) => {
+          // 1. Get Customer Ref
+          const custRef = doc(db, "customers", entry.customerId);
+          const statsRef = doc(db, "metadata", "stats");
+          const tempRef = doc(db, "temp_entries", docId);
+
+          const custDoc = await transaction.get(custRef);
+          if (!custDoc.exists()) throw `Customer ${entry.customerId} deleted or missing!`;
+
+          const data = custDoc.data();
+          
+          // 2. Find Product (Try index first, fallback to name)
+          let pIndex = entry.productIndex;
+          
+          // Safety check if index is out of bounds or wrong product
+          if (!data.products[pIndex] || data.products[pIndex].name !== entry.productName) {
+            pIndex = data.products.findIndex(p => p.name === entry.productName);
+          }
+
+          if (pIndex === -1) throw `Product "${entry.productName}" not found on customer profile.`;
+
+          const product = data.products[pIndex];
+
+          // 3. Calc Due Number
+          const lastDue = (product.payments || []).length > 0 
+            ? Math.max(...product.payments.map(p => p.dueNumber || 0)) 
+            : 0;
+
+          // 4. Add Real Payment
+          const newPayment = {
+            date: entry.date,
+            amount: entry.amount,
+            dueNumber: lastDue + 1,
+            type: "Agent Collection",
+            approvedAt: new Date().toISOString()
+          };
+
+          if (!product.payments) product.payments = [];
+          product.payments.push(newPayment);
+          product.paid += entry.amount;
+
+          // 5. Update DB
+          transaction.update(custRef, { products: data.products });
+          transaction.update(statsRef, {
+            totalPaid: increment(entry.amount),
+            totalBalance: increment(-entry.amount)
+          });
+
+          // 6. DELETE Temp Entry (Cleanup)
+          transaction.delete(tempRef);
+        });
+
+        card.remove();
+        updateCount(document.querySelectorAll(".review-card").length);
+        console.log("Approved " + docId);
+
+      } catch (e) {
+        console.error(e);
+        alert("Failed to approve: " + e);
+        card.style.opacity = "1";
+        card.style.pointerEvents = "auto";
+      }
+    };
+
+    // --- 4. REJECT ENTRY ---
+    window.rejectEntry = async (docId) => {
+      if(!confirm("⚠️ Delete this entry permanently? Agent will need to re-enter it.")) return;
+
+      try {
+        await deleteDoc(doc(db, "temp_entries", docId));
+        document.getElementById(`card-${docId}`).remove();
+        updateCount(document.querySelectorAll(".review-card").length);
+      } catch (e) {
+        alert("Error deleting: " + e.message);
+      }
+    };
+
+    // --- 5. APPROVE ALL (Batch) ---
+    window.approveAll = async () => {
+      if (pendingEntries.length === 0) return alert("Nothing to approve.");
+      if (!confirm(`Are you sure you want to approve ALL ${pendingEntries.length} entries?`)) return;
+
+      const btn = document.querySelector(".btn-all");
+      btn.disabled = true;
+      btn.innerText = "Processing...";
+
+      // Process sequentially to avoid race conditions on same customer
+      for (const entry of pendingEntries) {
+        await window.approveEntry(entry.docId);
+      }
+
+      btn.disabled = false;
+      btn.innerText = "✅ Approve ALL";
+      alert("Batch processing complete.");
+      loadPending(); // Refresh UI
+    };
+
+    function updateCount(num) {
+      document.getElementById("pendingCount").innerText = `${num} Pending`;
     }
+
+    // Init
+    loadPending();
   </script>
 </body>
 </html>
