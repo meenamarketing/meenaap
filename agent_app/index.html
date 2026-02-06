@@ -2,182 +2,152 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Meena Groups - Agent Dashboard</title>
+  <title>Agent Dashboard - Meena Groups</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    :root {
-      --primary: #00bcd4;
-      --bg: #121212;
-      --card-bg: #1f1f1f;
-      --text: #eee;
-      --accent: #2e2e2e;
-      --footer: #1a1a1a;
+    /* --- MODERN DARK THEME --- */
+    :root { 
+      --bg: #121212; 
+      --card: #1e1e1e; 
+      --primary: #00e676; 
+      --secondary: #00bcd4;
+      --text: #eee; 
+      --border: #333; 
     }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
+    
+    /* Header */
+    header { background: #000; padding: 20px; text-align: center; border-bottom: 2px solid var(--secondary); box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    header h1 { margin: 0; font-size: 1.5em; color: var(--secondary); letter-spacing: 1px; }
+    header p { margin: 5px 0 0; color: #888; font-size: 0.9em; }
 
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
+    /* Navigation (Bottom Bar Style for Mobile) */
+    nav { background: var(--card); display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid var(--border); position: fixed; bottom: 0; width: 100%; z-index: 100; }
+    nav a { color: #aaa; text-decoration: none; font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    nav a:hover, nav a.active { color: var(--secondary); }
+    nav a span { font-size: 1.2rem; }
 
-    header {
-      background: #000;
-      padding: 20px;
-      text-align: center;
-      border-bottom: 2px solid var(--primary);
-    }
+    /* Main Content */
+    main { padding: 20px; flex: 1; max-width: 600px; margin: 0 auto; width: 100%; box-sizing: border-box; padding-bottom: 80px; /* Space for nav */ }
 
-    header h1 {
-      margin: 0;
-      font-size: 1.8em;
-      color: var(--primary);
-      letter-spacing: 1px;
+    /* Stats Card */
+    .hero-card { 
+      background: linear-gradient(135deg, #1e1e1e 0%, #252525 100%); 
+      padding: 30px; border-radius: 15px; text-align: center; 
+      border: 1px solid var(--border); margin-bottom: 30px;
+      position: relative; overflow: hidden;
     }
+    .hero-card::before {
+      content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(circle, rgba(0,188,212,0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-card h2 { margin: 0; font-size: 1rem; color: #aaa; text-transform: uppercase; }
+    .hero-card .amount { font-size: 2.5rem; font-weight: bold; color: var(--primary); margin: 10px 0; }
+    .hero-card .status { font-size: 0.9rem; color: #fff; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; display: inline-block; }
 
-    nav {
-      background: var(--card-bg);
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 15px;
-      padding: 12px 0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    /* Quick Actions Grid */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    
+    .action-btn { 
+      background: var(--card); border: 1px solid var(--border); 
+      border-radius: 12px; padding: 20px; text-align: center; 
+      text-decoration: none; color: white; transition: 0.2s;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
     }
+    .action-btn:hover { background: #2a2a2a; border-color: var(--secondary); transform: translateY(-3px); }
+    .action-btn .icon { font-size: 2rem; }
+    .action-btn h3 { margin: 0; font-size: 1rem; }
 
-    nav a {
-      color: var(--text);
-      text-decoration: none;
-      background: var(--accent);
-      padding: 10px 18px;
-      border-radius: 25px;
-      transition: all 0.3s ease;
-      font-weight: 500;
-    }
-
-    nav a:hover {
-      background: var(--primary);
-      color: #000;
-      transform: translateY(-2px);
-    }
-
-    main {
-      padding: 40px 20px;
-      flex: 1;
-      display: flex;
-      justify-content: center;
-    }
-
-    .card {
-      background: var(--card-bg);
-      padding: 30px;
-      border-radius: 15px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.6);
-      max-width: 500px;
-      width: 100%;
-      text-align: center;
-    }
-
-    .card h2 {
-      color: var(--primary);
-      margin-bottom: 20px;
-      font-size: 1.5em;
-    }
-
-    input[type="file"] {
-      padding: 12px;
-      background: #1e1e1e;
-      color: white;
-      border: 1px solid #444;
-      border-radius: 8px;
-      width: 100%;
-      font-size: 1em;
-      margin-bottom: 20px;
-    }
-
-    .info {
-      color: #0f0;
-      font-size: 1em;
-      margin-bottom: 8px;
-    }
-
-    .date {
-      color: #aaa;
-      font-size: 0.95em;
-    }
-
-    footer {
-      background: var(--footer);
-      text-align: center;
-      padding: 15px;
-      color: #888;
-      font-size: 0.9em;
-      border-top: 1px solid #333;
-    }
-
-    footer span {
-      color: var(--primary);
-    }
+    /* Footer */
+    footer { text-align: center; padding: 20px; color: #666; font-size: 0.8em; margin-top: auto; padding-bottom: 90px; }
+    footer strong { color: var(--secondary); }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>Meena Groups - Agent Dashboard</h1>
+    <h1>Meena Groups</h1>
+    <p>Agent Dashboard</p>
   </header>
 
-  <nav>
-    <a href="index.html">Dashboard</a>
-    <a href="entries.html">Add Entry</a>
-    <a href="view.html">View Entries</a>
-    <a href="customer_report.html">Customer Report</a>
-  </nav>
-
   <main>
-    <div class="card">
-      <h2>📂 Upload Customer File</h2>
-      <input type="file" accept=".json" onchange="loadMainJSON(event)">
-      <p class="info" id="statusText">No file loaded.</p>
-      <p class="date">Last update: <span id="lastDate">N/A</span></p>
+    <div class="hero-card">
+      <h2>Today's Collection</h2>
+      <div class="amount" id="todayTotal">₹0</div>
+      <div class="status">⚡ Live Cloud Sync</div>
+    </div>
+
+    <div class="grid">
+      <a href="agent_entry.html" class="action-btn" style="border-color: var(--secondary);">
+        <span class="icon">💰</span>
+        <h3>Add Collection</h3>
+      </a>
+      
+      <a href="agent_view.html" class="action-btn">
+        <span class="icon">📝</span>
+        <h3>View Logs</h3>
+      </a>
+
+      <a href="agent_customer_report.html" class="action-btn">
+        <span class="icon">📄</span>
+        <h3>Reports</h3>
+      </a>
+
+      <a href="#" class="action-btn" onclick="alert('Feature coming soon: Call Admin')">
+        <span class="icon">📞</span>
+        <h3>Contact Admin</h3>
+      </a>
     </div>
   </main>
 
   <footer>
-    Powered by <span>Goorac</span> — A Product of <strong>Meena Groups</strong>
+    Powered by <strong>Goorac</strong>
   </footer>
 
-  <script>
-    function loadMainJSON(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+  <nav>
+    <a href="index.html" class="active"><span>🏠</span>Home</a>
+    <a href="agent_entry.html"><span>➕</span>Collect</a>
+    <a href="agent_view.html"><span>👁️</span>View</a>
+    <a href="agent_customer_report.html"><span>📊</span>Report</a>
+  </nav>
 
-      const reader = new FileReader();
-      reader.onload = e => {
-        try {
-          const data = JSON.parse(e.target.result);
-          localStorage.clear();
-          localStorage.setItem("main_customers", JSON.stringify(data));
-          const now = new Date().toLocaleString();
-          localStorage.setItem("last_update_time", now);
-          document.getElementById("statusText").innerText = "✅ Main customer file loaded successfully!";
-          document.getElementById("lastDate").innerText = now;
-        } catch (err) {
-          alert("❌ Invalid JSON file.");
-        }
-      };
-      reader.readAsText(file);
+  <script type="module">
+    import { db } from "./config.js";
+    import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+    // --- FETCH TODAY'S TOTAL ---
+    async function loadTodayStats() {
+      const display = document.getElementById("todayTotal");
+      
+      try {
+        // Get today's date string YYYY-MM-DD
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        // Query pending/approved entries for TODAY
+        const q = query(
+          collection(db, "temp_entries"),
+          where("date", "==", todayStr)
+        );
+
+        const snapshot = await getDocs(q);
+        let total = 0;
+        
+        snapshot.forEach(doc => {
+          total += parseFloat(doc.data().amount || 0);
+        });
+
+        display.innerText = "₹" + total.toLocaleString();
+
+      } catch (e) {
+        console.error("Stats Error:", e);
+        display.innerText = "Error";
+        display.style.color = "#ff5252";
+      }
     }
 
-    window.onload = () => {
-      const lastUpdate = localStorage.getItem("last_update_time");
-      if (lastUpdate) {
-        document.getElementById("lastDate").innerText = lastUpdate;
-        document.getElementById("statusText").innerText = "✅ Last file is already loaded.";
-      }
-    };
+    // Load on startup
+    loadTodayStats();
   </script>
 </body>
 </html>
