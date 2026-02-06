@@ -2,57 +2,121 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Customers - EMI Manager</title>
+  <title>Customer Management - EMI Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    /* --- MODERN DARK THEME --- */
+    /* --- PROFESSIONAL DARK THEME --- */
     :root { 
-      --bg: #121212; 
-      --card: #1e1e1e; 
-      --primary: #00e676; 
-      --danger: #ff5252;
-      --text: #eee; 
-      --border: #333; 
+      --bg: #0f172a; 
+      --card: #1e293b; 
+      --input: #0f172a;
+      --primary: #10b981; /* Emerald */
+      --secondary: #0ea5e9; /* Sky Blue */
+      --danger: #ef4444; 
+      --text: #f8fafc; 
+      --text-muted: #94a3b8;
+      --border: #334155; 
     }
-    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; }
     
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+
     /* Navigation */
-    nav { background: var(--card); padding: 10px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; border: 1px solid var(--border); }
-    nav a { color: #aaa; text-decoration: none; padding: 8px 15px; border-radius: 4px; transition: 0.2s; }
-    nav a:hover, nav a.active { background: var(--primary); color: #000; font-weight: bold; }
+    nav { 
+      background: var(--card); padding: 15px 20px; border-bottom: 1px solid var(--border); 
+      display: flex; gap: 10px; overflow-x: auto; position: sticky; top: 0; z-index: 100;
+    }
+    nav a { 
+      color: var(--text-muted); text-decoration: none; padding: 8px 16px; border-radius: 6px; 
+      font-size: 0.9rem; white-space: nowrap; transition: 0.2s;
+    }
+    nav a:hover { background: #2d3748; color: white; }
+    nav a.active { background: rgba(16, 185, 129, 0.15); color: var(--primary); font-weight: 600; }
 
-    /* Layout */
-    .container { max-width: 1200px; margin: auto; display: grid; grid-template-columns: 1fr; gap: 20px; }
-    @media(min-width: 800px) { .container { grid-template-columns: 1fr 2fr; } }
+    /* Main Layout */
+    .container { 
+      max-width: 1200px; margin: 30px auto; padding: 0 20px; 
+      display: grid; grid-template-columns: 380px 1fr; gap: 30px;
+    }
 
-    /* Forms */
-    .card-box { background: var(--card); padding: 20px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; }
-    h2 { color: var(--primary); margin-top: 0; font-size: 1.2rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+    /* Forms Section (Left) */
+    .forms-wrapper { display: flex; flex-direction: column; gap: 20px; }
     
-    input { width: 100%; padding: 12px; margin-bottom: 10px; background: #2c2c2c; border: 1px solid #444; color: white; border-radius: 4px; box-sizing: border-box; transition: 0.2s; }
-    input:focus { border-color: var(--primary); outline: none; }
+    .form-card { 
+      background: var(--card); padding: 25px; border-radius: 16px; 
+      border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .form-card h2 { margin: 0 0 15px 0; font-size: 1.2rem; color: var(--primary); display: flex; align-items: center; gap: 8px; }
     
-    label { font-size: 0.85rem; color: #aaa; margin-bottom: 5px; display: block; }
+    label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; margin-top: 10px; }
     
-    button { width: 100%; padding: 12px; background: var(--primary); color: #000; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; margin-top: 5px; }
-    button:hover { filter: brightness(0.9); }
-    button.btn-danger { background: var(--danger); color: white; width: auto; padding: 8px 15px; font-size: 0.9rem; }
+    input { 
+      width: 100%; padding: 12px; background: var(--input); border: 1px solid var(--border); 
+      color: white; border-radius: 8px; box-sizing: border-box; transition: 0.2s; font-size: 0.95rem;
+    }
+    input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
 
-    /* List / Search */
-    .search-bar { display: flex; gap: 10px; margin-bottom: 15px; }
-    .customer-list { display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
-    
-    /* Customer Card UI (Replaces Table) */
-    .cust-card { background: #252525; padding: 15px; border-radius: 6px; border-left: 4px solid var(--primary); position: relative; }
-    .cust-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-    .cust-info h3 { margin: 0; color: #fff; font-size: 1.1rem; }
-    .cust-info p { margin: 2px 0; font-size: 0.9rem; color: #bbb; }
-    
-    .prod-badge { background: #333; padding: 5px 10px; border-radius: 4px; font-size: 0.85rem; margin-top: 5px; display: inline-block; border: 1px solid #444; }
-    .prod-badge span { color: var(--primary); font-weight: bold; }
+    .btn-submit { 
+      width: 100%; padding: 12px; background: var(--primary); color: #000; font-weight: bold; 
+      border: none; border-radius: 8px; cursor: pointer; margin-top: 20px; transition: 0.2s;
+    }
+    .btn-submit:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; }
 
-    /* Responsive Utilities */
-    .hidden { display: none; }
+    /* List Section (Right) */
+    .list-header { 
+      display: flex; gap: 10px; margin-bottom: 20px; 
+      background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid var(--border);
+    }
+    .search-input { flex: 1; margin: 0; background: #0f172a; }
+    
+    .btn-icon { 
+      padding: 0 20px; background: var(--secondary); color: white; border: none; 
+      border-radius: 8px; cursor: pointer; font-weight: 600;
+    }
+    .btn-refresh { background: var(--card); border: 1px solid var(--border); color: var(--text-muted); }
+    .btn-refresh:hover { color: white; border-color: white; }
+
+    /* Customer Grid */
+    .customer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+
+    .cust-card { 
+      background: var(--card); border-radius: 12px; border: 1px solid var(--border); 
+      overflow: hidden; transition: transform 0.2s; position: relative;
+    }
+    .cust-card:hover { transform: translateY(-3px); border-color: #475569; }
+    .cust-card::before { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; background: var(--primary); }
+
+    .cust-header { padding: 15px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: flex-start; }
+    .cust-info h3 { margin: 0; font-size: 1.1rem; color: white; }
+    .cust-info small { color: var(--secondary); font-family: monospace; font-size: 0.9rem; }
+    
+    .btn-delete { 
+      background: transparent; border: 1px solid var(--danger); color: var(--danger); 
+      padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+    }
+    .btn-delete:hover { background: var(--danger); color: white; }
+
+    .cust-body { padding: 15px; }
+    .contact-row { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 10px; display: flex; gap: 15px; }
+    
+    .product-badge { 
+      background: #0f172a; padding: 8px; border-radius: 6px; border: 1px solid #334155; 
+      font-size: 0.85rem; margin-bottom: 5px; display: flex; justify-content: space-between;
+    }
+    .bal-text { color: var(--danger); font-weight: bold; }
+    .paid-text { color: var(--primary); font-weight: bold; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .container { grid-template-columns: 1fr; }
+      .forms-wrapper { flex-direction: row; flex-wrap: wrap; }
+      .form-card { flex: 1; min-width: 300px; }
+    }
+    @media (max-width: 600px) {
+      .forms-wrapper { flex-direction: column; }
+      .list-header { flex-direction: column; }
+      .btn-icon { padding: 12px; width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -62,48 +126,58 @@
     <a href="customers.html" class="active">Customers</a>
     <a href="entries.html">Entries</a>
     <a href="review.html">Agent Sync</a>
+    <a href="report.html">Report</a>
   </nav>
 
   <div class="container">
     
-    <div>
-      <div class="card-box">
-        <h2>➕ Add New Customer</h2>
+    <div class="forms-wrapper">
+      
+      <div class="form-card">
+        <h2>👤 New Customer</h2>
         <input id="newId" placeholder="Customer ID (Unique)*">
-        <input id="newName" placeholder="Full Name*">
-        <input id="newPhone" placeholder="Phone Number">
-        <input id="newPlace" placeholder="Place / City">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <input id="newName" placeholder="Full Name*">
+          <input id="newPhone" placeholder="Phone Number">
+        </div>
+        <input id="newPlace" placeholder="City / Place">
         
         <label>Initial Product</label>
         <input id="newProduct" placeholder="Product Name*">
-        <div style="display:flex; gap:10px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
           <input id="newTotal" type="number" placeholder="Total Price*">
           <input id="newPaid" type="number" placeholder="Down Payment*">
         </div>
-        <button id="btnAddCustomer">Create Customer</button>
+        
+        <button id="btnAddCustomer" class="btn-submit">Create Profile</button>
       </div>
 
-      <div class="card-box">
-        <h2>📦 Add Product to Existing</h2>
+      <div class="form-card">
+        <h2>📦 Add Product</h2>
+        <label>Existing Customer</label>
         <input id="existId" placeholder="Enter Customer ID*">
-        <input id="addProduct" placeholder="New Product Name*">
-        <div style="display:flex; gap:10px;">
+        
+        <label>New Product Details</label>
+        <input id="addProduct" placeholder="Product Name*">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
           <input id="addTotal" type="number" placeholder="Total Price*">
           <input id="addPaid" type="number" placeholder="Down Payment*">
         </div>
-        <button id="btnAddProduct">Add Product</button>
+        
+        <button id="btnAddProduct" class="btn-submit" style="background:var(--secondary);">Add Product</button>
       </div>
+
     </div>
 
     <div>
-      <div class="search-bar">
-        <input id="searchBox" placeholder="Search by ID..." style="margin-bottom:0;">
-        <button onclick="searchData()" style="width: auto; margin-top:0;">🔍</button>
-        <button onclick="loadRecent()" style="width: auto; background:#333; color:white; margin-top:0;">🔄</button>
+      <div class="list-header">
+        <input id="searchBox" class="search-input" placeholder="🔍 Search ID or Name...">
+        <button class="btn-icon" onclick="searchData()">Search</button>
+        <button class="btn-icon btn-refresh" onclick="loadRecent()">🔄</button>
       </div>
 
-      <div id="customerList" class="customer-list">
-        <p style="color:#666; text-align:center; width:100%;">Loading recent customers...</p>
+      <div id="customerList" class="customer-grid">
+        <p style="color:#666; width:100%; text-align:center;">Loading database...</p>
       </div>
     </div>
 
@@ -126,11 +200,12 @@
       const paid = parseFloat(document.getElementById("newPaid").value);
 
       if (!id || !name || !product || isNaN(total) || isNaN(paid)) {
-        return alert("❌ Please fill all required fields correctly.");
+        return alert("❌ Please fill all required fields marked with *");
       }
 
       const btn = document.getElementById("btnAddCustomer");
-      btn.innerHTML = "Saving...";
+      const originalText = btn.innerText;
+      btn.innerText = "Creating...";
       btn.disabled = true;
 
       try {
@@ -141,7 +216,6 @@
           const check = await transaction.get(custRef);
           if (check.exists()) throw "Customer ID already exists!";
 
-          // Create Data
           const newCust = {
             id, name, 
             phone: document.getElementById("newPhone").value.trim(),
@@ -154,13 +228,12 @@
               payments: [{
                 date: new Date().toISOString().split("T")[0],
                 amount: paid,
-                dueNumber: 0, // 0 = Downpayment
+                dueNumber: 0, 
                 type: "Downpayment"
               }]
             }]
           };
 
-          // Commit Writes
           transaction.set(custRef, newCust);
           
           const bal = total - paid;
@@ -174,12 +247,12 @@
 
         alert("✅ Customer Created!");
         clearInputs(["newId", "newName", "newPhone", "newPlace", "newProduct", "newTotal", "newPaid"]);
-        loadRecent(); // Refresh list
+        loadRecent();
 
       } catch (e) {
         alert("Error: " + e);
       } finally {
-        btn.innerHTML = "Create Customer";
+        btn.innerText = originalText;
         btn.disabled = false;
       }
     });
@@ -192,6 +265,10 @@
       const paid = parseFloat(document.getElementById("addPaid").value);
 
       if (!id || !name || isNaN(total)) return alert("❌ Check inputs");
+
+      const btn = document.getElementById("btnAddProduct");
+      btn.innerText = "Adding...";
+      btn.disabled = true;
 
       try {
         await runTransaction(db, async (transaction) => {
@@ -230,13 +307,16 @@
 
       } catch (e) {
         alert("Error: " + e);
+      } finally {
+        btn.innerText = "Add Product";
+        btn.disabled = false;
       }
     });
 
-    // --- 3. LOAD & SEARCH LOGIC ---
+    // --- 3. LOAD & SEARCH ---
     window.loadRecent = async () => {
       const container = document.getElementById("customerList");
-      container.innerHTML = `<p style="color:#888;">Fetching recent...</p>`;
+      container.innerHTML = `<p style="color:#888; text-align:center;">Fetching recent...</p>`;
       
       try {
         const q = query(collection(db, "customers"), orderBy("createdAt", "desc"), limit(20));
@@ -244,7 +324,7 @@
         renderList(snap);
       } catch (e) {
         console.error(e);
-        container.innerHTML = `<p>Error loading list.</p>`;
+        container.innerHTML = `<p style="color:red;">Error loading list.</p>`;
       }
     };
 
@@ -253,18 +333,20 @@
       if (!term) return loadRecent();
 
       const container = document.getElementById("customerList");
-      container.innerHTML = "Searching...";
+      container.innerHTML = `<p style="color:#aaa; text-align:center;">Searching...</p>`;
       
-      // Basic Search (Start At)
-      const q = query(
-        collection(db, "customers"), 
-        where("id", ">=", term), 
-        where("id", "<=", term + '\uf8ff'),
-        limit(10)
-      );
-      
-      const snap = await getDocs(q);
-      renderList(snap);
+      try {
+        const q = query(
+          collection(db, "customers"), 
+          where("id", ">=", term), 
+          where("id", "<=", term + '\uf8ff'),
+          limit(10)
+        );
+        const snap = await getDocs(q);
+        renderList(snap);
+      } catch (e) {
+        container.innerHTML = `<p style="color:red;">Search Error: ${e.message}</p>`;
+      }
     };
 
     function renderList(snapshot) {
@@ -272,7 +354,7 @@
       container.innerHTML = "";
 
       if (snapshot.empty) {
-        container.innerHTML = "<p>No customers found.</p>";
+        container.innerHTML = "<p style='color:#888; text-align:center;'>No customers found.</p>";
         return;
       }
 
@@ -280,16 +362,14 @@
         const c = docSnap.data();
         let prodHTML = "";
         
-        // Calculate totals for card display
-        let totalDebt = 0;
-        
         c.products.forEach(p => {
           const bal = p.total - p.paid;
-          totalDebt += bal;
+          const balText = bal > 0 ? `<span class="bal-text">Bal: ₹${bal}</span>` : `<span class="paid-text">Paid ✔</span>`;
+          
           prodHTML += `
-            <div class="prod-badge">
-              ${p.name} <br>
-              Paid: ₹${p.paid} | <span>Bal: ₹${bal}</span>
+            <div class="product-badge">
+              <span>📦 ${p.name}</span>
+              ${balText}
             </div>
           `;
         });
@@ -299,13 +379,16 @@
         div.innerHTML = `
           <div class="cust-header">
             <div class="cust-info">
-              <h3>${c.name} <small style="color:#primary; font-size:0.8em;">(${c.id})</small></h3>
-              <p>📞 ${c.phone || '-'}</p>
-              <p>📍 ${c.place || '-'}</p>
+              <h3>${c.name}</h3>
+              <small>ID: ${c.id}</small>
             </div>
-            <button class="btn-danger" onclick="deleteCustomer('${c.id}')">🗑️</button>
+            <button class="btn-delete" onclick="deleteCustomer('${c.id}')" title="Delete">🗑️</button>
           </div>
-          <div style="border-top:1px solid #333; padding-top:10px;">
+          <div class="cust-body">
+            <div class="contact-row">
+              <span>📞 ${c.phone || '-'}</span>
+              <span>📍 ${c.place || '-'}</span>
+            </div>
             ${prodHTML}
           </div>
         `;
@@ -313,9 +396,9 @@
       });
     }
 
-    // --- 4. DELETE CUSTOMER (Smart Delete) ---
+    // --- 4. DELETE CUSTOMER ---
     window.deleteCustomer = async (id) => {
-      if (!confirm(`⚠️ Are you sure you want to delete ${id}? This cannot be undone and stats will decrease.`)) return;
+      if (!confirm(`⚠️ DELETE ${id}?\n\nThis will remove the customer and their payment history forever.`)) return;
 
       try {
         await runTransaction(db, async (transaction) => {
@@ -327,7 +410,7 @@
           
           const data = snap.data();
           
-          // Calculate what to remove from Global Stats
+          // Stats Logic
           let removePaid = 0;
           let removeBal = 0;
           let removeProds = data.products.length;
@@ -337,10 +420,8 @@
             removeBal += (p.total - p.paid);
           });
 
-          // Delete Customer
           transaction.delete(custRef);
 
-          // Decrement Stats
           transaction.update(statsRef, {
             totalCustomers: increment(-1),
             totalProducts: increment(-removeProds),
@@ -349,7 +430,7 @@
           });
         });
 
-        alert("🗑️ Customer Deleted & Stats Updated");
+        alert("🗑️ Deleted Successfully");
         loadRecent();
 
       } catch (e) {
@@ -364,7 +445,6 @@
     // Init
     loadRecent();
     
-    // Export globally for HTML onclick
     window.searchData = searchData;
     window.loadRecent = loadRecent;
     window.deleteCustomer = deleteCustomer;
