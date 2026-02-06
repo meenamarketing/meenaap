@@ -5,57 +5,98 @@
   <title>View Entries - Agent App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    /* --- DARK THEME UI --- */
+    /* --- MODERN DARK THEME --- */
     :root { 
       --bg: #121212; 
       --card: #1e1e1e; 
       --primary: #00e676; 
-      --secondary: #00bcd4;
-      --danger: #ff5252;
+      --secondary: #00bcd4; 
+      --danger: #ff5252; 
+      --warning: #ffab40;
       --text: #eee; 
       --border: #333; 
     }
-    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; padding-bottom: 80px; }
     
-    /* Nav */
+    /* Navigation */
     nav { background: var(--card); padding: 10px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; border: 1px solid var(--border); }
     nav a { color: #aaa; text-decoration: none; padding: 8px 15px; border-radius: 4px; transition: 0.2s; }
     nav a:hover, nav a.active { background: var(--secondary); color: #000; font-weight: bold; }
 
-    /* Header & Total */
-    .header-box { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 15px; }
-    .total-display { font-size: 1.2rem; font-weight: bold; color: var(--primary); }
+    /* Header Stats */
+    .stats-header { 
+      display: flex; justify-content: space-between; align-items: center; 
+      background: linear-gradient(135deg, #1e1e1e, #252525);
+      padding: 20px; border-radius: 12px; border: 1px solid var(--border);
+      margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .stats-header h2 { margin: 0; font-size: 1.2rem; color: #fff; }
+    .total-amt { font-size: 1.5rem; font-weight: bold; color: var(--primary); }
 
     /* Entry Cards */
     .entries-grid { display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
     
-    .entry-card { background: #252525; padding: 15px; border-radius: 8px; border: 1px solid #333; position: relative; }
-    .entry-card.approved { border-left: 4px solid var(--primary); }
-    .entry-card.pending { border-left: 4px solid #ffab40; }
-    .entry-card.rejected { border-left: 4px solid var(--danger); opacity: 0.7; }
-
-    .card-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.95rem; }
-    .card-label { color: #aaa; }
-    
-    .btn-delete { 
-      background: #333; color: var(--danger); border: 1px solid #444; 
-      padding: 5px 10px; border-radius: 4px; cursor: pointer; float: right; margin-top: 10px; 
+    .entry-card { 
+      background: var(--card); padding: 15px; border-radius: 10px; 
+      border: 1px solid var(--border); position: relative; transition: transform 0.2s;
     }
-    .btn-delete:hover { background: var(--danger); color: white; }
+    .entry-card:hover { transform: translateY(-2px); border-color: #555; }
+    
+    .entry-card.approved { border-left: 4px solid var(--primary); }
+    .entry-card.pending { border-left: 4px solid var(--warning); }
 
-    .badge { padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
-    .bg-pending { background: #ffab40; color: black; }
-    .bg-approved { background: var(--primary); color: black; }
+    .card-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+    .cust-name { font-weight: bold; font-size: 1.1rem; color: #fff; }
+    .status-badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; }
+    .bg-pending { background: rgba(255, 171, 64, 0.2); color: var(--warning); }
+    .bg-approved { background: rgba(0, 230, 118, 0.2); color: var(--primary); }
+
+    .card-body { display: flex; flex-direction: column; gap: 5px; font-size: 0.9rem; color: #bbb; }
+    .highlight { color: var(--secondary); font-weight: bold; }
+
+    /* Action Buttons */
+    .card-actions { 
+      display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; border-top: 1px solid #333; padding-top: 10px; 
+    }
+    .btn-icon { 
+      background: #2c2c2c; color: #fff; border: 1px solid #444; 
+      padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 5px;
+    }
+    .btn-edit:hover { background: var(--warning); color: #000; border-color: var(--warning); }
+    .btn-delete:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
 
     /* Submit Button */
+    .fab-container { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; pointer-events: none; }
     .fab-btn {
-      position: fixed; bottom: 20px; right: 20px;
-      background: var(--secondary); color: black; font-weight: bold;
-      padding: 15px 25px; border-radius: 30px; border: none;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5); cursor: pointer;
-      display: flex; align-items: center; gap: 10px;
+      pointer-events: auto; background: var(--secondary); color: #000; font-weight: bold;
+      padding: 12px 30px; border-radius: 30px; border: none;
+      box-shadow: 0 4px 15px rgba(0,188,212,0.4); cursor: pointer;
+      display: flex; align-items: center; gap: 8px; font-size: 1rem; transition: 0.2s;
     }
-    .fab-btn:hover { transform: scale(1.05); }
+    .fab-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal {
+      background: var(--card); padding: 25px; border-radius: 12px; width: 90%; max-width: 400px;
+      border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .modal h3 { margin-top: 0; color: var(--secondary); }
+    
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; color: #aaa; font-size: 0.85rem; margin-bottom: 5px; }
+    .form-group input { 
+      width: 100%; padding: 12px; background: #121212; border: 1px solid #444; 
+      color: white; border-radius: 6px; box-sizing: border-box; font-size: 1rem;
+    }
+    
+    .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-modal { flex: 1; padding: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
+    .btn-cancel { background: #333; color: white; }
+    .btn-save { background: var(--primary); color: #000; }
   </style>
 </head>
 <body>
@@ -64,117 +105,202 @@
     <a href="index.html">Dashboard</a>
     <a href="agent_entry.html">Add Collection</a>
     <a href="agent_view.html" class="active">View Entries</a>
+    <a href="agent_customer_report.html">Report</a>
   </nav>
 
-  <div class="header-box">
-    <h2 style="margin:0;">📝 Today's Logs</h2>
-    <div class="total-display" id="totalAmt">₹0</div>
+  <div class="stats-header">
+    <div>
+      <h2>📝 Today's Logs</h2>
+      <small style="color:#888;">Pending Approval</small>
+    </div>
+    <div class="total-amt" id="totalAmt">₹0</div>
   </div>
 
   <div id="entriesList" class="entries-grid">
-    <p style="text-align:center; width:100%; color:#666;">Loading entries...</p>
+    <p style="text-align:center; width:100%; color:#666; margin-top:40px;">Loading entries...</p>
   </div>
 
-  <button class="fab-btn" onclick="notifyAdmin()">
-    🚀 Submit to Admin
-  </button>
+  <div class="fab-container">
+    <button class="fab-btn" onclick="notifyAdmin()">
+      🚀 Submit to Admin
+    </button>
+  </div>
+
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <h3>✎ Edit Entry</h3>
+      <input type="hidden" id="editDocId">
+      
+      <div class="form-group">
+        <label>Amount (₹)</label>
+        <input type="number" id="editAmount">
+      </div>
+      
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="editDate">
+      </div>
+      
+      <div class="modal-btns">
+        <button class="btn-modal btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-modal btn-save" onclick="saveEdit()">Update</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module">
     import { db } from "./config.js";
     import { 
-      collection, query, where, getDocs, deleteDoc, doc, orderBy 
+      collection, query, where, getDocs, deleteDoc, doc, orderBy, updateDoc 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    // --- LOAD ENTRIES ---
+    let agentEntries = [];
+
+    // --- 1. LOAD ENTRIES ---
     async function loadAgentEntries() {
       const listDiv = document.getElementById("entriesList");
       const totalDiv = document.getElementById("totalAmt");
       
       try {
-        // Query: Get all 'temp_entries' (You can filter by Agent ID later if needed)
-        // Note: In a real app, you might filter by date or agent ID here.
-        const q = query(
-          collection(db, "temp_entries"),
-          orderBy("timestamp", "desc")
-        );
+        // Fetch Pending Entries (Ordered by Time)
+        // Note: Using JS sort to avoid index error
+        const q = query(collection(db, "temp_entries"), where("status", "==", "pending"));
 
         const snapshot = await getDocs(q);
-        
-        listDiv.innerHTML = "";
+        agentEntries = [];
         let total = 0;
-
-        if (snapshot.empty) {
-          listDiv.innerHTML = `<p style="text-align:center; color:#aaa; grid-column:1/-1;">No pending entries found.</p>`;
-          totalDiv.innerText = "₹0";
-          return;
-        }
 
         snapshot.forEach(docSnap => {
           const d = docSnap.data();
-          const id = docSnap.id;
+          d.docId = docSnap.id;
+          d.jsDate = d.timestamp ? (d.timestamp.toDate ? d.timestamp.toDate() : new Date(d.timestamp)) : new Date();
+          agentEntries.push(d);
+          total += parseFloat(d.amount || 0);
+        });
+
+        // Sort: Newest First
+        agentEntries.sort((a,b) => b.jsDate - a.jsDate);
+
+        listDiv.innerHTML = "";
+        totalDiv.innerText = `₹${total.toLocaleString()}`;
+
+        if (agentEntries.length === 0) {
+          listDiv.innerHTML = `<div style="text-align:center; color:#666; grid-column:1/-1; padding:40px;">
+            <h3>No pending entries.</h3>
+            <p>Go to 'Add Collection' to start.</p>
+          </div>`;
+          return;
+        }
+
+        agentEntries.forEach(d => {
+          // Calculate Due # display (Use '?' if not calculated yet)
+          // Note: The final due number is calculated on approval, but if we stored it tentatively, show it.
+          // Since agent_entry stores productIndex, we can't easily calc exact due # without fetching customer again.
+          // We will show "Pending" for Due # or fetch it if needed. For speed, we omit exact due # until approval unless stored.
           
-          // Only show today's entries or pending ones? 
-          // For now showing all temp entries.
-          
-          if(d.status === 'pending') total += d.amount;
-
-          const statusBadge = d.status === 'approved' 
-            ? `<span class="badge bg-approved">Approved</span>` 
-            : `<span class="badge bg-pending">Pending</span>`;
-
-          const deleteBtn = d.status === 'pending' 
-            ? `<button class="btn-delete" onclick="window.deleteEntry('${id}')">🗑️ Undo</button>` 
-            : ``;
-
           const html = `
-            <div class="entry-card ${d.status}">
-              <div class="card-row">
-                <span style="color:white; font-weight:bold;">${d.customerName}</span>
-                ${statusBadge}
+            <div class="entry-card pending">
+              <div class="card-header">
+                <span class="cust-name">${d.customerName}</span>
+                <span class="status-badge bg-pending">Pending</span>
               </div>
-              <div class="card-row">
-                <span class="card-label">ID: ${d.customerId}</span>
-                <span style="color:var(--secondary); font-weight:bold;">₹${d.amount}</span>
+              
+              <div class="card-body">
+                <div style="display:flex; justify-content:space-between;">
+                  <span>ID: ${d.customerId}</span>
+                  <span class="highlight">₹${d.amount}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                  <span>📦 ${d.productName}</span>
+                  <span>📅 ${d.date}</span>
+                </div>
               </div>
-              <div class="card-row">
-                <span class="card-label">Product: ${d.productName}</span>
-                <span class="card-label">${d.date}</span>
+
+              <div class="card-actions">
+                <button class="btn-icon btn-edit" onclick="openEdit('${d.docId}')">✎ Edit</button>
+                <button class="btn-icon btn-delete" onclick="deleteEntry('${d.docId}')">🗑️ Delete</button>
               </div>
-              ${deleteBtn}
             </div>
           `;
           listDiv.innerHTML += html;
         });
 
-        totalDiv.innerText = `Pending: ₹${total}`;
-
       } catch (e) {
         console.error(e);
-        listDiv.innerHTML = `<p style="color:red;">Error loading data.</p>`;
+        listDiv.innerHTML = `<p style="color:#ff5252; text-align:center;">Error loading data: ${e.message}</p>`;
       }
     }
 
-    // --- DELETE ENTRY (Only if pending) ---
+    // --- 2. EDIT MODAL LOGIC ---
+    window.openEdit = (docId) => {
+      const entry = agentEntries.find(e => e.docId === docId);
+      if (!entry) return;
+
+      document.getElementById("editDocId").value = docId;
+      document.getElementById("editAmount").value = entry.amount;
+      document.getElementById("editDate").value = entry.date;
+      
+      document.getElementById("editModal").style.display = "flex";
+    };
+
+    window.closeModal = () => {
+      document.getElementById("editModal").style.display = "none";
+    };
+
+    window.saveEdit = async () => {
+      const docId = document.getElementById("editDocId").value;
+      const newAmt = parseFloat(document.getElementById("editAmount").value);
+      const newDate = document.getElementById("editDate").value;
+
+      if (!newAmt || !newDate) return alert("Please fill all fields");
+
+      const btn = document.querySelector(".btn-save");
+      btn.innerText = "Updating...";
+      btn.disabled = true;
+
+      try {
+        const ref = doc(db, "temp_entries", docId);
+        await updateDoc(ref, {
+          amount: newAmt,
+          date: newDate
+        });
+
+        alert("✅ Updated Successfully");
+        closeModal();
+        loadAgentEntries(); // Refresh UI
+      } catch (e) {
+        alert("Error: " + e.message);
+      } finally {
+        btn.innerText = "Update";
+        btn.disabled = false;
+      }
+    };
+
+    // --- 3. DELETE LOGIC ---
     window.deleteEntry = async (docId) => {
-      if(!confirm("⚠️ Are you sure you want to remove this entry?")) return;
+      if(!confirm("⚠️ Remove this entry? It will not be sent to Admin.")) return;
 
       try {
         await deleteDoc(doc(db, "temp_entries", docId));
-        loadAgentEntries(); // Refresh
+        loadAgentEntries();
       } catch (e) {
         alert("Error deleting: " + e.message);
       }
     };
 
-    // --- NOTIFY ADMIN (Simulation) ---
+    // --- 4. SUBMIT NOTIFICATION ---
     window.notifyAdmin = () => {
-      // In a more complex app, this could send an email or push notification.
-      // For now, it just confirms the agent has checked their list.
-      alert("✅ Notification sent to Admin!\n\nThe admin can now go to the 'Approvals' page to merge these entries.");
+      if(agentEntries.length === 0) return alert("No entries to submit.");
+      // Just a visual confirmation for the agent
+      alert("✅ List is ready for Admin Review!\n\nThe Admin can now see these " + agentEntries.length + " entries in their dashboard.");
     };
 
-    // Load on start
+    // Init
     loadAgentEntries();
+    
+    // Export for HTML access
+    window.openEdit = openEdit;
+    window.deleteEntry = deleteEntry;
   </script>
 </body>
 </html>
