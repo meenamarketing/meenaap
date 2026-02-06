@@ -3,49 +3,116 @@
 <head>
   <meta charset="UTF-8">
   <title>Entries - EMI Manager</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
-    /* --- MODERN DARK THEME --- */
+    /* --- PROFESSIONAL DARK THEME (Consistent) --- */
     :root { 
-      --bg: #121212; 
-      --card: #1e1e1e; 
-      --primary: #00e676; 
-      --secondary: #00bcd4;
-      --text: #eee; 
-      --border: #333; 
+      --bg: #0f172a; 
+      --card: #1e293b; 
+      --input: #0f172a;
+      --primary: #10b981; /* Emerald */
+      --secondary: #0ea5e9; /* Sky Blue */
+      --danger: #ef4444; 
+      --text: #f8fafc; 
+      --text-muted: #94a3b8;
+      --border: #334155; 
     }
-    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; }
     
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; padding-bottom: 50px; }
+
     /* Navigation */
-    nav { background: var(--card); padding: 10px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; border: 1px solid var(--border); }
-    nav a { color: #aaa; text-decoration: none; padding: 8px 15px; border-radius: 4px; transition: 0.2s; }
-    nav a:hover, nav a.active { background: var(--primary); color: #000; font-weight: bold; }
+    nav { 
+      background: var(--card); padding: 15px; border-bottom: 1px solid var(--border); 
+      display: flex; gap: 10px; overflow-x: auto; position: sticky; top: 0; z-index: 1000;
+    }
+    nav a { 
+      color: var(--text-muted); text-decoration: none; padding: 8px 16px; border-radius: 8px; 
+      font-size: 0.95rem; white-space: nowrap; transition: 0.2s; background: rgba(255,255,255,0.05);
+    }
+    nav a:hover { background: #2d3748; color: white; }
+    nav a.active { background: rgba(16, 185, 129, 0.15); color: var(--primary); font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3); }
 
-    /* Search Area */
-    .search-container { background: var(--card); padding: 20px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; display: flex; gap: 10px; }
-    input { flex: 1; padding: 12px; background: #2c2c2c; border: 1px solid #444; color: white; border-radius: 4px; font-size: 1rem; }
-    button { padding: 10px 25px; background: var(--secondary); color: #000; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; transition: 0.2s; }
-    button:hover { filter: brightness(0.9); }
-    button.pay-btn { background: var(--primary); width: 100%; margin-top: 10px; }
+    /* Layout */
+    .container { max-width: 800px; margin: 20px auto; padding: 0 15px; }
 
-    /* Result Cards */
-    .result-area { display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
-    .customer-card { background: var(--card); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
-    .card-header { background: #252525; padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-    .card-header h3 { margin: 0; color: #fff; font-size: 1.1rem; }
-    .card-header small { color: #aaa; }
+    /* Search Section */
+    .search-card { 
+      background: var(--card); padding: 20px; border-radius: 16px; 
+      border: 1px solid var(--border); margin-bottom: 25px;
+      display: flex; gap: 10px; align-items: center;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
     
-    .product-list { padding: 15px; }
-    .product-item { background: #1a1a1a; padding: 15px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #333; }
-    .prod-title { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; color: var(--secondary); }
-    .stats-row { display: flex; justify-content: space-between; font-size: 0.9rem; color: #bbb; margin-bottom: 15px; }
-    
-    .input-group { display: flex; gap: 10px; }
-    .input-group input { padding: 8px; }
+    input { 
+      width: 100%; padding: 14px; background: var(--input); border: 1px solid var(--border); 
+      color: white; border-radius: 10px; font-size: 16px; transition: 0.2s; outline: none;
+    }
+    input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
 
-    /* Helper Classes */
-    .text-green { color: var(--primary); }
-    .text-red { color: #ff5252; }
+    .btn-search { 
+      background: var(--secondary); color: white; border: none; padding: 0 25px; 
+      height: 50px; border-radius: 10px; font-weight: 700; cursor: pointer;
+    }
+    .btn-search:active { transform: scale(0.98); }
+
+    /* Customer Results */
+    .result-grid { display: grid; gap: 20px; }
+
+    .cust-card { 
+      background: var(--card); border-radius: 12px; border: 1px solid var(--border); 
+      overflow: hidden; animation: slideUp 0.3s ease;
+    }
+    
+    .cust-header { 
+      padding: 15px 20px; border-bottom: 1px solid #334155; background: rgba(255,255,255,0.02);
+      display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    .cust-info h3 { margin: 0; font-size: 1.2rem; color: white; }
+    .cust-info small { color: var(--secondary); font-family: monospace; font-size: 0.9rem; }
+    .cust-meta { text-align: right; color: var(--text-muted); font-size: 0.85rem; line-height: 1.4; }
+
+    /* Product & Payment Form */
+    .product-box { padding: 20px; border-bottom: 1px solid #334155; }
+    .product-box:last-child { border-bottom: none; }
+
+    .prod-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .prod-name { font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    
+    .status-badge { 
+      font-size: 0.8rem; padding: 4px 10px; border-radius: 6px; font-weight: bold; text-transform: uppercase; 
+    }
+    .badge-red { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+    .badge-green { background: rgba(16, 185, 129, 0.2); color: var(--primary); }
+
+    .stats-row { 
+      display: flex; gap: 15px; margin-bottom: 15px; font-size: 0.9rem; color: var(--text-muted); 
+      background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
+    }
+    .stat-item strong { color: white; }
+
+    .payment-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: center; }
+    
+    .btn-pay { 
+      background: var(--primary); color: #000; font-weight: 700; border: none; 
+      padding: 0 20px; height: 50px; border-radius: 10px; cursor: pointer; transition: 0.2s;
+    }
+    .btn-pay:active { transform: scale(0.98); }
+    .btn-pay:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Helper text */
+    .next-due-hint { color: var(--secondary); font-size: 0.85rem; margin-bottom: 5px; display: block; font-weight: 600; }
+
+    /* Mobile Responsive */
+    @media (max-width: 600px) {
+      .payment-form { grid-template-columns: 1fr; } /* Stack inputs */
+      .btn-pay { width: 100%; margin-top: 5px; }
+      .search-card { flex-direction: column; }
+      .btn-search { width: 100%; }
+      .stats-row { justify-content: space-between; }
+    }
+
+    @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body>
@@ -58,15 +125,20 @@
     <a href="reports.html">Reports</a>
   </nav>
 
-  <div class="search-container">
-    <input id="searchInput" placeholder="🔍 Enter Customer ID (e.g., C001)..." onkeypress="handleEnter(event)">
-    <button onclick="searchCustomer()">Search</button>
-  </div>
-
-  <div id="resultArea" class="result-area">
-    <div style="grid-column: 1/-1; text-align: center; color: #666; margin-top: 50px;">
-      Type a Customer ID above to manage payments.
+  <div class="container">
+    
+    <div class="search-card">
+      <input id="searchInput" placeholder="🔍 Enter Customer ID (e.g. C001)..." onkeypress="handleEnter(event)">
+      <button class="btn-search" onclick="searchCustomer()">Search</button>
     </div>
+
+    <div id="resultArea" class="result-grid">
+      <div style="text-align: center; color: #64748b; padding: 40px;">
+        <p style="font-size: 3rem; margin: 0;">👤</p>
+        <p>Type a Customer ID above to manage payments.</p>
+      </div>
+    </div>
+
   </div>
 
   <script type="module">
@@ -82,10 +154,9 @@
       
       if (term.length < 1) return alert("Please enter an ID");
 
-      div.innerHTML = `<p style="color:#aaa; text-align:center; width:100%;">Searching cloud database...</p>`;
+      div.innerHTML = `<p style="color:#aaa; text-align:center; padding:20px;">Searching cloud database...</p>`;
 
       try {
-        // Optimized Search: Range query for 'starts with' + Limit 5
         const q = query(
           collection(db, "customers"),
           where("id", ">=", term),
@@ -97,7 +168,7 @@
         div.innerHTML = "";
 
         if (snapshot.empty) {
-          div.innerHTML = `<p style="text-align:center; width:100%;">❌ No customer found with ID "${term}"</p>`;
+          div.innerHTML = `<p style="text-align:center; padding:20px; color:#ef4444;">❌ No customer found with ID "${term}"</p>`;
           return;
         }
 
@@ -107,7 +178,7 @@
 
       } catch (e) {
         console.error(e);
-        div.innerHTML = `<p style="color:red; text-align:center;">Error: ${e.message}</p>`;
+        div.innerHTML = `<p style="color:#ef4444; text-align:center;">Error: ${e.message}</p>`;
       }
     };
 
@@ -119,50 +190,58 @@
     function renderCard(c) {
       const div = document.getElementById("resultArea");
       const card = document.createElement("div");
-      card.className = "customer-card";
+      card.className = "cust-card";
 
       let productsHtml = "";
       
       c.products.forEach((p, idx) => {
+        // Calculate Logic
         const balance = p.total - p.paid;
-        // Last payment info (optional helper)
-        const lastPay = p.payments.length > 0 ? p.payments[p.payments.length - 1] : null;
-        const lastPayText = lastPay ? `Last: ₹${lastPay.amount} on ${lastPay.date}` : "No payments yet";
+        
+        // Find next due number
+        const lastDue = (p.payments || []).length > 0 
+          ? Math.max(...p.payments.map(x => x.dueNumber || 0)) 
+          : 0;
+        const nextDue = lastDue + 1;
+
+        // Styling classes
+        const badgeClass = balance > 0 ? "badge-red" : "badge-green";
+        const badgeText = balance > 0 ? `Bal: ₹${balance.toLocaleString()}` : "PAID ✔";
 
         productsHtml += `
-          <div class="product-item">
-            <div class="prod-title">
-              <span>📦 ${p.name}</span>
-              <span class="${balance > 0 ? 'text-red' : 'text-green'}">Bal: ₹${balance}</span>
+          <div class="product-box">
+            <div class="prod-header">
+              <span class="prod-name">📦 ${p.name}</span>
+              <span class="status-badge ${badgeClass}">${badgeText}</span>
             </div>
             
             <div class="stats-row">
-              <span>Total: ₹${p.total}</span>
-              <span>Paid: ₹${p.paid}</span>
+              <div class="stat-item">Total: <strong>₹${p.total}</strong></div>
+              <div class="stat-item">Paid: <strong>₹${p.paid}</strong></div>
             </div>
-            <div style="font-size:0.8rem; color:#666; margin-bottom:10px;">${lastPayText}</div>
 
-            <div class="input-group">
+            <label class="next-due-hint">Next Due: #${nextDue}</label>
+            <div class="payment-form">
               <input type="number" id="amt_${c.id}_${idx}" placeholder="Amount (₹)">
               <input type="date" id="date_${c.id}_${idx}" value="${new Date().toISOString().split('T')[0]}">
+              <button class="btn-pay" onclick="processPayment('${c.id}', ${idx})">Add Payment</button>
             </div>
-            <button class="pay-btn" onclick="processPayment('${c.id}', ${idx})">Add Payment</button>
           </div>
         `;
       });
 
       card.innerHTML = `
-        <div class="card-header">
-          <div>
+        <div class="cust-header">
+          <div class="cust-info">
             <h3>${c.name}</h3>
             <small>ID: ${c.id}</small>
           </div>
-          <div style="text-align:right;">
-            <small>📍 ${c.place || '-'}</small><br>
-            <small>📞 ${c.phone || '-'}</small>
+          <div class="cust-meta">
+            📍 ${c.place || '-'}<br>
+            📞 ${c.phone || '-'}
           </div>
         </div>
-        <div class="product-list">${productsHtml}</div>
+        <div>${productsHtml}</div>
       `;
       div.appendChild(card);
     }
@@ -179,24 +258,21 @@
 
       const btn = event.target;
       const originalText = btn.innerText;
-      btn.innerText = "Processing...";
+      btn.innerText = "Saving...";
       btn.disabled = true;
 
       try {
         await runTransaction(db, async (transaction) => {
-          // 1. Get Refs
           const custRef = doc(db, "customers", custId);
           const statsRef = doc(db, "metadata", "stats");
 
-          // 2. Read
           const custDoc = await transaction.get(custRef);
           if (!custDoc.exists()) throw "Customer does not exist!";
 
           const data = custDoc.data();
           const product = data.products[prodIdx];
 
-          // 3. Logic
-          // Find max due number
+          // Calc Due Number atomically
           let maxDue = 0;
           if (product.payments && product.payments.length > 0) {
             maxDue = Math.max(...product.payments.map(p => p.dueNumber || 0));
@@ -212,10 +288,8 @@
           product.payments.push(newPayment);
           product.paid += amount;
 
-          // 4. Update Customer
           transaction.update(custRef, { products: data.products });
 
-          // 5. Update Global Dashboard Stats (Atomic)
           transaction.update(statsRef, {
             totalPaid: increment(amount),
             totalBalance: increment(-amount)
@@ -223,8 +297,7 @@
         });
 
         alert("✅ Payment Successful!");
-        // Refresh the specific card to show new balance
-        searchCustomer(); 
+        searchCustomer(); // Refresh UI to show updated balance
 
       } catch (e) {
         console.error(e);
