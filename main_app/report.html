@@ -2,26 +2,28 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Reports & Ledger - EMI Manager</title>
+  <title>Customer Reports & PDF</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
   <style>
     /* --- PROFESSIONAL DARK THEME --- */
     :root { 
       --bg: #0f172a; 
       --card: #1e293b; 
-      --primary: #10b981; 
-      --secondary: #06b6d4; 
+      --primary: #10b981; /* Green */
+      --secondary: #0ea5e9; /* Blue */
       --danger: #ef4444; 
-      --text: #f1f5f9; 
+      --text: #f8fafc; 
       --text-muted: #94a3b8;
       --border: #334155; 
     }
     
-    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; padding-bottom: 50px; }
 
-    /* Navigation */
+    /* Nav */
     nav { 
       background: var(--card); padding: 15px 20px; border-bottom: 1px solid var(--border); 
       display: flex; gap: 10px; overflow-x: auto;
@@ -31,69 +33,73 @@
       font-size: 0.9rem; white-space: nowrap; transition: 0.2s;
     }
     nav a:hover { background: #2d3748; color: white; }
-    nav a.active { background: rgba(6, 182, 212, 0.15); color: var(--secondary); font-weight: 600; }
+    nav a.active { background: rgba(14, 165, 233, 0.15); color: var(--secondary); font-weight: 600; }
 
-    /* Main Container */
-    .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+    /* Layout */
+    .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
 
-    /* Controls Section */
-    .controls-bar { 
+    /* Search Bar */
+    .search-section {
       background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border);
-      display: flex; gap: 15px; flex-wrap: wrap; align-items: center; margin-bottom: 30px;
+      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
-    
-    .search-wrapper { flex: 2; position: relative; min-width: 300px; }
-    .search-wrapper input { 
-      width: 100%; padding: 12px 15px; padding-left: 40px; 
-      background: #0f172a; border: 1px solid var(--border); border-radius: 8px;
-      color: white; font-size: 1rem; box-sizing: border-box;
+    .input-group { flex: 1; min-width: 250px; position: relative; }
+    input { 
+      width: 100%; padding: 12px 15px; padding-left: 40px; background: #0f172a; 
+      border: 1px solid var(--border); color: white; border-radius: 8px; box-sizing: border-box;
     }
-    .search-wrapper span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+    .icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: 0.6; }
 
     button { 
-      padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; 
+      padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s;
       display: flex; align-items: center; gap: 8px;
     }
-    .btn-load { background: var(--secondary); color: #000; }
-    .btn-load:hover { filter: brightness(1.1); }
-    .btn-export { background: var(--card); border: 1px solid var(--border); color: var(--text); }
-    .btn-export:hover { background: var(--border); }
-
-    /* Stats Overview */
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-    .stat-card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); text-align: center; }
-    .stat-card h3 { margin: 0 0 5px 0; font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; }
-    .stat-card p { margin: 0; font-size: 1.8rem; font-weight: 700; color: var(--primary); }
-
-    /* Customer Cards */
-    .results-area { display: grid; gap: 20px; }
+    .btn-search { background: var(--secondary); color: white; }
+    .btn-search:hover { filter: brightness(1.1); }
     
-    .cust-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
-    .cust-header { 
-      background: rgba(255,255,255,0.03); padding: 15px 20px; border-bottom: 1px solid var(--border); 
-      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+    .btn-load { background: var(--card); border: 1px solid var(--border); color: var(--text-muted); }
+    .btn-load:hover { background: var(--border); color: white; }
+
+    /* Customer Card */
+    .cust-card { 
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px; 
+      overflow: hidden; margin-bottom: 20px; animation: fadeIn 0.3s ease;
     }
-    .cust-info h2 { margin: 0; font-size: 1.1rem; color: white; }
-    .cust-info span { color: var(--text-muted); font-size: 0.9rem; }
-    .cust-meta { text-align: right; font-size: 0.9rem; color: var(--text-muted); }
-
-    /* Product Table inside Card */
-    .table-responsive { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-    th { text-align: left; padding: 12px 20px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.2); }
-    td { padding: 12px 20px; border-bottom: 1px solid #334155; color: var(--text); }
-    tr:last-child td { border-bottom: none; }
     
-    .amount-col { font-family: monospace; font-size: 1rem; }
-    .bal-positive { color: var(--danger); font-weight: bold; }
-    .bal-zero { color: var(--primary); font-weight: bold; opacity: 0.7; }
+    .card-header { 
+      background: rgba(255,255,255,0.03); padding: 15px 20px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+    }
+    .header-info h2 { margin: 0; font-size: 1.2rem; color: #fff; }
+    .header-info span { font-size: 0.9rem; color: var(--secondary); }
+    .header-meta { font-size: 0.9rem; color: var(--text-muted); text-align: right; }
 
-    /* Responsive */
-    @media (max-width: 768px) {
-      .controls-bar { flex-direction: column; align-items: stretch; }
-      .cust-header { flex-direction: column; align-items: flex-start; gap: 10px; }
-      .cust-meta { text-align: left; }
+    /* Product Section */
+    .product-section { padding: 20px; border-bottom: 1px solid var(--border); }
+    .product-section:last-child { border-bottom: none; }
+    
+    .prod-title { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; font-size: 1rem; }
+    .badges { display: flex; gap: 10px; font-size: 0.9rem; margin-bottom: 15px; }
+    .badge { padding: 4px 10px; border-radius: 4px; background: #334155; color: #cbd5e1; }
+    .badge.bal { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+    .badge.paid { background: rgba(16, 185, 129, 0.2); color: var(--primary); }
+
+    /* History Table */
+    .history-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .history-table th { text-align: left; color: var(--text-muted); padding: 8px; border-bottom: 1px solid var(--border); }
+    .history-table td { padding: 8px; border-bottom: 1px solid #334155; color: #e2e8f0; }
+    .history-table tr:last-child td { border-bottom: none; }
+
+    /* PDF Button */
+    .pdf-actions { padding: 15px 20px; background: rgba(0,0,0,0.2); display: flex; justify-content: flex-end; }
+    .btn-pdf { background: var(--danger); color: white; font-size: 0.9rem; }
+    
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    @media(max-width: 600px) {
+      .card-header { flex-direction: column; align-items: flex-start; }
+      .header-meta { text-align: left; }
     }
   </style>
 </head>
@@ -109,29 +115,18 @@
 
   <div class="container">
     
-    <div class="controls-bar">
-      <div class="search-wrapper">
-        <span>🔍</span>
-        <input id="searchInput" placeholder="Search by Name, ID, or Phone..." onkeyup="handleSearch()">
+    <div class="search-section">
+      <div class="input-group">
+        <span class="icon">🔍</span>
+        <input id="searchInput" placeholder="Search Name, ID or Phone..." onkeyup="localFilter()">
       </div>
-      <button class="btn-load" onclick="loadAllData()">🔄 Load Recent Data</button>
-      <button class="btn-export" onclick="exportToCSV()">📤 Export CSV</button>
+      <button class="btn-search" onclick="searchCloud()">☁️ Search Cloud</button>
+      <button class="btn-load" onclick="loadRecent()">🔄 Load Recent</button>
     </div>
 
-    <div class="stats-grid">
-      <div class="stat-card">
-        <h3>Total Revenue (Visible)</h3>
-        <p id="totalPaid">₹0</p>
-      </div>
-      <div class="stat-card">
-        <h3>Total Outstanding (Visible)</h3>
-        <p id="totalBal" style="color:var(--danger)">₹0</p>
-      </div>
-    </div>
-
-    <div id="resultsArea" class="results-area">
-      <div style="text-align:center; padding: 50px; color: #666;">
-        Click "Load Recent Data" or start typing to search.
+    <div id="resultsArea">
+      <div style="text-align:center; padding: 60px; color: #64748b;">
+        <p>Enter details above or click "Load Recent" to view reports.</p>
       </div>
     </div>
 
@@ -139,162 +134,253 @@
 
   <script type="module">
     import { db } from "./config.js";
-    import { collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { collection, query, where, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    let allCustomers = []; // Stores loaded data for fast filtering
+    let loadedCustomers = [];
 
-    // --- 1. LOAD DATA ---
-    window.loadAllData = async () => {
-      const btn = document.querySelector(".btn-load");
-      const div = document.getElementById("resultsArea");
-      
-      btn.innerText = "Loading...";
-      btn.disabled = true;
-      div.innerHTML = `<p style="text-align:center; color:#aaa;">Fetching from Cloud...</p>`;
+    // --- 1. LOAD RECENT (Default) ---
+    window.loadRecent = async () => {
+      const container = document.getElementById("resultsArea");
+      container.innerHTML = `<p style="text-align:center; color:#aaa;">Loading recent data...</p>`;
 
       try {
-        // Load recent 50 customers to save reads (or remove limit for full report)
-        const q = query(collection(db, "customers"), orderBy("createdAt", "desc"), limit(50));
+        const q = query(collection(db, "customers"), orderBy("createdAt", "desc"), limit(20));
         const snapshot = await getDocs(q);
         
-        allCustomers = [];
-        snapshot.forEach(doc => allCustomers.push(doc.data()));
-
-        renderCustomers(allCustomers);
-        btn.innerText = "🔄 Reload Data";
-
+        loadedCustomers = [];
+        snapshot.forEach(doc => loadedCustomers.push(doc.data()));
+        
+        renderList(loadedCustomers);
       } catch (e) {
         console.error(e);
-        div.innerHTML = `<p style="text-align:center; color:#ef4444;">Error: ${e.message}</p>`;
-        btn.innerText = "Error - Retry";
-      } finally {
-        btn.disabled = false;
+        container.innerHTML = `<p style="text-align:center; color:#ef4444;">Error loading data.</p>`;
       }
     };
 
-    // --- 2. RENDER LOGIC (Correct Math) ---
-    function renderCustomers(data) {
-      const div = document.getElementById("resultsArea");
-      div.innerHTML = "";
+    // --- 2. SEARCH CLOUD (Specific) ---
+    window.searchCloud = async () => {
+      const term = document.getElementById("searchInput").value.trim();
+      if (!term) return alert("Please enter an ID or Name to search.");
 
-      let globalPaid = 0;
-      let globalBal = 0;
+      const container = document.getElementById("resultsArea");
+      container.innerHTML = `<p style="text-align:center; color:#aaa;">Searching Cloud Database...</p>`;
 
-      if (data.length === 0) {
-        div.innerHTML = `<p style="text-align:center; color:#aaa;">No records found.</p>`;
-        return;
+      try {
+        // Search by ID (Exact or range)
+        const q = query(
+          collection(db, "customers"),
+          where("id", ">=", term),
+          where("id", "<=", term + '\uf8ff'),
+          limit(10)
+        );
+
+        const snapshot = await getDocs(q);
+        loadedCustomers = [];
+        snapshot.forEach(doc => loadedCustomers.push(doc.data()));
+
+        if (loadedCustomers.length === 0) {
+          container.innerHTML = `<p style="text-align:center; color:#aaa;">No results found for "${term}".</p>`;
+        } else {
+          renderList(loadedCustomers);
+        }
+      } catch (e) {
+        alert("Search Error: " + e.message);
       }
+    };
 
-      data.forEach(c => {
-        let rowsHTML = "";
-        
-        c.products.forEach(p => {
-          // --- CRITICAL MATH FIX ---
-          const total = parseFloat(p.total || 0);
-          
-          // Calculate paid sum from payments array
-          const paid = (p.payments || []).reduce((sum, pay) => sum + parseFloat(pay.amount || 0), 0);
-          
-          const balance = total - paid;
-
-          // Global stats accumulator
-          globalPaid += paid;
-          globalBal += balance;
-
-          // Formatting
-          const balClass = balance > 0 ? "bal-positive" : "bal-zero";
-          const balText = balance > 0 ? `₹${balance.toLocaleString()}` : "Paid ✔";
-
-          rowsHTML += `
-            <tr>
-              <td>${p.name}</td>
-              <td class="amount-col">₹${total.toLocaleString()}</td>
-              <td class="amount-col" style="color:var(--primary)">₹${paid.toLocaleString()}</td>
-              <td class="amount-col ${balClass}">${balText}</td>
-            </tr>
-          `;
-        });
-
-        // Create Card HTML
-        const card = document.createElement("div");
-        card.className = "cust-card";
-        card.innerHTML = `
-          <div class="cust-header">
-            <div class="cust-info">
-              <h2>${c.name}</h2>
-              <span>ID: ${c.id}</span>
-            </div>
-            <div class="cust-meta">
-              📞 ${c.phone || 'N/A'} <br>
-              📍 ${c.place || 'N/A'}
-            </div>
-          </div>
-          <div class="table-responsive">
-            <table>
-              <thead>
-                <tr>
-                  <th>Product Name</th>
-                  <th>Total Cost</th>
-                  <th>Total Paid</th>
-                  <th>Balance</th>
-                </tr>
-              </thead>
-              <tbody>${rowsHTML}</tbody>
-            </table>
-          </div>
-        `;
-        div.appendChild(card);
-      });
-
-      // Update Global Stats
-      document.getElementById("totalPaid").innerText = "₹" + globalPaid.toLocaleString();
-      document.getElementById("totalBal").innerText = "₹" + globalBal.toLocaleString();
-    }
-
-    // --- 3. SEARCH FUNCTION (Client Side) ---
-    window.handleSearch = () => {
+    // --- 3. LOCAL FILTER ---
+    window.localFilter = () => {
       const term = document.getElementById("searchInput").value.toLowerCase();
-      
-      if (!term) {
-        renderCustomers(allCustomers);
-        return;
-      }
+      if (!term) return renderList(loadedCustomers);
 
-      const filtered = allCustomers.filter(c => 
+      const filtered = loadedCustomers.filter(c => 
         (c.name && c.name.toLowerCase().includes(term)) ||
         (c.id && c.id.toLowerCase().includes(term)) ||
         (c.phone && c.phone.includes(term))
       );
-
-      renderCustomers(filtered);
+      renderList(filtered);
     };
 
-    // --- 4. EXPORT CSV ---
-    window.exportToCSV = () => {
-      if (allCustomers.length === 0) return alert("Load data first!");
+    // --- 4. RENDER UI ---
+    function renderList(data) {
+      const container = document.getElementById("resultsArea");
+      container.innerHTML = "";
 
-      let csv = "ID,Name,Phone,Place,Product,Total Cost,Total Paid,Balance\n";
+      if (data.length === 0) {
+        container.innerHTML = `<p style="text-align:center; color:#aaa;">No records available.</p>`;
+        return;
+      }
 
-      allCustomers.forEach(c => {
+      data.forEach(c => {
+        let productsHTML = "";
+
         c.products.forEach(p => {
+          // --- ACCURATE MATH ---
           const total = parseFloat(p.total || 0);
-          const paid = (p.payments || []).reduce((sum, pay) => sum + parseFloat(pay.amount || 0), 0);
+          const payments = p.payments || [];
+          
+          // Calculate Paid
+          const paid = payments.reduce((sum, pay) => sum + parseFloat(pay.amount || 0), 0);
           const balance = total - paid;
 
-          csv += `${c.id},${c.name},${c.phone || ''},${c.place || ''},${p.name},${total},${paid},${balance}\n`;
+          // Transaction Rows
+          // Sort by Due Number if available, else date
+          payments.sort((a,b) => (a.dueNumber || 0) - (b.dueNumber || 0));
+
+          let historyRows = "";
+          if (payments.length === 0) {
+            historyRows = `<tr><td colspan="4" style="text-align:center; color:#666;">No payments yet</td></tr>`;
+          } else {
+            payments.forEach(pay => {
+              const dueDisplay = pay.dueNumber ? `#${pay.dueNumber}` : '-';
+              historyRows += `
+                <tr>
+                  <td>${dueDisplay}</td>
+                  <td>${pay.date}</td>
+                  <td style="color:var(--primary);">₹${parseFloat(pay.amount).toLocaleString()}</td>
+                  <td style="font-size:0.8em; color:#aaa;">${pay.type || 'Manual'}</td>
+                </tr>
+              `;
+            });
+          }
+
+          productsHTML += `
+            <div class="product-section">
+              <div class="prod-title">
+                <span>📦 ${p.name}</span>
+                <span>Value: ₹${total.toLocaleString()}</span>
+              </div>
+              
+              <div class="badges">
+                <div class="badge paid">Paid: ₹${paid.toLocaleString()}</div>
+                <div class="badge bal">Bal: ₹${balance.toLocaleString()}</div>
+              </div>
+
+              <details>
+                <summary style="cursor:pointer; color:var(--secondary); font-size:0.9rem; margin-bottom:10px;">View Transaction History</summary>
+                <table class="history-table">
+                  <thead>
+                    <tr>
+                      <th width="15%">Due</th>
+                      <th width="30%">Date</th>
+                      <th width="30%">Amount</th>
+                      <th>Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>${historyRows}</tbody>
+                </table>
+              </details>
+            </div>
+          `;
         });
+
+        // Customer Card
+        const card = document.createElement("div");
+        card.className = "cust-card";
+        card.innerHTML = `
+          <div class="card-header">
+            <div class="header-info">
+              <h2>${c.name}</h2>
+              <span>ID: ${c.id}</span>
+            </div>
+            <div class="header-meta">
+              📞 ${c.phone || 'N/A'} <br>
+              📍 ${c.place || 'N/A'}
+            </div>
+          </div>
+          
+          ${productsHTML}
+
+          <div class="pdf-actions">
+            <button class="btn-pdf" onclick='generatePDF(${JSON.stringify(c).replace(/'/g, "&apos;")})'>
+              📄 Download Statement PDF
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // --- 5. GENERATE PROFESSIONAL PDF ---
+    window.generatePDF = (c) => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      // -- Header --
+      doc.setFillColor(15, 23, 42); // Dark Blue Header
+      doc.rect(0, 0, 210, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.text("Statement of Account", 14, 20);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(200, 200, 200);
+      doc.text("Meena Groups | EMI Manager", 14, 28);
+      doc.text(`Date: ${new Date().toLocaleDateString()}`, 150, 28);
+
+      // -- Customer Details --
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(12);
+      doc.text(`Customer: ${c.name}`, 14, 55);
+      doc.text(`ID: ${c.id}`, 14, 62);
+      doc.text(`Phone: ${c.phone || '-'}`, 120, 55);
+      doc.text(`Place: ${c.place || '-'}`, 120, 62);
+
+      let finalY = 75;
+
+      // -- Loop Products --
+      c.products.forEach(p => {
+        const total = parseFloat(p.total || 0);
+        let paidTotal = 0;
+        
+        // Prepare Table Data
+        const tableBody = (p.payments || []).map(pay => {
+          paidTotal += parseFloat(pay.amount);
+          return [
+            `#${pay.dueNumber || '-'}`,
+            pay.date,
+            pay.type || 'Payment',
+            `Rs. ${parseFloat(pay.amount).toLocaleString()}`
+          ];
+        });
+
+        const balance = total - paidTotal;
+
+        // Product Header
+        doc.setFontSize(14);
+        doc.setTextColor(14, 165, 233); // Blue
+        doc.text(`Product: ${p.name}`, 14, finalY);
+        
+        // Summary Line
+        doc.setFontSize(10);
+        doc.setTextColor(80, 80, 80);
+        doc.text(`Total Value: Rs.${total.toLocaleString()}   |   Paid: Rs.${paidTotal.toLocaleString()}   |   Balance: Rs.${balance.toLocaleString()}`, 14, finalY + 7);
+
+        // AutoTable
+        doc.autoTable({
+          startY: finalY + 12,
+          head: [['Due #', 'Date', 'Type', 'Amount']],
+          body: tableBody,
+          theme: 'striped',
+          headStyles: { fillColor: [15, 23, 42] },
+          styles: { fontSize: 10 },
+          margin: { left: 14, right: 14 }
+        });
+
+        finalY = doc.lastAutoTable.finalY + 20;
       });
 
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Ledger_Report_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
+      // Footer
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text("Generated by Meena Groups System", 14, 290);
+
+      doc.save(`Statement_${c.name}_${c.id}.pdf`);
     };
 
-    // Auto-load on open? (Optional, currently manual button)
-    // loadAllData(); 
+    // Load initial list
+    loadRecent();
   </script>
 </body>
 </html>
