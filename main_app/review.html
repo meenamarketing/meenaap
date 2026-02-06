@@ -9,102 +9,120 @@
     :root { 
       --bg: #0f172a; 
       --card: #1e293b; 
-      --primary: #10b981; /* Emerald Green */
-      --secondary: #06b6d4; /* Cyan */
+      --primary: #10b981; 
+      --secondary: #06b6d4; 
       --danger: #ef4444; 
+      --warning: #f59e0b;
       --text: #f1f5f9; 
       --text-muted: #94a3b8;
       --border: #334155; 
-      --hover: #2d3748;
+      --input-bg: #0f172a;
     }
     
-    body { background: var(--bg); color: var(--text); font-family: 'Inter', 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
 
     /* Navigation */
     nav { 
       background: var(--card); padding: 15px 20px; border-bottom: 1px solid var(--border); 
-      display: flex; gap: 10px; align-items: center; overflow-x: auto;
+      display: flex; gap: 10px; overflow-x: auto;
     }
     nav a { 
       color: var(--text-muted); text-decoration: none; padding: 8px 16px; border-radius: 6px; 
-      font-size: 0.9rem; transition: 0.2s; white-space: nowrap;
+      font-size: 0.9rem; white-space: nowrap; transition: 0.2s;
     }
-    nav a:hover { background: var(--hover); color: white; }
+    nav a:hover { background: #2d3748; color: white; }
     nav a.active { background: rgba(6, 182, 212, 0.15); color: var(--secondary); font-weight: 600; }
 
-    /* Main Layout */
+    /* Layout */
     .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
 
-    /* Header & Stats */
+    /* Header */
     .header-section { 
-      display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; flex-wrap: wrap; gap: 20px;
+      display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; 
+      flex-wrap: wrap; gap: 20px;
     }
     .header-text h1 { margin: 0; font-size: 1.8rem; background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .header-text p { margin: 5px 0 0; color: var(--text-muted); font-size: 0.95rem; }
-
+    
     .stats-card {
       background: var(--card); border: 1px solid var(--border); padding: 15px 25px; 
-      border-radius: 12px; display: flex; flex-direction: column; align-items: flex-end;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      border-radius: 12px; text-align: right;
     }
-    .stats-card span { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-    .stats-card strong { font-size: 1.8rem; color: var(--primary); font-weight: 700; }
+    .stats-card strong { font-size: 1.8rem; color: var(--primary); display: block; }
+    .stats-card span { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; }
 
-    /* Approval Grid/Table */
+    /* Card List */
     .review-list { display: flex; flex-direction: column; gap: 15px; }
 
     .entry-item {
       background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-      padding: 20px; display: grid; grid-template-columns: 1fr 1.5fr 1fr auto;
-      align-items: center; gap: 20px; transition: transform 0.2s, box-shadow 0.2s;
+      padding: 20px; display: grid; grid-template-columns: 1.5fr 1fr 1fr auto;
+      align-items: center; gap: 20px; position: relative;
     }
-    .entry-item:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2); border-color: #475569; }
 
-    /* Column Styles */
-    .col-agent h4 { margin: 0; color: #fff; font-size: 1rem; }
-    .col-agent small { color: var(--text-muted); font-size: 0.85rem; }
-
-    .col-details { display: flex; flex-direction: column; gap: 4px; }
-    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; background: #334155; color: #cbd5e1; width: fit-content; }
+    /* Columns */
+    .col-info h4 { margin: 0; font-size: 1.1rem; color: #fff; }
+    .col-info p { margin: 4px 0 0; color: var(--text-muted); font-size: 0.9rem; }
+    
+    .col-meta { display: flex; flex-direction: column; gap: 5px; }
+    .tag { background: #334155; color: #cbd5e1; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; width: fit-content; }
+    .due-tag { color: var(--secondary); font-weight: bold; font-size: 0.9rem; }
 
     .col-amount { text-align: right; }
-    .amount-display { font-size: 1.4rem; font-weight: bold; color: var(--primary); }
-    .date-display { font-size: 0.8rem; color: var(--text-muted); }
+    .amount-display { font-size: 1.5rem; font-weight: bold; color: var(--primary); }
+    .date-display { font-size: 0.85rem; color: var(--text-muted); }
 
-    .col-actions { display: flex; gap: 10px; }
-    
-    /* Buttons */
+    .col-actions { display: flex; gap: 8px; }
+
+    /* Action Buttons */
     .btn-icon {
-      width: 40px; height: 40px; border-radius: 8px; border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
-      transition: 0.2s;
+      width: 38px; height: 38px; border-radius: 8px; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: 0.2s;
     }
+    .btn-edit { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+    .btn-edit:hover { background: var(--warning); color: black; }
+    
     .btn-accept { background: rgba(16, 185, 129, 0.2); color: var(--primary); }
-    .btn-accept:hover { background: var(--primary); color: #000; }
+    .btn-accept:hover { background: var(--primary); color: black; }
     
     .btn-reject { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
     .btn-reject:hover { background: var(--danger); color: white; }
 
+    /* Approve All Button */
     .btn-approve-all {
       background: var(--secondary); color: #000; border: none; padding: 12px 24px;
-      border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;
-      display: flex; align-items: center; gap: 8px;
+      border-radius: 8px; font-weight: 600; cursor: pointer;
     }
-    .btn-approve-all:hover { filter: brightness(1.1); transform: scale(1.02); }
     .btn-approve-all:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    /* Empty State */
-    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
-    .empty-icon { font-size: 3rem; margin-bottom: 15px; display: block; opacity: 0.5; }
+    /* --- EDIT MODAL --- */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal {
+      background: var(--card); padding: 25px; border-radius: 12px; width: 90%; max-width: 400px;
+      border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .modal h3 { margin-top: 0; color: var(--secondary); }
+    
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 5px; }
+    .form-group input { 
+      width: 100%; padding: 10px; background: var(--input-bg); border: 1px solid var(--border); 
+      color: white; border-radius: 6px; box-sizing: border-box;
+    }
+    
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-modal { flex: 1; padding: 10px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
+    .btn-cancel { background: #334155; color: white; }
+    .btn-save { background: var(--primary); color: black; }
 
-    /* Responsive */
+    /* Mobile Responsive */
     @media (max-width: 768px) {
-      .entry-item { grid-template-columns: 1fr; gap: 15px; }
+      .entry-item { grid-template-columns: 1fr; gap: 15px; text-align: left; }
       .col-amount { text-align: left; display: flex; justify-content: space-between; align-items: center; }
-      .col-actions { justify-content: stretch; }
-      .btn-icon { flex: 1; height: 45px; }
-      .header-section { flex-direction: column; align-items: flex-start; }
-      .stats-card { width: 100%; box-sizing: border-box; flex-direction: row; justify-content: space-between; align-items: center; }
+      .col-actions { justify-content: space-between; }
+      .btn-icon { flex: 1; }
     }
   </style>
 </head>
@@ -115,98 +133,113 @@
     <a href="customers.html">Customers</a>
     <a href="entries.html">Entries</a>
     <a href="review.html" class="active">Review</a>
-    <a href="reports.html">Reports</a>
+    <a href="report.html">Reports</a>
   </nav>
 
   <div class="container">
-    
     <div class="header-section">
       <div class="header-text">
         <h1>Admin Approvals</h1>
-        <p>Review and sync agent collections to the main database.</p>
+        <p>Review, Edit, and Sync Agent Collections.</p>
       </div>
       <div class="stats-card">
         <span>Total Pending</span>
         <strong id="totalPendingAmt">₹0</strong>
       </div>
-      <button class="btn-approve-all" onclick="approveAll()">
-        ✅ Approve All
-      </button>
+      <button class="btn-approve-all" onclick="approveAll()">✅ Approve All</button>
     </div>
 
     <div id="reviewList" class="review-list">
-      <div class="empty-state">Loading...</div>
+      <div style="text-align:center; padding: 40px; color:#666;">Loading...</div>
     </div>
+  </div>
 
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <h3>✎ Edit Entry</h3>
+      <input type="hidden" id="editDocId">
+      
+      <div class="form-group">
+        <label>Amount (₹)</label>
+        <input type="number" id="editAmount">
+      </div>
+      
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="editDate">
+      </div>
+      
+      <div class="form-group">
+        <label>Due Number</label>
+        <input type="number" id="editDueNumber">
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-modal btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-modal btn-save" onclick="saveEdit()">Save Changes</button>
+      </div>
+    </div>
   </div>
 
   <script type="module">
     import { db } from "./config.js";
     import { 
-      collection, query, where, getDocs, doc, runTransaction, increment, deleteDoc 
+      collection, query, where, getDocs, doc, runTransaction, increment, deleteDoc, updateDoc 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
     let pendingEntries = [];
 
-    // --- 1. LOAD DATA (NO INDEX ERROR FIX) ---
+    // --- 1. LOAD DATA ---
     async function loadPending() {
       const listDiv = document.getElementById("reviewList");
       const totalDisplay = document.getElementById("totalPendingAmt");
       const approveAllBtn = document.querySelector(".btn-approve-all");
-      
-      try {
-        // FIX: Removed 'orderBy' to prevent Index Error. We sort in JS.
-        const q = query(collection(db, "temp_entries"), where("status", "==", "pending"));
 
+      try {
+        const q = query(collection(db, "temp_entries"), where("status", "==", "pending"));
         const snapshot = await getDocs(q);
+        
         pendingEntries = [];
         let totalAmt = 0;
 
         snapshot.forEach(docSnap => {
           const d = docSnap.data();
           d.docId = docSnap.id;
-          // Handle Timestamp: Convert Firebase Timestamp or String to JS Date
           d.jsDate = d.timestamp ? (d.timestamp.toDate ? d.timestamp.toDate() : new Date(d.timestamp)) : new Date();
-          
           pendingEntries.push(d);
           totalAmt += parseFloat(d.amount || 0);
         });
 
-        // Sort by Date Descending (Newest First) using JS
+        // Sort JS side to avoid index error
         pendingEntries.sort((a, b) => b.jsDate - a.jsDate);
 
-        // Update UI
         totalDisplay.innerText = "₹" + totalAmt.toLocaleString();
         listDiv.innerHTML = "";
 
         if (pendingEntries.length === 0) {
-          listDiv.innerHTML = `
-            <div class="empty-state">
-              <span class="empty-icon">🎉</span>
-              <h3>All Caught Up!</h3>
-              <p>No pending collections to review.</p>
-            </div>`;
+          listDiv.innerHTML = `<div style="text-align:center; padding:60px; color:#64748b;">
+            <h2 style="margin:0;">🎉</h2><p>No pending collections.</p>
+          </div>`;
           approveAllBtn.disabled = true;
           return;
         }
 
         approveAllBtn.disabled = false;
 
-        // Render Cards
         pendingEntries.forEach(d => {
           const card = document.createElement("div");
           card.className = "entry-item";
           card.id = `card-${d.docId}`;
           
           card.innerHTML = `
-            <div class="col-agent">
+            <div class="col-info">
               <h4>${d.customerName}</h4>
-              <small>ID: ${d.customerId}</small>
+              <p>ID: ${d.customerId} | ${d.customerPhone || ''}</p>
             </div>
             
-            <div class="col-details">
-              <div><span class="tag">📦 ${d.productName}</span></div>
-              <small style="color:#64748b">Agent Entry</small>
+            <div class="col-meta">
+              <span class="tag">📦 ${d.productName}</span>
+              <span class="due-tag">Due #${d.dueNumber || '?'}</span>
             </div>
 
             <div class="col-amount">
@@ -215,6 +248,7 @@
             </div>
 
             <div class="col-actions">
+              <button class="btn-icon btn-edit" onclick="openEdit('${d.docId}')" title="Edit">✎</button>
               <button class="btn-icon btn-reject" onclick="rejectEntry('${d.docId}')" title="Reject">✕</button>
               <button class="btn-icon btn-accept" onclick="approveEntry('${d.docId}')" title="Approve">✓</button>
             </div>
@@ -228,45 +262,94 @@
       }
     }
 
-    // --- 2. APPROVE LOGIC ---
+    // --- 2. EDIT MODAL LOGIC ---
+    window.openEdit = (docId) => {
+      const entry = pendingEntries.find(e => e.docId === docId);
+      if (!entry) return;
+
+      document.getElementById("editDocId").value = docId;
+      document.getElementById("editAmount").value = entry.amount;
+      document.getElementById("editDate").value = entry.date;
+      document.getElementById("editDueNumber").value = entry.dueNumber || "";
+
+      document.getElementById("editModal").style.display = "flex";
+    };
+
+    window.closeModal = () => {
+      document.getElementById("editModal").style.display = "none";
+    };
+
+    window.saveEdit = async () => {
+      const docId = document.getElementById("editDocId").value;
+      const newAmt = parseFloat(document.getElementById("editAmount").value);
+      const newDate = document.getElementById("editDate").value;
+      const newDue = parseInt(document.getElementById("editDueNumber").value);
+
+      if(!newAmt || !newDate) return alert("Invalid inputs");
+
+      const btn = document.querySelector(".btn-save");
+      btn.innerText = "Saving...";
+
+      try {
+        const ref = doc(db, "temp_entries", docId);
+        await updateDoc(ref, {
+          amount: newAmt,
+          date: newDate,
+          dueNumber: newDue
+        });
+
+        closeModal();
+        loadPending(); // Refresh list to show new values
+        btn.innerText = "Save Changes";
+
+      } catch (e) {
+        alert("Error updating: " + e.message);
+        btn.innerText = "Save Changes";
+      }
+    };
+
+    // --- 3. APPROVE LOGIC ---
     window.approveEntry = async (docId) => {
       const entry = pendingEntries.find(e => e.docId === docId);
       if (!entry) return;
 
+      // Visual feedback
       const card = document.getElementById(`card-${docId}`);
-      card.style.opacity = "0.5"; 
-      card.style.pointerEvents = "none";
+      card.style.opacity = "0.5"; card.style.pointerEvents = "none";
 
       try {
         await runTransaction(db, async (transaction) => {
-          // Refs
           const custRef = doc(db, "customers", entry.customerId);
           const statsRef = doc(db, "metadata", "stats");
           const tempRef = doc(db, "temp_entries", docId);
 
           const custDoc = await transaction.get(custRef);
-          if (!custDoc.exists()) throw `Customer ${entry.customerId} missing!`;
+          if (!custDoc.exists()) throw `Customer ${entry.customerId} not found!`;
 
           const data = custDoc.data();
           
           // Match Product
           let pIndex = entry.productIndex;
+          // Fallback check
           if (!data.products[pIndex] || data.products[pIndex].name !== entry.productName) {
             pIndex = data.products.findIndex(p => p.name === entry.productName);
           }
-          if (pIndex === -1) throw "Product mismatch";
+          if (pIndex === -1) throw "Product mismatch - cannot merge.";
 
           const product = data.products[pIndex];
-          
-          // Get Due Number
-          const lastDue = (product.payments || []).length > 0 
-            ? Math.max(...product.payments.map(p => p.dueNumber || 0)) : 0;
 
-          // Add Payment
+          // Use the Due Number from the entry (which might have been edited)
+          // Or calculate it if missing
+          let finalDue = entry.dueNumber;
+          if (!finalDue) {
+             const max = (product.payments || []).length > 0 ? Math.max(...product.payments.map(p => p.dueNumber || 0)) : 0;
+             finalDue = max + 1;
+          }
+
           const newPayment = {
             date: entry.date,
             amount: entry.amount,
-            dueNumber: lastDue + 1,
+            dueNumber: parseInt(finalDue),
             type: "Agent Collection",
             approvedAt: new Date().toISOString()
           };
@@ -275,7 +358,6 @@
           product.payments.push(newPayment);
           product.paid += entry.amount;
 
-          // Commit
           transaction.update(custRef, { products: data.products });
           transaction.update(statsRef, {
             totalPaid: increment(entry.amount),
@@ -284,65 +366,51 @@
           transaction.delete(tempRef);
         });
 
-        // UI Remove
-        card.style.transform = "translateX(100px)";
+        // Animate Removal
+        card.style.transform = "translateX(50px)";
         card.style.opacity = "0";
-        setTimeout(() => {
-          card.remove();
-          recalcTotal();
-        }, 300);
+        setTimeout(() => { card.remove(); checkEmpty(); }, 300);
 
       } catch (e) {
-        alert("Error: " + e);
-        card.style.opacity = "1";
-        card.style.pointerEvents = "auto";
+        alert("Approval Failed: " + e);
+        card.style.opacity = "1"; card.style.pointerEvents = "auto";
       }
     };
 
-    // --- 3. REJECT LOGIC ---
+    // --- 4. REJECT LOGIC ---
     window.rejectEntry = async (docId) => {
-      if(!confirm("Are you sure you want to reject and delete this entry?")) return;
-      
+      if(!confirm("Permanently delete this entry?")) return;
       try {
         await deleteDoc(doc(db, "temp_entries", docId));
-        const card = document.getElementById(`card-${docId}`);
-        card.remove();
-        recalcTotal();
+        document.getElementById(`card-${docId}`).remove();
+        checkEmpty();
       } catch (e) {
         alert("Error: " + e.message);
       }
     };
 
-    // --- 4. APPROVE ALL ---
+    // --- 5. APPROVE ALL ---
     window.approveAll = async () => {
       if (pendingEntries.length === 0) return;
-      const btn = document.querySelector(".btn-approve-all");
-      
-      if(!confirm(`Approve all ${pendingEntries.length} entries?`)) return;
+      if (!confirm(`Approve all ${pendingEntries.length} entries?`)) return;
 
-      btn.innerText = "⏳ Processing...";
+      const btn = document.querySelector(".btn-approve-all");
+      btn.innerText = "Processing...";
       btn.disabled = true;
 
       for (const entry of pendingEntries) {
-        // We check if element exists to avoid double clicking issues
         if(document.getElementById(`card-${entry.docId}`)) {
           await window.approveEntry(entry.docId);
         }
       }
-
-      btn.innerText = "✅ Done";
+      
+      btn.innerText = "✅ Approve All";
       setTimeout(() => loadPending(), 1000);
     };
 
-    // UI Helper: Recalculate Total on screen without reload
-    function recalcTotal() {
-      const remainingCards = document.querySelectorAll(".entry-item");
-      if (remainingCards.length === 0) {
-        loadPending(); // Trigger empty state
-        return;
-      }
-      // Simple reload to be safe and accurate
-      // Or decrease total visually if preferred, but reload ensures sync
+    function checkEmpty() {
+      const remaining = document.querySelectorAll(".entry-item");
+      if(remaining.length === 0) loadPending(); // Reload to show empty state
     }
 
     // Init
