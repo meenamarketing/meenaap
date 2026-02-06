@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Agent App - Add Collection</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    /* --- DARK THEME AGENT UI --- */
+    :root { 
+      --bg: #121212; 
+      --card: #1e1e1e; 
+      --primary: #00e676; 
+      --secondary: #00bcd4;
+      --text: #eee; 
+      --border: #333; 
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; }
+    
+    /* Nav */
+    nav { background: var(--card); padding: 10px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; border: 1px solid var(--border); }
+    nav a { color: #aaa; text-decoration: none; padding: 8px 15px; border-radius: 4px; transition: 0.2s; }
+    nav a:hover, nav a.active { background: var(--secondary); color: #000; font-weight: bold; }
+
+    main { max-width: 600px; margin: 0 auto; }
+    h1 { color: var(--secondary); text-align: center; margin-bottom: 20px; }
+
+    /* Inputs */
+    input, select, button { width: 100%; padding: 14px; margin-bottom: 15px; background: #2c2c2c; border: 1px solid #444; color: white; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+    input:focus, select:focus { border-color: var(--secondary); outline: none; }
+    
+    button { background: var(--secondary); color: #000; font-weight: bold; border: none; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
+    button:hover { filter: brightness(0.9); }
+    
+    /* Search Suggestions */
+    .input-wrapper { position: relative; }
+    #suggestions {
+      background: #252525; border: 1px solid #444; border-radius: 0 0 6px 6px;
+      display: none; max-height: 250px; overflow-y: auto;
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+    #suggestions div { padding: 12px; border-bottom: 1px solid #333; cursor: pointer; }
+    #suggestions div:hover { background: var(--secondary); color: black; }
+
+    /* Info Boxes */
+    .customer-panel { background: var(--card); padding: 20px; border-radius: 8px; border: 1px solid var(--border); animation: fadeIn 0.3s ease; }
+    .product-box { background: #151515; padding: 15px; border-radius: 6px; border: 1px solid #333; margin-top: 10px; }
+    
+    .row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .label { color: #aaa; font-size: 0.9rem; }
+    .value { font-weight: bold; }
+
+    .hidden { display: none; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html">Dashboard</a>
+    <a href="agent_entry.html" class="active">Add Collection</a>
+  </nav>
+
+  <main>
+    <h1>📱 Agent Collection</h1>
+
+    <div class="input-wrapper">
+      <input type="text" id="searchBox" placeholder="🔍 Search Customer ID or Name..." autocomplete="off">
+      <div id="suggestions"></div>
+    </div>
+
+    <div id="customerInfo" class="customer-panel hidden">
+      <div class="row">
+        <span class="label">Customer Name</span>
+        <span class="value" id="custName">-</span>
+      </div>
+      <div class="row">
+        <span class="label">Customer ID</span>
+        <span class="value" id="custId">-</span>
+      </div>
+      <div class="row">
+        <span class="label">Phone</span>
+        <span class="value" id="custPhone">-</span>
+      </div>
+
+      <hr style="border:0; border-top:1px solid #444; margin: 15px 0;">
+
+      <label class="label">Select Product to Collect:</label>
+      <select id="productDropdown"></select>
+
+      <div id="productInfo" class="product-box"></div>
+
+      <label class="label" style="margin-top:15px; display:block;">Amount & Date:</label>
+      <input type="number" id="amount" placeholder="₹ Enter Amount Collected">
+      <input type="date" id="date">
+
+      <button id="btnSave" onclick="saveToTempCollection()">📥 Save to Daily Log</button>
+    </div>
+  </main>
+
+  <script type="module">
+    import { db } from "./config.js";
+    import { 
+      collection, query, where, getDocs, limit, addDoc, serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+    let selectedCustomer = null;
+    let selectedProductIndex = 0;
+
+    // --- 1. SEARCH LOGIC (Read-Only) ---
+    const searchBox = document.getElementById("searchBox");
+    const suggestionBox = document.getElementById("suggestions");
+
+    searchBox.addEventListener("input", async (e) => {
+      const term = e.target.value.trim();
+      if (term.length < 2) { suggestionBox.style.display = "none"; return; }
+
+      // Query Customers (Read access to show balances)
+      const q = query(
+        collection(db, "customers"),
+        where("id", ">=", term),
+        where("id", "<=", term + '\uf8ff'),
+        limit(5)
+      );
+
+      const snapshot = await getDocs(q);
+      suggestionBox.innerHTML = "";
+      
+      if (snapshot.empty) {
+        suggestionBox.style.display = "none";
+        return;
+      }
+
+      snapshot.forEach(docSnap => {
+        const c = docSnap.data();
+        const div = document.createElement("div");
+        div.innerHTML = `<strong>${c.name}</strong> <small>(${c.id})</small>`;
+        div.onclick = () => loadCustomer(c);
+        suggestionBox.appendChild(div);
+      });
+      suggestionBox.style.display = "block";
+    });
+
+    // --- 2. LOAD CUSTOMER ---
+    function loadCustomer(c) {
+      selectedCustomer = c;
+      document.getElementById("custId").innerText = c.id;
+      document.getElementById("custName").innerText = c.name;
+      document.getElementById("custPhone").innerText = c.phone || '-';
+      
+      searchBox.value = "";
+      suggestionBox.style.display = "none";
+      document.getElementById("customerInfo").classList.remove("hidden");
+
+      // Load Products Dropdown
+      const dropdown = document.getElementById("productDropdown");
+      dropdown.innerHTML = "";
+      c.products.forEach((p, idx) => {
+        const option = document.createElement("option");
+        option.value = idx;
+        option.text = p.name;
+        dropdown.appendChild(option);
+      });
+      
+      updateProductDetails(0); // Select first by default
+      dropdown.onchange = (e) => updateProductDetails(e.target.value);
+    }
+
+    // --- 3. SHOW PRODUCT BALANCE ---
+    function updateProductDetails(index) {
+      selectedProductIndex = parseInt(index);
+      const p = selectedCustomer.products[index];
+      
+      const paid = (p.payments || []).reduce((sum, pay) => sum + pay.amount, 0);
+      const balance = p.total - paid;
+      
+      // Calculate Next Due Number
+      const lastDue = (p.payments || []).length > 0 ? Math.max(...p.payments.map(x => x.dueNumber || 0)) : 0;
+
+      document.getElementById("productInfo").innerHTML = `
+        <div class="row"><span class="label">Total Value</span><span class="value">₹${p.total}</span></div>
+        <div class="row"><span class="label">Paid So Far</span><span class="value">₹${paid}</span></div>
+        <div class="row"><span class="label">Balance</span><span class="value" style="color:#ff5252">₹${balance}</span></div>
+        <div class="row"><span class="label">Next Due #</span><span class="value" style="color:var(--secondary)">${lastDue + 1}</span></div>
+      `;
+    }
+
+    // --- 4. SAVE TO TEMP COLLECTION ---
+    window.saveToTempCollection = async () => {
+      const amount = parseFloat(document.getElementById("amount").value);
+      const date = document.getElementById("date").value;
+
+      if (!amount || amount <= 0) return alert("❌ Enter a valid amount");
+      if (!date) return alert("❌ Select a date");
+
+      const btn = document.getElementById("btnSave");
+      btn.disabled = true;
+      btn.innerText = "⏳ Saving...";
+
+      try {
+        const p = selectedCustomer.products[selectedProductIndex];
+        
+        // Data Payload
+        const entryData = {
+          customerId: selectedCustomer.id,
+          customerName: selectedCustomer.name,
+          customerPhone: selectedCustomer.phone,
+          productName: p.name,
+          productIndex: selectedProductIndex, // Needed for merging later
+          amount: amount,
+          date: date,
+          status: "pending", // Mark as pending approval
+          timestamp: serverTimestamp(), // Record when it happened
+          agentEntry: true
+        };
+
+        // Write to "temp_entries" collection (Safe bucket)
+        await addDoc(collection(db, "temp_entries"), entryData);
+
+        alert("✅ Collection Logged Successfully!\n(Waiting for Admin Approval)");
+        
+        // Reset
+        document.getElementById("customerInfo").classList.add("hidden");
+        document.getElementById("amount").value = "";
+        selectedCustomer = null;
+
+      } catch (e) {
+        console.error(e);
+        alert("Error saving: " + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "📥 Save to Daily Log";
+      }
+    };
+
+    // Default Date Today
+    document.getElementById("date").value = new Date().toISOString().split("T")[0];
+
+  </script>
+</body>
+</html>
+
