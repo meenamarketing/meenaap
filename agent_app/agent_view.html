@@ -42,17 +42,18 @@
     }
     .entry-card:hover { transform: translateY(-2px); border-color: #555; }
     
-    .entry-card.approved { border-left: 4px solid var(--primary); }
     .entry-card.pending { border-left: 4px solid var(--warning); }
 
     .card-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
     .cust-name { font-weight: bold; font-size: 1.1rem; color: #fff; }
     .status-badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; }
     .bg-pending { background: rgba(255, 171, 64, 0.2); color: var(--warning); }
-    .bg-approved { background: rgba(0, 230, 118, 0.2); color: var(--primary); }
 
-    .card-body { display: flex; flex-direction: column; gap: 5px; font-size: 0.9rem; color: #bbb; }
-    .highlight { color: var(--secondary); font-weight: bold; }
+    .card-body { display: flex; flex-direction: column; gap: 8px; font-size: 0.9rem; color: #bbb; }
+    .row { display: flex; justify-content: space-between; align-items: center; }
+    
+    .highlight { color: var(--secondary); font-weight: bold; font-size: 1.1rem; }
+    .due-badge { background: #333; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; border: 1px solid #444; }
 
     /* Action Buttons */
     .card-actions { 
@@ -137,6 +138,11 @@
       </div>
       
       <div class="form-group">
+        <label>Due Number (Important)</label>
+        <input type="number" id="editDueNumber" placeholder="e.g. 5">
+      </div>
+      
+      <div class="form-group">
         <label>Date</label>
         <input type="date" id="editDate">
       </div>
@@ -151,7 +157,7 @@
   <script type="module">
     import { db } from "./config.js";
     import { 
-      collection, query, where, getDocs, deleteDoc, doc, orderBy, updateDoc 
+      collection, query, where, getDocs, deleteDoc, doc, updateDoc 
     } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
     let agentEntries = [];
@@ -162,8 +168,8 @@
       const totalDiv = document.getElementById("totalAmt");
       
       try {
-        // Fetch Pending Entries (Ordered by Time)
-        // Note: Using JS sort to avoid index error
+        // Query Pending Entries
+        // Removed orderBy to prevent index errors, sorting in JS
         const q = query(collection(db, "temp_entries"), where("status", "==", "pending"));
 
         const snapshot = await getDocs(q);
@@ -193,10 +199,8 @@
         }
 
         agentEntries.forEach(d => {
-          // Calculate Due # display (Use '?' if not calculated yet)
-          // Note: The final due number is calculated on approval, but if we stored it tentatively, show it.
-          // Since agent_entry stores productIndex, we can't easily calc exact due # without fetching customer again.
-          // We will show "Pending" for Due # or fetch it if needed. For speed, we omit exact due # until approval unless stored.
+          // Check for Due Number, default to 'Auto' if missing
+          const dueDisplay = d.dueNumber ? `#${d.dueNumber}` : 'Auto';
           
           const html = `
             <div class="entry-card pending">
@@ -206,12 +210,15 @@
               </div>
               
               <div class="card-body">
-                <div style="display:flex; justify-content:space-between;">
+                <div class="row">
                   <span>ID: ${d.customerId}</span>
                   <span class="highlight">₹${d.amount}</span>
                 </div>
-                <div style="display:flex; justify-content:space-between;">
+                <div class="row">
                   <span>📦 ${d.productName}</span>
+                  <span class="due-badge">Due: ${dueDisplay}</span>
+                </div>
+                <div class="row" style="justify-content:flex-end; font-size:0.8rem; color:#888;">
                   <span>📅 ${d.date}</span>
                 </div>
               </div>
@@ -239,6 +246,7 @@
       document.getElementById("editDocId").value = docId;
       document.getElementById("editAmount").value = entry.amount;
       document.getElementById("editDate").value = entry.date;
+      document.getElementById("editDueNumber").value = entry.dueNumber || ""; // Load existing or blank
       
       document.getElementById("editModal").style.display = "flex";
     };
@@ -251,8 +259,9 @@
       const docId = document.getElementById("editDocId").value;
       const newAmt = parseFloat(document.getElementById("editAmount").value);
       const newDate = document.getElementById("editDate").value;
+      const newDue = parseInt(document.getElementById("editDueNumber").value);
 
-      if (!newAmt || !newDate) return alert("Please fill all fields");
+      if (!newAmt || !newDate) return alert("Please fill Amount and Date");
 
       const btn = document.querySelector(".btn-save");
       btn.innerText = "Updating...";
@@ -260,10 +269,19 @@
 
       try {
         const ref = doc(db, "temp_entries", docId);
-        await updateDoc(ref, {
+        
+        // Prepare Update Data
+        const updateData = {
           amount: newAmt,
           date: newDate
-        });
+        };
+        
+        // Only update dueNumber if user entered something
+        if (newDue) {
+          updateData.dueNumber = newDue;
+        }
+
+        await updateDoc(ref, updateData);
 
         alert("✅ Updated Successfully");
         closeModal();
@@ -291,7 +309,6 @@
     // --- 4. SUBMIT NOTIFICATION ---
     window.notifyAdmin = () => {
       if(agentEntries.length === 0) return alert("No entries to submit.");
-      // Just a visual confirmation for the agent
       alert("✅ List is ready for Admin Review!\n\nThe Admin can now see these " + agentEntries.length + " entries in their dashboard.");
     };
 
