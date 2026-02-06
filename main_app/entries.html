@@ -5,203 +5,234 @@
   <title>Entries - EMI Manager</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      background: #121212;
-      color: #eee;
-      font-family: sans-serif;
-      margin: 0;
-      padding: 0;
+    /* --- MODERN DARK THEME --- */
+    :root { 
+      --bg: #121212; 
+      --card: #1e1e1e; 
+      --primary: #00e676; 
+      --secondary: #00bcd4;
+      --text: #eee; 
+      --border: #333; 
     }
-    nav {
-      background: #1f1f1f;
-      display: flex;
-      padding: 10px;
-      gap: 15px;
-      flex-wrap: wrap;
-    }
-    nav a {
-      color: white;
-      background: #333;
-      padding: 8px 15px;
-      border-radius: 5px;
-      text-decoration: none;
-    }
-    nav a:hover {
-      background: #00bcd4;
-      color: black;
-    }
-    main {
-      padding: 20px;
-    }
-    h1 {
-      color: #00bcd4;
-    }
-    input, select, button {
-      padding: 10px;
-      margin: 5px 10px 15px 0;
-      border-radius: 5px;
-      border: 1px solid #444;
-      background: #1e1e1e;
-      color: white;
-    }
-    button {
-      background: #00bcd4;
-      color: #000;
-      font-weight: bold;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #26c6da;
-    }
-    .product-block {
-      background: #1e1e1e;
-      padding: 15px;
-      border-radius: 6px;
-      margin: 10px 0;
-    }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; }
+    
+    /* Navigation */
+    nav { background: var(--card); padding: 10px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; border: 1px solid var(--border); }
+    nav a { color: #aaa; text-decoration: none; padding: 8px 15px; border-radius: 4px; transition: 0.2s; }
+    nav a:hover, nav a.active { background: var(--primary); color: #000; font-weight: bold; }
+
+    /* Search Area */
+    .search-container { background: var(--card); padding: 20px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; display: flex; gap: 10px; }
+    input { flex: 1; padding: 12px; background: #2c2c2c; border: 1px solid #444; color: white; border-radius: 4px; font-size: 1rem; }
+    button { padding: 10px 25px; background: var(--secondary); color: #000; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+    button:hover { filter: brightness(0.9); }
+    button.pay-btn { background: var(--primary); width: 100%; margin-top: 10px; }
+
+    /* Result Cards */
+    .result-area { display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+    .customer-card { background: var(--card); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
+    .card-header { background: #252525; padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+    .card-header h3 { margin: 0; color: #fff; font-size: 1.1rem; }
+    .card-header small { color: #aaa; }
+    
+    .product-list { padding: 15px; }
+    .product-item { background: #1a1a1a; padding: 15px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #333; }
+    .prod-title { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; color: var(--secondary); }
+    .stats-row { display: flex; justify-content: space-between; font-size: 0.9rem; color: #bbb; margin-bottom: 15px; }
+    
+    .input-group { display: flex; gap: 10px; }
+    .input-group input { padding: 8px; }
+
+    /* Helper Classes */
+    .text-green { color: var(--primary); }
+    .text-red { color: #ff5252; }
   </style>
 </head>
 <body>
+
   <nav>
     <a href="index.html">Dashboard</a>
     <a href="customers.html">Customers</a>
-    <a href="entries.html">Entries</a>
-    <a href="review.html">Agent Review</a>
-    <a href="report.html">Reports</a>
+    <a href="entries.html" class="active">Entries</a>
+    <a href="review.html">Agent Sync</a>
+    <a href="reports.html">Reports</a>
   </nav>
 
-  <main>
-    <h1>Daily Payment Entry</h1>
-    <input type="file" accept=".json" onchange="loadJSON(event)">
-    <br>
-    <input id="searchId" placeholder="Search by Customer ID or Name" oninput="searchCustomer()">
-    <div id="resultArea"></div>
-    <button onclick="exportUpdated()">Export Updated JSON</button>
-  </main>
+  <div class="search-container">
+    <input id="searchInput" placeholder="🔍 Enter Customer ID (e.g., C001)..." onkeypress="handleEnter(event)">
+    <button onclick="searchCustomer()">Search</button>
+  </div>
 
-  <script>
-    let customers = [];
+  <div id="resultArea" class="result-area">
+    <div style="grid-column: 1/-1; text-align: center; color: #666; margin-top: 50px;">
+      Type a Customer ID above to manage payments.
+    </div>
+  </div>
 
-    function loadJSON(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        customers = JSON.parse(e.target.result);
-        alert("✅ Data loaded. You can now search and update.");
-      };
-      reader.readAsText(file);
-    }
+  <script type="module">
+    import { db } from "./config.js";
+    import { 
+      collection, query, where, getDocs, doc, runTransaction, increment, limit 
+    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-    function getPaidTotal(product) {
-      if (Array.isArray(product.payments)) {
-        return product.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-      } else if (typeof product.paid === "number") {
-        return product.paid;
-      }
-      return 0;
-    }
-
-    function searchCustomer() {
-      const key = document.getElementById("searchId").value.toLowerCase();
-      const match = customers.find(c =>
-        c.id.toLowerCase().includes(key) ||
-        c.name.toLowerCase().includes(key)
-      );
-
+    // --- 1. SEARCH LOGIC ---
+    window.searchCustomer = async () => {
+      const term = document.getElementById("searchInput").value.trim();
       const div = document.getElementById("resultArea");
-      div.innerHTML = "";
+      
+      if (term.length < 1) return alert("Please enter an ID");
 
-      if (!match) {
-        div.innerHTML = "<p>No customer found.</p>";
-        return;
-      }
+      div.innerHTML = `<p style="color:#aaa; text-align:center; width:100%;">Searching cloud database...</p>`;
 
-      const container = document.createElement("div");
-      container.innerHTML = `<h3>${match.name} (${match.id})</h3><p>Phone: ${match.phone} | Place: ${match.place}</p>`;
+      try {
+        // Optimized Search: Range query for 'starts with' + Limit 5
+        const q = query(
+          collection(db, "customers"),
+          where("id", ">=", term),
+          where("id", "<=", term + '\uf8ff'),
+          limit(5)
+        );
 
-      match.products.forEach((p, i) => {
-        // Convert old format to new format if necessary
-        if (!p.payments && Array.isArray(p.datesPaid)) {
-          const avg = (p.paid || 0) / p.datesPaid.length;
-          p.payments = p.datesPaid.map((date, index) => ({
-            date,
-            amount: Math.round(avg * 100) / 100,
-            dueNumber: index + 1
-          }));
+        const snapshot = await getDocs(q);
+        div.innerHTML = "";
+
+        if (snapshot.empty) {
+          div.innerHTML = `<p style="text-align:center; width:100%;">❌ No customer found with ID "${term}"</p>`;
+          return;
         }
 
-        // Ensure payments array exists
-        p.payments = p.payments || [];
+        snapshot.forEach(docSnap => {
+          renderCard(docSnap.data());
+        });
 
-        const paid = getPaidTotal(p);
-        const balance = Math.max(0, p.total - paid);
+      } catch (e) {
+        console.error(e);
+        div.innerHTML = `<p style="color:red; text-align:center;">Error: ${e.message}</p>`;
+      }
+    };
 
-        const prodDiv = document.createElement("div");
-        prodDiv.className = "product-block";
-        prodDiv.innerHTML = `
-          <strong>${p.name}</strong><br>
-          Total: ₹${p.total}, Paid: ₹${paid}, Balance: ₹${balance}<br>
-          <input type="number" placeholder="Enter amount to add" id="pay_${match.id}_${i}">
-          <input type="date" id="date_${match.id}_${i}" value="${new Date().toISOString().split('T')[0]}">
-          <button onclick="addPayment('${match.id}', ${i})">Add Payment</button>
-        `;
-        container.appendChild(prodDiv);
-      });
-
-      div.appendChild(container);
+    window.handleEnter = (e) => {
+      if(e.key === "Enter") searchCustomer();
     }
 
-    function addPayment(custId, productIndex) {
-      const amtInput = document.getElementById(`pay_${custId}_${productIndex}`);
-      const dateInput = document.getElementById(`date_${custId}_${productIndex}`);
+    // --- 2. RENDER CARD UI ---
+    function renderCard(c) {
+      const div = document.getElementById("resultArea");
+      const card = document.createElement("div");
+      card.className = "customer-card";
+
+      let productsHtml = "";
+      
+      c.products.forEach((p, idx) => {
+        const balance = p.total - p.paid;
+        // Last payment info (optional helper)
+        const lastPay = p.payments.length > 0 ? p.payments[p.payments.length - 1] : null;
+        const lastPayText = lastPay ? `Last: ₹${lastPay.amount} on ${lastPay.date}` : "No payments yet";
+
+        productsHtml += `
+          <div class="product-item">
+            <div class="prod-title">
+              <span>📦 ${p.name}</span>
+              <span class="${balance > 0 ? 'text-red' : 'text-green'}">Bal: ₹${balance}</span>
+            </div>
+            
+            <div class="stats-row">
+              <span>Total: ₹${p.total}</span>
+              <span>Paid: ₹${p.paid}</span>
+            </div>
+            <div style="font-size:0.8rem; color:#666; margin-bottom:10px;">${lastPayText}</div>
+
+            <div class="input-group">
+              <input type="number" id="amt_${c.id}_${idx}" placeholder="Amount (₹)">
+              <input type="date" id="date_${c.id}_${idx}" value="${new Date().toISOString().split('T')[0]}">
+            </div>
+            <button class="pay-btn" onclick="processPayment('${c.id}', ${idx})">Add Payment</button>
+          </div>
+        `;
+      });
+
+      card.innerHTML = `
+        <div class="card-header">
+          <div>
+            <h3>${c.name}</h3>
+            <small>ID: ${c.id}</small>
+          </div>
+          <div style="text-align:right;">
+            <small>📍 ${c.place || '-'}</small><br>
+            <small>📞 ${c.phone || '-'}</small>
+          </div>
+        </div>
+        <div class="product-list">${productsHtml}</div>
+      `;
+      div.appendChild(card);
+    }
+
+    // --- 3. PAYMENT TRANSACTION LOGIC ---
+    window.processPayment = async (custId, prodIdx) => {
+      const amtInput = document.getElementById(`amt_${custId}_${prodIdx}`);
+      const dateInput = document.getElementById(`date_${custId}_${prodIdx}`);
+      
       const amount = parseFloat(amtInput.value);
       const date = dateInput.value;
 
-      if (isNaN(amount) || amount <= 0 || !date) {
-        alert("❌ Enter a valid amount and date.");
-        return;
+      if (!amount || amount <= 0) return alert("❌ Enter a valid positive amount");
+
+      const btn = event.target;
+      const originalText = btn.innerText;
+      btn.innerText = "Processing...";
+      btn.disabled = true;
+
+      try {
+        await runTransaction(db, async (transaction) => {
+          // 1. Get Refs
+          const custRef = doc(db, "customers", custId);
+          const statsRef = doc(db, "metadata", "stats");
+
+          // 2. Read
+          const custDoc = await transaction.get(custRef);
+          if (!custDoc.exists()) throw "Customer does not exist!";
+
+          const data = custDoc.data();
+          const product = data.products[prodIdx];
+
+          // 3. Logic
+          // Find max due number
+          let maxDue = 0;
+          if (product.payments && product.payments.length > 0) {
+            maxDue = Math.max(...product.payments.map(p => p.dueNumber || 0));
+          }
+
+          const newPayment = {
+            date: date,
+            amount: amount,
+            dueNumber: maxDue + 1,
+            type: "Manual Entry"
+          };
+
+          product.payments.push(newPayment);
+          product.paid += amount;
+
+          // 4. Update Customer
+          transaction.update(custRef, { products: data.products });
+
+          // 5. Update Global Dashboard Stats (Atomic)
+          transaction.update(statsRef, {
+            totalPaid: increment(amount),
+            totalBalance: increment(-amount)
+          });
+        });
+
+        alert("✅ Payment Successful!");
+        // Refresh the specific card to show new balance
+        searchCustomer(); 
+
+      } catch (e) {
+        console.error(e);
+        alert("Transaction Failed: " + e.message);
+        btn.innerText = originalText;
+        btn.disabled = false;
       }
-
-      const customer = customers.find(c => c.id === custId);
-      const product = customer.products[productIndex];
-
-      if (!Array.isArray(product.payments)) {
-        product.payments = [];
-      }
-
-      // Clean up old format keys
-      delete product.paid;
-      delete product.datesPaid;
-
-      // ✅ Find the highest dueNumber in existing payments
-      let lastDue = 0;
-      if (product.payments.length > 0) {
-        lastDue = Math.max(...product.payments.map(p => p.dueNumber || 0));
-      }
-
-      const newDue = lastDue + 1;
-
-      product.payments.push({
-        date,
-        amount,
-        dueNumber: newDue
-      });
-
-      amtInput.value = "";
-      alert(`✅ Payment added. Due number: ${newDue}`);
-      searchCustomer(); // Refresh display
-    }
-
-    function exportUpdated() {
-      const blob = new Blob([JSON.stringify(customers, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "updated_customers.json";
-      a.click();
-    }
+    };
   </script>
 </body>
 </html>
