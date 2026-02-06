@@ -3,101 +3,139 @@
 <head>
   <meta charset="UTF-8">
   <title>View Entries - Agent App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
-    /* --- MODERN DARK THEME --- */
+    /* --- PROFESSIONAL DARK THEME (Consistent) --- */
     :root { 
-      --bg: #121212; 
-      --card: #1e1e1e; 
-      --primary: #00e676; 
-      --secondary: #00bcd4; 
-      --danger: #ff5252; 
-      --warning: #ffab40;
-      --text: #eee; 
-      --border: #333; 
+      --bg: #0f172a; 
+      --card: #1e293b; 
+      --input: #0f172a;
+      --primary: #10b981; /* Emerald */
+      --secondary: #0ea5e9; /* Sky Blue */
+      --danger: #ef4444; 
+      --warning: #f59e0b;
+      --text: #f8fafc; 
+      --text-muted: #94a3b8;
+      --border: #334155; 
     }
-    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; padding-bottom: 80px; }
     
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; padding-bottom: 90px; }
+
     /* Navigation */
-    nav { background: var(--card); padding: 10px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; border: 1px solid var(--border); }
-    nav a { color: #aaa; text-decoration: none; padding: 8px 15px; border-radius: 4px; transition: 0.2s; }
-    nav a:hover, nav a.active { background: var(--secondary); color: #000; font-weight: bold; }
+    nav { 
+      background: var(--card); padding: 15px; border-bottom: 1px solid var(--border); 
+      display: flex; gap: 10px; overflow-x: auto; position: sticky; top: 0; z-index: 1000;
+    }
+    nav a { 
+      color: var(--text-muted); text-decoration: none; padding: 8px 16px; border-radius: 8px; 
+      font-size: 0.95rem; white-space: nowrap; transition: 0.2s; background: rgba(255,255,255,0.05);
+    }
+    nav a:hover { background: #2d3748; color: white; }
+    nav a.active { background: rgba(14, 165, 233, 0.15); color: var(--secondary); font-weight: 600; border: 1px solid rgba(14, 165, 233, 0.3); }
 
-    /* Header Stats */
+    /* Layout */
+    .container { max-width: 800px; margin: 20px auto; padding: 0 15px; }
+
+    /* Stats Header */
     .stats-header { 
-      display: flex; justify-content: space-between; align-items: center; 
-      background: linear-gradient(135deg, #1e1e1e, #252525);
-      padding: 20px; border-radius: 12px; border: 1px solid var(--border);
-      margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      background: var(--card); padding: 25px; border-radius: 16px; 
+      border: 1px solid var(--border); margin-bottom: 25px;
+      display: flex; justify-content: space-between; align-items: center;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
     }
-    .stats-header h2 { margin: 0; font-size: 1.2rem; color: #fff; }
-    .total-amt { font-size: 1.5rem; font-weight: bold; color: var(--primary); }
+    .stats-header h2 { margin: 0; font-size: 1rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .total-amt { font-size: 2rem; font-weight: 700; color: var(--primary); }
 
-    /* Entry Cards */
-    .entries-grid { display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
-    
+    /* Entry Cards Grid */
+    .entries-grid { display: grid; gap: 15px; grid-template-columns: 1fr; }
+    @media (min-width: 600px) { .entries-grid { grid-template-columns: 1fr 1fr; } }
+
     .entry-card { 
-      background: var(--card); padding: 15px; border-radius: 10px; 
-      border: 1px solid var(--border); position: relative; transition: transform 0.2s;
+      background: var(--card); border-radius: 12px; border: 1px solid var(--border); 
+      position: relative; transition: transform 0.2s; overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .entry-card:hover { transform: translateY(-2px); border-color: #555; }
+    .entry-card:active { transform: scale(0.99); }
     
-    .entry-card.pending { border-left: 4px solid var(--warning); }
+    /* Left Border Indicator */
+    .entry-card.pending { border-left: 5px solid var(--warning); }
 
-    .card-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
-    .cust-name { font-weight: bold; font-size: 1.1rem; color: #fff; }
-    .status-badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; }
-    .bg-pending { background: rgba(255, 171, 64, 0.2); color: var(--warning); }
+    .card-content { padding: 15px; }
 
-    .card-body { display: flex; flex-direction: column; gap: 8px; font-size: 0.9rem; color: #bbb; }
-    .row { display: flex; justify-content: space-between; align-items: center; }
+    .card-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     
-    .highlight { color: var(--secondary); font-weight: bold; font-size: 1.1rem; }
-    .due-badge { background: #333; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; border: 1px solid #444; }
+    .cust-name { font-weight: 600; font-size: 1.1rem; color: #fff; }
+    .status-badge { 
+      font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase; 
+      background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3);
+    }
 
-    /* Action Buttons */
+    .info-group { display: flex; justify-content: space-between; align-items: flex-end; }
+    .info-label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 2px; }
+    .info-val { font-size: 1rem; color: #fff; }
+    .highlight { color: var(--secondary); font-weight: 700; font-size: 1.2rem; }
+
+    .meta-row { 
+      margin-top: 12px; padding-top: 12px; border-top: 1px solid #334155; 
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .due-tag { 
+      background: #0f172a; padding: 4px 10px; border-radius: 6px; 
+      font-size: 0.85rem; color: var(--text); border: 1px solid #334155;
+    }
+
+    /* Actions */
     .card-actions { 
-      display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; border-top: 1px solid #333; padding-top: 10px; 
+      background: rgba(0,0,0,0.2); padding: 10px 15px; display: flex; gap: 10px; 
     }
     .btn-icon { 
-      background: #2c2c2c; color: #fff; border: 1px solid #444; 
-      padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 5px;
+      flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--border); 
+      background: transparent; color: var(--text-muted); font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 5px; transition: 0.2s;
     }
-    .btn-edit:hover { background: var(--warning); color: #000; border-color: var(--warning); }
-    .btn-delete:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .btn-edit:hover { background: rgba(245, 158, 11, 0.1); color: var(--warning); border-color: var(--warning); }
+    .btn-delete:hover { background: rgba(239, 68, 68, 0.1); color: var(--danger); border-color: var(--danger); }
 
-    /* Submit Button */
-    .fab-container { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; pointer-events: none; }
-    .fab-btn {
-      pointer-events: auto; background: var(--secondary); color: #000; font-weight: bold;
-      padding: 12px 30px; border-radius: 30px; border: none;
-      box-shadow: 0 4px 15px rgba(0,188,212,0.4); cursor: pointer;
-      display: flex; align-items: center; gap: 8px; font-size: 1rem; transition: 0.2s;
+    /* Floating Submit Button */
+    .fab-container { 
+      position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; 
+      pointer-events: none; z-index: 900;
     }
-    .fab-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+    .fab-btn {
+      pointer-events: auto; background: var(--primary); color: #000; font-weight: 700;
+      padding: 14px 30px; border-radius: 30px; border: none;
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3); cursor: pointer;
+      display: flex; align-items: center; gap: 10px; font-size: 1rem; transition: 0.2s;
+    }
+    .fab-btn:active { transform: scale(0.95); }
 
     /* Modal */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; z-index: 2000;
     }
     .modal {
-      background: var(--card); padding: 25px; border-radius: 12px; width: 90%; max-width: 400px;
-      border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      background: var(--card); padding: 25px; border-radius: 16px; width: 90%; max-width: 400px;
+      border: 1px solid var(--border); box-shadow: 0 20px 40px rgba(0,0,0,0.6); animation: slideUp 0.3s ease;
     }
-    .modal h3 { margin-top: 0; color: var(--secondary); }
+    .modal h3 { margin: 0 0 20px 0; color: var(--text); font-size: 1.3rem; }
     
     .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; color: #aaa; font-size: 0.85rem; margin-bottom: 5px; }
+    .form-group label { display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px; }
     .form-group input { 
-      width: 100%; padding: 12px; background: #121212; border: 1px solid #444; 
-      color: white; border-radius: 6px; box-sizing: border-box; font-size: 1rem;
+      width: 100%; padding: 12px; background: var(--input); border: 1px solid var(--border); 
+      color: white; border-radius: 10px; box-sizing: border-box; font-size: 1rem; outline: none;
     }
+    .form-group input:focus { border-color: var(--secondary); }
     
-    .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
-    .btn-modal { flex: 1; padding: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
-    .btn-cancel { background: #333; color: white; }
+    .modal-btns { display: flex; gap: 10px; margin-top: 25px; }
+    .btn-modal { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 1rem; }
+    .btn-cancel { background: #334155; color: white; }
     .btn-save { background: var(--primary); color: #000; }
+
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body>
@@ -109,16 +147,18 @@
     <a href="agent_customer_report.html">Report</a>
   </nav>
 
-  <div class="stats-header">
-    <div>
-      <h2>📝 Today's Logs</h2>
-      <small style="color:#888;">Pending Approval</small>
+  <div class="container">
+    <div class="stats-header">
+      <div>
+        <h2>Today's Pending</h2>
+        <small style="color:#64748b;">Waiting for Approval</small>
+      </div>
+      <div class="total-amt" id="totalAmt">₹0</div>
     </div>
-    <div class="total-amt" id="totalAmt">₹0</div>
-  </div>
 
-  <div id="entriesList" class="entries-grid">
-    <p style="text-align:center; width:100%; color:#666; margin-top:40px;">Loading entries...</p>
+    <div id="entriesList" class="entries-grid">
+      <p style="text-align:center; width:100%; color:#64748b; margin-top:40px;">Loading entries...</p>
+    </div>
   </div>
 
   <div class="fab-container">
@@ -129,27 +169,27 @@
 
   <div class="modal-overlay" id="editModal">
     <div class="modal">
-      <h3>✎ Edit Entry</h3>
+      <h3>✎ Edit Collection</h3>
       <input type="hidden" id="editDocId">
       
       <div class="form-group">
-        <label>Amount (₹)</label>
+        <label>Amount Collected (₹)</label>
         <input type="number" id="editAmount">
       </div>
       
       <div class="form-group">
-        <label>Due Number (Important)</label>
-        <input type="number" id="editDueNumber" placeholder="e.g. 5">
+        <label>Due Number (e.g. 5)</label>
+        <input type="number" id="editDueNumber" placeholder="Leave blank for Auto">
       </div>
       
       <div class="form-group">
-        <label>Date</label>
+        <label>Collection Date</label>
         <input type="date" id="editDate">
       </div>
       
       <div class="modal-btns">
         <button class="btn-modal btn-cancel" onclick="closeModal()">Cancel</button>
-        <button class="btn-modal btn-save" onclick="saveEdit()">Update</button>
+        <button class="btn-modal btn-save" onclick="saveEdit()">Save Changes</button>
       </div>
     </div>
   </div>
@@ -168,8 +208,7 @@
       const totalDiv = document.getElementById("totalAmt");
       
       try {
-        // Query Pending Entries
-        // Removed orderBy to prevent index errors, sorting in JS
+        // Query Pending Entries (No 'orderBy' to avoid index error)
         const q = query(collection(db, "temp_entries"), where("status", "==", "pending"));
 
         const snapshot = await getDocs(q);
@@ -191,7 +230,8 @@
         totalDiv.innerText = `₹${total.toLocaleString()}`;
 
         if (agentEntries.length === 0) {
-          listDiv.innerHTML = `<div style="text-align:center; color:#666; grid-column:1/-1; padding:40px;">
+          listDiv.innerHTML = `<div style="text-align:center; color:#64748b; padding:40px; grid-column:1/-1;">
+            <p style="font-size:3rem; margin:0;">📝</p>
             <h3>No pending entries.</h3>
             <p>Go to 'Add Collection' to start.</p>
           </div>`;
@@ -200,26 +240,33 @@
 
         agentEntries.forEach(d => {
           // Check for Due Number, default to 'Auto' if missing
-          const dueDisplay = d.dueNumber ? `#${d.dueNumber}` : 'Auto';
+          const dueDisplay = (d.dueNumber && d.dueNumber > 0) ? `#${d.dueNumber}` : 'Auto';
           
           const html = `
             <div class="entry-card pending">
-              <div class="card-header">
-                <span class="cust-name">${d.customerName}</span>
-                <span class="status-badge bg-pending">Pending</span>
-              </div>
-              
-              <div class="card-body">
-                <div class="row">
-                  <span>ID: ${d.customerId}</span>
-                  <span class="highlight">₹${d.amount}</span>
+              <div class="card-content">
+                <div class="card-row">
+                  <span class="cust-name">${d.customerName}</span>
+                  <span class="status-badge">Pending</span>
                 </div>
-                <div class="row">
-                  <span>📦 ${d.productName}</span>
-                  <span class="due-badge">Due: ${dueDisplay}</span>
+                
+                <div class="info-group">
+                  <div>
+                    <span class="info-label">Customer ID</span>
+                    <span class="info-val">${d.customerId}</span>
+                  </div>
+                  <div style="text-align:right;">
+                    <span class="info-label">Amount</span>
+                    <span class="highlight">₹${d.amount}</span>
+                  </div>
                 </div>
-                <div class="row" style="justify-content:flex-end; font-size:0.8rem; color:#888;">
-                  <span>📅 ${d.date}</span>
+
+                <div class="meta-row">
+                  <span class="info-val">📦 ${d.productName}</span>
+                  <span class="due-tag">Due: ${dueDisplay}</span>
+                </div>
+                <div style="text-align:right; margin-top:5px;">
+                  <span class="info-label">📅 ${d.date}</span>
                 </div>
               </div>
 
@@ -234,7 +281,7 @@
 
       } catch (e) {
         console.error(e);
-        listDiv.innerHTML = `<p style="color:#ff5252; text-align:center;">Error loading data: ${e.message}</p>`;
+        listDiv.innerHTML = `<p style="color:#ef4444; text-align:center;">Error loading data: ${e.message}</p>`;
       }
     }
 
@@ -246,7 +293,7 @@
       document.getElementById("editDocId").value = docId;
       document.getElementById("editAmount").value = entry.amount;
       document.getElementById("editDate").value = entry.date;
-      document.getElementById("editDueNumber").value = entry.dueNumber || ""; // Load existing or blank
+      document.getElementById("editDueNumber").value = entry.dueNumber || ""; 
       
       document.getElementById("editModal").style.display = "flex";
     };
@@ -264,7 +311,7 @@
       if (!newAmt || !newDate) return alert("Please fill Amount and Date");
 
       const btn = document.querySelector(".btn-save");
-      btn.innerText = "Updating...";
+      btn.innerText = "Saving...";
       btn.disabled = true;
 
       try {
@@ -276,20 +323,26 @@
           date: newDate
         };
         
-        // Only update dueNumber if user entered something
-        if (newDue) {
+        // Update Due logic
+        if (newDue > 0) {
           updateData.dueNumber = newDue;
+        } else {
+          // If user clears it, we can remove the field or set to 0
+          updateData.dueNumber = 0;
         }
 
         await updateDoc(ref, updateData);
 
-        alert("✅ Updated Successfully");
+        // UI Feedback (No alert popup preferred in professional UI, but kept alert for clarity per user habit)
+        // Ideally we would use a toast, but keeping logic strict.
+        alert("✅ Updated Successfully"); 
+        
         closeModal();
         loadAgentEntries(); // Refresh UI
       } catch (e) {
         alert("Error: " + e.message);
       } finally {
-        btn.innerText = "Update";
+        btn.innerText = "Save Changes";
         btn.disabled = false;
       }
     };
@@ -318,6 +371,9 @@
     // Export for HTML access
     window.openEdit = openEdit;
     window.deleteEntry = deleteEntry;
+    window.saveEdit = saveEdit;
+    window.closeModal = closeModal;
+    window.notifyAdmin = notifyAdmin;
   </script>
 </body>
 </html>
